@@ -1,0 +1,59 @@
+package com.github.rmheuer.voxel.render;
+
+import com.github.rmheuer.azalea.render.Renderer;
+import com.github.rmheuer.azalea.render.mesh.DataUsage;
+import com.github.rmheuer.azalea.render.mesh.VertexBuffer;
+import com.github.rmheuer.azalea.render.mesh.VertexData;
+import com.github.rmheuer.azalea.utils.SafeCloseable;
+
+public final class SectionRenderData implements SafeCloseable {
+    private VertexBuffer vertexBuffer;
+    private int elementCount;
+    private boolean meshOutdated;
+
+    public SectionRenderData() {
+        vertexBuffer = null;
+        meshOutdated = true;
+    }
+
+    public void markOutdated() {
+        meshOutdated = true;
+    }
+
+    public void updateMesh(Renderer renderer, VertexData data) {
+        elementCount = data.getVertexCount() / 4;
+
+        if (elementCount > 0) {
+            if (vertexBuffer == null)
+                vertexBuffer = renderer.createVertexBuffer();
+
+            vertexBuffer.setData(data, DataUsage.DYNAMIC);
+        } else {
+            if (vertexBuffer != null) {
+                vertexBuffer.close();
+                vertexBuffer = null;
+            }
+        }
+
+        meshOutdated = false;
+    }
+
+    public VertexBuffer getVertexBuffer() {
+        return vertexBuffer;
+    }
+
+    public int getElementCount() {
+        return elementCount;
+    }
+
+    public boolean isMeshOutdated() {
+        return meshOutdated;
+    }
+
+    @Override
+    public void close() {
+        if (vertexBuffer != null) {
+            vertexBuffer.close();
+        }
+    }
+}
