@@ -1,6 +1,8 @@
 package com.github.rmheuer.voxel;
 
 import com.github.rmheuer.azalea.imgui.ImGuiBackend;
+import com.github.rmheuer.azalea.input.keyboard.Key;
+import com.github.rmheuer.azalea.input.keyboard.Keyboard;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.WindowSettings;
 import com.github.rmheuer.azalea.render.camera.Camera;
@@ -13,6 +15,7 @@ import com.github.rmheuer.voxel.render.LevelRenderer;
 import imgui.ImGui;
 import org.joml.Matrix4f;
 import org.joml.Vector2i;
+import org.joml.Vector3f;
 
 import java.io.IOException;
 
@@ -40,18 +43,56 @@ public final class VoxelGame extends BaseGame {
         levelRenderData = new LevelRenderData(4, 4, 4);
 
         for (int y = 0; y < 24; y++) {
-            for (int z = 0; z < 32; z++) {
-                for (int x = 0; x < 32; x++) {
+            for (int z = 0; z < 64; z++) {
+                for (int x = 0; x < 64; x++) {
                     level.setBlockId(x, y, z, Blocks.ID_STONE);
                 }
             }
         }
+        for (int i = 0; i < 1024; i++) {
+            int x = (int) (Math.random() * 64);
+            int y = 24 + (int) (Math.random() * 4);
+            int z = (int) (Math.random() * 64);
+            level.setBlockId(x, y, z, Blocks.ID_STONE);
+        }
     }
 
     @Override
-    protected void tick(float v) {
-        camera.getTransform().position.set(16, 32, 16);
-        camera.getTransform().rotation.x = (float) Math.toRadians(60);
+    protected void tick(float dt) {
+        moveCamera(imGuiBackend.getMaskedKeyboard(), dt);
+    }
+
+    private void moveCamera(Keyboard kb, float dt) {
+        Vector3f pos = camera.getTransform().position;
+        Vector3f rot = camera.getTransform().rotation;
+
+        float move = dt * 20;
+        Vector3f forward = new Vector3f(0, 0, -move).rotateY(rot.y);
+        Vector3f right = new Vector3f(move, 0, 0).rotateY(rot.y);
+        Vector3f up = new Vector3f(0, move, 0);
+
+        if (kb.isKeyPressed(Key.W))
+            pos.add(forward);
+        if (kb.isKeyPressed(Key.S))
+            pos.sub(forward);
+        if (kb.isKeyPressed(Key.D))
+            pos.add(right);
+        if (kb.isKeyPressed(Key.A))
+            pos.sub(right);
+        if (kb.isKeyPressed(Key.SPACE))
+            pos.add(up);
+        if (kb.isKeyPressed(Key.LEFT_SHIFT))
+            pos.sub(up);
+
+        float turn = (float) (dt * Math.PI);
+        if (kb.isKeyPressed(Key.LEFT))
+            rot.y += turn;
+        if (kb.isKeyPressed(Key.RIGHT))
+            rot.y -= turn;
+        if (kb.isKeyPressed(Key.UP))
+            rot.x += turn;
+        if (kb.isKeyPressed(Key.DOWN))
+            rot.x -= turn;
     }
 
     @Override
@@ -64,7 +105,6 @@ public final class VoxelGame extends BaseGame {
         levelRenderer.renderLevel(renderer, level, levelRenderData, viewProj);
 
         imGuiBackend.beginFrame();
-        ImGui.showAboutWindow();
         imGuiBackend.endFrameAndRender();
     }
 

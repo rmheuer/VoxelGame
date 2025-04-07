@@ -21,7 +21,7 @@ public final class SectionRenderData implements SafeCloseable {
     }
 
     public void updateMesh(Renderer renderer, VertexData data) {
-        elementCount = data.getVertexCount() / 4;
+        elementCount = data.getVertexCount() / 4 * 6;
 
         if (elementCount > 0) {
             if (vertexBuffer == null)

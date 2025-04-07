@@ -3,11 +3,9 @@ package com.github.rmheuer.voxel.render;
 import com.github.rmheuer.azalea.io.ResourceUtil;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.mesh.*;
-import com.github.rmheuer.azalea.render.pipeline.ActivePipeline;
-import com.github.rmheuer.azalea.render.pipeline.CullMode;
-import com.github.rmheuer.azalea.render.pipeline.FaceWinding;
-import com.github.rmheuer.azalea.render.pipeline.PipelineInfo;
+import com.github.rmheuer.azalea.render.pipeline.*;
 import com.github.rmheuer.azalea.render.shader.ShaderProgram;
+import com.github.rmheuer.azalea.render.shader.ShaderUniform;
 import com.github.rmheuer.azalea.render.utils.SharedIndexBuffer;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
 import com.github.rmheuer.voxel.level.Blocks;
@@ -40,7 +38,8 @@ public final class LevelRenderer implements SafeCloseable {
         pipeline = new PipelineInfo(shader)
                 .setDepthTest(true)
                 .setWinding(FaceWinding.CCW_FRONT)
-                .setCullMode(CullMode.BACK);
+                .setCullMode(CullMode.BACK)
+                .setFillMode(FillMode.FILLED);
 
         sharedIndexBuffer = new SharedIndexBuffer(
                 renderer,
@@ -73,7 +72,9 @@ public final class LevelRenderer implements SafeCloseable {
         try (ActivePipeline pipe = renderer.bindPipeline(pipeline)) {
             pipe.getUniform("u_ViewProj").setMat4(viewProj);
 
+            ShaderUniform offsetUniform = pipe.getUniform("u_SectionOffset");
             IndexBuffer indexBuffer = sharedIndexBuffer.getIndexBuffer();
+
             for (int sectionY = 0; sectionY < sectionsY; sectionY++) {
                 for (int sectionZ = 0; sectionZ < sectionsZ; sectionZ++) {
                     for (int sectionX = 0; sectionX < sectionsX; sectionX++) {
@@ -81,6 +82,11 @@ public final class LevelRenderer implements SafeCloseable {
 
                         int elementCount = section.getElementCount();
                         if (elementCount > 0) {
+                            offsetUniform.setVec3(
+                                    sectionX * LevelSection.SIZE,
+                                    sectionY * LevelSection.SIZE,
+                                    sectionZ * LevelSection.SIZE
+                            );
                             pipe.draw(section.getVertexBuffer(), indexBuffer, 0, elementCount);
                         }
                     }
