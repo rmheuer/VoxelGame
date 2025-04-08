@@ -38,18 +38,47 @@ public final class LevelRenderData implements SafeCloseable {
 
         markSectionOutdated(sectionX, sectionY, sectionZ);
 
-        if (sectionX > 0 && relX == 0)
+        boolean faceNX = sectionX > 0 && relX == 0;
+        boolean faceNY = sectionY > 0 && relY == 0;
+        boolean faceNZ = sectionZ > 0 && relZ == 0;
+        boolean facePX = sectionX < sectionsX - 1 && relX == LevelSection.SIZE - 1;
+        boolean facePY = sectionY < sectionsY - 1 && relY == LevelSection.SIZE - 1;
+        boolean facePZ = sectionZ < sectionsZ - 1 && relZ == LevelSection.SIZE - 1;
+
+        // Check neighbors along faces
+        if (faceNX)
             markSectionOutdated(sectionX - 1, sectionY, sectionZ);
-        if (sectionY > 0 && relY == 0)
+        if (faceNY)
             markSectionOutdated(sectionX, sectionY - 1, sectionZ);
-        if (sectionZ > 0 && relZ == 0)
+        if (faceNZ)
             markSectionOutdated(sectionX, sectionY, sectionZ - 1);
-        if (sectionX < sectionsX - 1 && relX == LevelSection.SIZE - 1)
+        if (facePX)
             markSectionOutdated(sectionX + 1, sectionY, sectionZ);
-        if (sectionY < sectionsY - 1 && relY == LevelSection.SIZE - 1)
+        if (facePY)
             markSectionOutdated(sectionX, sectionY + 1, sectionZ);
-        if (sectionZ < sectionsZ - 1 && relZ == LevelSection.SIZE - 1)
+        if (facePZ)
             markSectionOutdated(sectionX, sectionY, sectionZ + 1);
+
+        // Check neighbors along edges
+        // TODO
+
+        // Check neighbors along vertices
+        if (faceNX && faceNY && faceNZ)
+            markSectionOutdated(sectionX - 1, sectionY - 1, sectionZ - 1);
+        if (facePX && faceNY && faceNZ)
+            markSectionOutdated(sectionX + 1, sectionY - 1, sectionZ - 1);
+        if (faceNX && facePY && faceNZ)
+            markSectionOutdated(sectionX - 1, sectionY + 1, sectionZ - 1);
+        if (facePX && facePY && faceNZ)
+            markSectionOutdated(sectionX + 1, sectionY + 1, sectionZ - 1);
+        if (faceNX && faceNY && facePZ)
+            markSectionOutdated(sectionX - 1, sectionY - 1, sectionZ + 1);
+        if (facePX && faceNY && facePZ)
+            markSectionOutdated(sectionX + 1, sectionY - 1, sectionZ + 1);
+        if (faceNX && facePY && facePZ)
+            markSectionOutdated(sectionX - 1, sectionY + 1, sectionZ + 1);
+        if (facePX && facePY && facePZ)
+            markSectionOutdated(sectionX + 1, sectionY + 1, sectionZ + 1);
     }
 
     @Override
