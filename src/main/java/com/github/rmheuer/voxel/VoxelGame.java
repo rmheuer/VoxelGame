@@ -1,6 +1,5 @@
 package com.github.rmheuer.voxel;
 
-import com.github.rmheuer.azalea.imgui.ImGuiBackend;
 import com.github.rmheuer.azalea.input.keyboard.Key;
 import com.github.rmheuer.azalea.input.keyboard.Keyboard;
 import com.github.rmheuer.azalea.render.Renderer;
@@ -12,7 +11,6 @@ import com.github.rmheuer.voxel.level.Blocks;
 import com.github.rmheuer.voxel.level.Level;
 import com.github.rmheuer.voxel.render.LevelRenderData;
 import com.github.rmheuer.voxel.render.LevelRenderer;
-import imgui.ImGui;
 import org.joml.Matrix4f;
 import org.joml.Vector2i;
 import org.joml.Vector3f;
@@ -24,7 +22,6 @@ public final class VoxelGame extends BaseGame {
             new WindowSettings(640, 480, "Voxel")
                 .setVSync(false);
 
-    private final ImGuiBackend imGuiBackend;
     private final LevelRenderer levelRenderer;
 
     private final Camera camera;
@@ -34,7 +31,6 @@ public final class VoxelGame extends BaseGame {
     public VoxelGame() throws IOException {
         super(WINDOW_SETTINGS);
 
-        imGuiBackend = new ImGuiBackend(getWindow(), getEventBus());
         levelRenderer = new LevelRenderer(getRenderer());
 
         camera = new Camera(new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f));
@@ -59,7 +55,7 @@ public final class VoxelGame extends BaseGame {
 
     @Override
     protected void tick(float dt) {
-        moveCamera(imGuiBackend.getMaskedKeyboard(), dt);
+        moveCamera(getWindow().getKeyboard(), dt);
     }
 
     private void moveCamera(Keyboard kb, float dt) {
@@ -103,16 +99,12 @@ public final class VoxelGame extends BaseGame {
         Matrix4f viewProj = new Matrix4f(proj).mul(view);
 
         levelRenderer.renderLevel(renderer, level, levelRenderData, viewProj);
-
-        imGuiBackend.beginFrame();
-        imGuiBackend.endFrameAndRender();
     }
 
     @Override
     protected void cleanUp() {
         levelRenderData.close();
         levelRenderer.close();
-        imGuiBackend.close();
     }
 
     public static void main(String[] args) {
