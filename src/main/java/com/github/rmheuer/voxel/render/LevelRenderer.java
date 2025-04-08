@@ -159,7 +159,7 @@ public final class LevelRenderer implements SafeCloseable {
                         data.putVec3(x + 1, y, z); data.putFloat(SHADE_LEFT_RIGHT);
                         data.putVec3(x + 1, y + 1, z); data.putFloat(SHADE_LEFT_RIGHT);
                     }
-                    if (blockPY != null && blockPY == Blocks.ID_AIR) {
+                    if (blockPY == null || blockPY == Blocks.ID_AIR) {
                         data.putVec3(x, y + 1, z); data.putFloat(SHADE_UP);
                         data.putVec3(x, y + 1, z + 1); data.putFloat(SHADE_UP);
                         data.putVec3(x + 1, y + 1, z + 1); data.putFloat(SHADE_UP);
