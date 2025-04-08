@@ -54,6 +54,7 @@ public final class LevelRenderer implements SafeCloseable {
         int sectionsY = level.getSectionsY();
         int sectionsZ = level.getSectionsZ();
 
+        int updated = 0;
         for (int sectionY = 0; sectionY < sectionsY; sectionY++) {
             for (int sectionZ = 0; sectionZ < sectionsZ; sectionZ++) {
                 for (int sectionX = 0; sectionX < sectionsX; sectionX++) {
@@ -64,9 +65,13 @@ public final class LevelRenderer implements SafeCloseable {
                             renderSection.updateMesh(renderer, data);
                             sharedIndexBuffer.ensureCapacity(data.getVertexCount() / 4);
                         }
+                        updated++;
                     }
                 }
             }
+        }
+        if (updated > 0) {
+            System.out.println("Updated " + updated + " section mesh(es)");
         }
 
         try (ActivePipeline pipe = renderer.bindPipeline(pipeline)) {
