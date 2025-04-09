@@ -40,6 +40,7 @@ public final class VoxelGame extends BaseGame {
 
     private boolean mouseCaptured;
     private Raycast.Result raycastResult;
+    private byte blockIdToPlace;
 
     private boolean drawSectionBoundaries;
     private boolean drawLightHeights;
@@ -77,6 +78,8 @@ public final class VoxelGame extends BaseGame {
         getEventBus().addHandler(MouseMoveEvent.class, this::mouseMoved);
         getEventBus().addHandler(MouseButtonPressEvent.class, this::mousePressed);
 
+        blockIdToPlace = Blocks.ID_SOLID;
+
         drawSectionBoundaries = false;
         drawLightHeights = false;
     }
@@ -93,6 +96,10 @@ public final class VoxelGame extends BaseGame {
             drawSectionBoundaries = !drawSectionBoundaries;
         } else if (event.getKey() == Key.F2) {
             drawLightHeights = !drawLightHeights;
+        } else if (event.getKey() == Key.ONE) {
+            blockIdToPlace = Blocks.ID_SOLID;
+        } else if (event.getKey() == Key.TWO) {
+            blockIdToPlace = Blocks.ID_TRANSLUCENT;
         }
     }
 
@@ -131,7 +138,7 @@ public final class VoxelGame extends BaseGame {
                 Vector3i pos = new Vector3i(raycastResult.blockPos)
                         .add(raycastResult.hitFace.getDirection());
 
-                setBlock(pos, Blocks.ID_SOLID);
+                setBlock(pos, blockIdToPlace);
             }
         }
     }

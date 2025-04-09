@@ -54,7 +54,7 @@ public final class Raycast {
         float t = 0.0f;
         while (t < maxDistance) {
             byte blockId = map.getBlockId(blockX, blockY, blockZ);
-            if (blockId == Blocks.ID_SOLID) {
+            if (blockId != Blocks.ID_AIR) {
                 Vector3f hitPos = new Vector3f(pos).fma(t, dir);
 
                 CubeFace hitFace = null;

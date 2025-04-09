@@ -1,6 +1,7 @@
 package com.github.rmheuer.voxel.render;
 
 import com.github.rmheuer.azalea.io.ResourceUtil;
+import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.mesh.*;
 import com.github.rmheuer.azalea.render.pipeline.*;
@@ -19,6 +20,7 @@ import java.io.IOException;
 public final class LevelRenderer implements SafeCloseable {
     private static final VertexLayout LAYOUT = new VertexLayout(
             AttribType.VEC3, // Position
+            AttribType.COLOR_RGBA, // Color
             AttribType.FLOAT // Shade
     );
 
@@ -129,6 +131,10 @@ public final class LevelRenderer implements SafeCloseable {
                     if (block == Blocks.ID_AIR)
                         continue;
 
+                    int color = block == Blocks.ID_SOLID
+                            ? Colors.RGBA.WHITE
+                            : Colors.RGBA.fromFloats(0.0f, 0.0f, 1.0f, 0.2f);
+
                     Byte blockNX = x > 0
                             ? Byte.valueOf(section.getBlockId(x - 1, y, z))
                             : (sectionNX != null ? sectionNX.getBlockId(MapSection.SIZE - 1, y, z) : null);
@@ -152,47 +158,47 @@ public final class LevelRenderer implements SafeCloseable {
                     int blockY = oy + y;
                     int blockZ = oz + z;
 
-                    if (blockNX != null && blockNX == Blocks.ID_AIR) {
+                    if (blockNX != null && blockNX != block) {
                         float light = lightMap.isLit(blockX - 1, blockY, blockZ) ? SHADE_LIT : SHADE_SHADOW;
-                        data.putVec3(x, y + 1, z); data.putFloat(SHADE_LEFT_RIGHT * light);
-                        data.putVec3(x, y, z); data.putFloat(SHADE_LEFT_RIGHT * light);
-                        data.putVec3(x, y, z + 1); data.putFloat(SHADE_LEFT_RIGHT * light);
-                        data.putVec3(x, y + 1, z + 1); data.putFloat(SHADE_LEFT_RIGHT * light);
+                        data.putVec3(x, y + 1, z); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
+                        data.putVec3(x, y, z); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
+                        data.putVec3(x, y, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
+                        data.putVec3(x, y + 1, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
                     }
-                    if (blockNY != null && blockNY == Blocks.ID_AIR) {
+                    if (blockNY != null && blockNY != block) {
                         // Bottom face is always in shadow
-                        data.putVec3(x + 1, y, z); data.putFloat(SHADE_DOWN * SHADE_SHADOW);
-                        data.putVec3(x + 1, y, z + 1); data.putFloat(SHADE_DOWN * SHADE_SHADOW);
-                        data.putVec3(x, y, z + 1); data.putFloat(SHADE_DOWN * SHADE_SHADOW);
-                        data.putVec3(x, y, z); data.putFloat(SHADE_DOWN * SHADE_SHADOW);
+                        data.putVec3(x + 1, y, z); data.putColorRGBA(color); data.putFloat(SHADE_DOWN * SHADE_SHADOW);
+                        data.putVec3(x + 1, y, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_DOWN * SHADE_SHADOW);
+                        data.putVec3(x, y, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_DOWN * SHADE_SHADOW);
+                        data.putVec3(x, y, z); data.putColorRGBA(color); data.putFloat(SHADE_DOWN * SHADE_SHADOW);
                     }
-                    if (blockNZ != null && blockNZ == Blocks.ID_AIR) {
+                    if (blockNZ != null && blockNZ != block) {
                         float light = lightMap.isLit(blockX, blockY, blockZ - 1) ? SHADE_LIT : SHADE_SHADOW;
-                        data.putVec3(x + 1, y + 1, z); data.putFloat(SHADE_FRONT_BACK * light);
-                        data.putVec3(x + 1, y, z); data.putFloat(SHADE_FRONT_BACK * light);
-                        data.putVec3(x, y, z); data.putFloat(SHADE_FRONT_BACK * light);
-                        data.putVec3(x, y + 1, z); data.putFloat(SHADE_FRONT_BACK * light);
+                        data.putVec3(x + 1, y + 1, z); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
+                        data.putVec3(x + 1, y, z); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
+                        data.putVec3(x, y, z); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
+                        data.putVec3(x, y + 1, z); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
                     }
-                    if (blockPX != null && blockPX == Blocks.ID_AIR) {
+                    if (blockPX != null && blockPX != block) {
                         float light = lightMap.isLit(blockX + 1, blockY, blockZ) ? SHADE_LIT : SHADE_SHADOW;
-                        data.putVec3(x + 1, y + 1, z + 1); data.putFloat(SHADE_LEFT_RIGHT * light);
-                        data.putVec3(x + 1, y, z + 1); data.putFloat(SHADE_LEFT_RIGHT * light);
-                        data.putVec3(x + 1, y, z); data.putFloat(SHADE_LEFT_RIGHT * light);
-                        data.putVec3(x + 1, y + 1, z); data.putFloat(SHADE_LEFT_RIGHT * light);
+                        data.putVec3(x + 1, y + 1, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
+                        data.putVec3(x + 1, y, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
+                        data.putVec3(x + 1, y, z); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
+                        data.putVec3(x + 1, y + 1, z); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
                     }
-                    if (blockPY == null || blockPY == Blocks.ID_AIR) {
+                    if (blockPY == null || blockPY != block) {
                         float light = blockPY == null || lightMap.isLit(blockX, blockY + 1, blockZ) ? SHADE_LIT : SHADE_SHADOW;
-                        data.putVec3(x, y + 1, z); data.putFloat(SHADE_UP * light);
-                        data.putVec3(x, y + 1, z + 1); data.putFloat(SHADE_UP * light);
-                        data.putVec3(x + 1, y + 1, z + 1); data.putFloat(SHADE_UP * light);
-                        data.putVec3(x + 1, y + 1, z); data.putFloat(SHADE_UP * light);
+                        data.putVec3(x, y + 1, z); data.putColorRGBA(color); data.putFloat(SHADE_UP * light);
+                        data.putVec3(x, y + 1, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_UP * light);
+                        data.putVec3(x + 1, y + 1, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_UP * light);
+                        data.putVec3(x + 1, y + 1, z); data.putColorRGBA(color); data.putFloat(SHADE_UP * light);
                     }
-                    if (blockPZ != null && blockPZ == Blocks.ID_AIR) {
+                    if (blockPZ != null && blockPZ != block) {
                         float light = lightMap.isLit(blockX, blockY, blockZ + 1) ? SHADE_LIT : SHADE_SHADOW;
-                        data.putVec3(x, y + 1, z + 1); data.putFloat(SHADE_FRONT_BACK * light);
-                        data.putVec3(x, y, z + 1); data.putFloat(SHADE_FRONT_BACK * light);
-                        data.putVec3(x + 1, y, z + 1); data.putFloat(SHADE_FRONT_BACK * light);
-                        data.putVec3(x + 1, y + 1, z + 1); data.putFloat(SHADE_FRONT_BACK * light);
+                        data.putVec3(x, y + 1, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
+                        data.putVec3(x, y, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
+                        data.putVec3(x + 1, y, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
+                        data.putVec3(x + 1, y + 1, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
                     }
                 }
             }
