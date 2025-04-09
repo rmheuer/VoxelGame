@@ -1,23 +1,23 @@
 package com.github.rmheuer.voxel.level;
 
-public final class Level {
+public final class BlockMap {
     private final int sectionsX, sectionsY, sectionsZ;
     private final int blocksX, blocksY, blocksZ;
-    private final LevelSection[] sections;
+    private final MapSection[] sections;
 
-    public Level(int sectionsX, int sectionsY, int sectionsZ) {
+    public BlockMap(int sectionsX, int sectionsY, int sectionsZ) {
         this.sectionsX = sectionsX;
         this.sectionsY = sectionsY;
         this.sectionsZ = sectionsZ;
-        blocksX = sectionsX * LevelSection.SIZE;
-        blocksY = sectionsY * LevelSection.SIZE;
-        blocksZ = sectionsZ * LevelSection.SIZE;
+        blocksX = sectionsX * MapSection.SIZE;
+        blocksY = sectionsY * MapSection.SIZE;
+        blocksZ = sectionsZ * MapSection.SIZE;
 
         int sectionCount = sectionsX * sectionsY * sectionsZ;
 
-        sections = new LevelSection[sectionCount];
+        sections = new MapSection[sectionCount];
         for (int i = 0; i < sectionCount; i++) {
-            sections[i] = new LevelSection();
+            sections[i] = new MapSection();
         }
     }
 
@@ -25,32 +25,32 @@ public final class Level {
         return sectionX + sectionZ * sectionsX + sectionY * sectionsX * sectionsZ;
     }
 
-    public LevelSection getSection(int sectionX, int sectionY, int sectionZ) {
+    public MapSection getSection(int sectionX, int sectionY, int sectionZ) {
         return sections[sectionIndex(sectionX, sectionY, sectionZ)];
     }
 
-    public LevelSection getSectionContainingBlock(int blockX, int blockY, int blockZ) {
-        int sectionX = blockX / LevelSection.SIZE;
-        int sectionY = blockY / LevelSection.SIZE;
-        int sectionZ = blockZ / LevelSection.SIZE;
+    public MapSection getSectionContainingBlock(int blockX, int blockY, int blockZ) {
+        int sectionX = blockX / MapSection.SIZE;
+        int sectionY = blockY / MapSection.SIZE;
+        int sectionZ = blockZ / MapSection.SIZE;
 
         return getSection(sectionX, sectionY, sectionZ);
     }
 
     public byte getBlockId(int blockX, int blockY, int blockZ) {
-        LevelSection section = getSectionContainingBlock(blockX, blockY, blockZ);
-        int relX = blockX % LevelSection.SIZE;
-        int relY = blockY % LevelSection.SIZE;
-        int relZ = blockZ % LevelSection.SIZE;
+        MapSection section = getSectionContainingBlock(blockX, blockY, blockZ);
+        int relX = blockX % MapSection.SIZE;
+        int relY = blockY % MapSection.SIZE;
+        int relZ = blockZ % MapSection.SIZE;
 
         return section.getBlockId(relX, relY, relZ);
     }
 
     public byte setBlockId(int blockX, int blockY, int blockZ, byte newBlockId) {
-        LevelSection section = getSectionContainingBlock(blockX, blockY, blockZ);
-        int relX = blockX % LevelSection.SIZE;
-        int relY = blockY % LevelSection.SIZE;
-        int relZ = blockZ % LevelSection.SIZE;
+        MapSection section = getSectionContainingBlock(blockX, blockY, blockZ);
+        int relX = blockX % MapSection.SIZE;
+        int relY = blockY % MapSection.SIZE;
+        int relZ = blockZ % MapSection.SIZE;
 
         return section.setBlockId(relX, relY, relZ, newBlockId);
     }

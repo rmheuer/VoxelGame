@@ -3,7 +3,7 @@ package com.github.rmheuer.voxel.physics;
 import com.github.rmheuer.azalea.math.Axis;
 import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.voxel.level.Blocks;
-import com.github.rmheuer.voxel.level.Level;
+import com.github.rmheuer.voxel.level.BlockMap;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 
@@ -21,13 +21,13 @@ public final class Raycast {
     }
 
     // Direction must be normalized
-    public static Result raycast(Level level, Vector3f pos, Vector3f dir, float maxDistance) {
+    public static Result raycast(BlockMap map, Vector3f pos, Vector3f dir, float maxDistance) {
         int blockX = (int) Math.floor(pos.x);
         int blockY = (int) Math.floor(pos.y);
         int blockZ = (int) Math.floor(pos.z);
 
         // FIXME: Should find point at which ray enters grid
-        if (!level.isBlockInBounds(blockX, blockY, blockZ))
+        if (!map.isBlockInBounds(blockX, blockY, blockZ))
             return null;
 
         int stepX = dir.x > 0 ? 1 : -1;
@@ -46,14 +46,14 @@ public final class Raycast {
         float tMaxY = tDeltaY < Float.POSITIVE_INFINITY ? tDeltaY * yDist : Float.POSITIVE_INFINITY;
         float tMaxZ = tDeltaZ < Float.POSITIVE_INFINITY ? tDeltaZ * zDist : Float.POSITIVE_INFINITY;
 
-        int escapeX = stepX > 0 ? level.getBlocksX() : -1;
-        int escapeY = stepY > 0 ? level.getBlocksY() : -1;
-        int escapeZ = stepZ > 0 ? level.getBlocksZ() : -1;
+        int escapeX = stepX > 0 ? map.getBlocksX() : -1;
+        int escapeY = stepY > 0 ? map.getBlocksY() : -1;
+        int escapeZ = stepZ > 0 ? map.getBlocksZ() : -1;
 
         Axis axis = null;
         float t = 0.0f;
         while (t < maxDistance) {
-            byte blockId = level.getBlockId(blockX, blockY, blockZ);
+            byte blockId = map.getBlockId(blockX, blockY, blockZ);
             if (blockId == Blocks.ID_SOLID) {
                 Vector3f hitPos = new Vector3f(pos).fma(t, dir);
 

@@ -2,7 +2,7 @@ package com.github.rmheuer.voxel.level;
 
 import java.util.Arrays;
 
-public final class LevelSection {
+public final class MapSection {
     public static final int SIZE = 16;
     public static final int SIZE_SQUARED = SIZE * SIZE;
     public static final int SIZE_CUBED = SIZE * SIZE * SIZE;
@@ -10,7 +10,7 @@ public final class LevelSection {
     private final byte[] blocks;
     private short nonAirCount;
 
-    public LevelSection() {
+    public MapSection() {
         blocks = new byte[SIZE_CUBED];
         Arrays.fill(blocks, Blocks.ID_AIR);
 

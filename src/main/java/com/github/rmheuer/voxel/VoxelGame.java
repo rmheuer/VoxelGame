@@ -14,8 +14,9 @@ import com.github.rmheuer.azalea.render.camera.PerspectiveProjection;
 import com.github.rmheuer.azalea.render.utils.DebugLineRenderer;
 import com.github.rmheuer.azalea.runtime.BaseGame;
 import com.github.rmheuer.voxel.level.Blocks;
-import com.github.rmheuer.voxel.level.Level;
-import com.github.rmheuer.voxel.level.LevelSection;
+import com.github.rmheuer.voxel.level.BlockMap;
+import com.github.rmheuer.voxel.level.LightMap;
+import com.github.rmheuer.voxel.level.MapSection;
 import com.github.rmheuer.voxel.physics.Raycast;
 import com.github.rmheuer.voxel.render.LevelRenderData;
 import com.github.rmheuer.voxel.render.LevelRenderer;
@@ -33,13 +34,15 @@ public final class VoxelGame extends BaseGame {
     private final DebugLineRenderer lineRenderer;
 
     private final Camera camera;
-    private final Level level;
+    private final BlockMap blockMap;
+    private final LightMap lightMap;
     private final LevelRenderData levelRenderData;
 
     private boolean mouseCaptured;
     private Raycast.Result raycastResult;
 
     private boolean drawSectionBoundaries;
+    private boolean drawLightHeights;
 
     public VoxelGame() throws IOException {
         super(WINDOW_SETTINGS);
@@ -49,13 +52,14 @@ public final class VoxelGame extends BaseGame {
 
         camera = new Camera(new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f));
 
-        level = new Level(4, 4, 4);
+        blockMap = new BlockMap(4, 4, 4);
+        lightMap = new LightMap(blockMap.getBlocksX(), blockMap.getBlocksZ());
         levelRenderData = new LevelRenderData(4, 4, 4);
 
         for (int y = 0; y < 24; y++) {
             for (int z = 0; z < 64; z++) {
                 for (int x = 0; x < 64; x++) {
-                    level.setBlockId(x, y, z, Blocks.ID_SOLID);
+                    blockMap.setBlockId(x, y, z, Blocks.ID_SOLID);
                 }
             }
         }
@@ -63,8 +67,10 @@ public final class VoxelGame extends BaseGame {
             int x = (int) (Math.random() * 64);
             int y = 24 + (int) (Math.random() * 4);
             int z = (int) (Math.random() * 64);
-            level.setBlockId(x, y, z, Blocks.ID_SOLID);
+            blockMap.setBlockId(x, y, z, Blocks.ID_SOLID);
         }
+
+        lightMap.recalculateAll(blockMap);
 
         setMouseCaptured(true);
         getEventBus().addHandler(KeyPressEvent.class, this::keyPressed);
@@ -72,6 +78,7 @@ public final class VoxelGame extends BaseGame {
         getEventBus().addHandler(MouseButtonPressEvent.class, this::mousePressed);
 
         drawSectionBoundaries = false;
+        drawLightHeights = false;
     }
 
     private void setMouseCaptured(boolean mouseCaptured) {
@@ -84,6 +91,8 @@ public final class VoxelGame extends BaseGame {
             setMouseCaptured(!mouseCaptured);
         } else if (event.getKey() == Key.F1) {
             drawSectionBoundaries = !drawSectionBoundaries;
+        } else if (event.getKey() == Key.F2) {
+            drawLightHeights = !drawLightHeights;
         }
     }
 
@@ -101,8 +110,12 @@ public final class VoxelGame extends BaseGame {
     }
 
     private void setBlock(Vector3i pos, byte blockId) {
-        level.setBlockId(pos.x, pos.y, pos.z, blockId);
+        byte prevId = blockMap.setBlockId(pos.x, pos.y, pos.z, blockId);
         levelRenderData.blockChanged(pos.x, pos.y, pos.z);
+
+        LightMap.Change lightChange = lightMap.blockChanged(blockMap, pos.x, pos.y, pos.z, prevId, blockId);
+        if (lightChange != null)
+            levelRenderData.lightChanged(pos.x, pos.z, lightChange.prevHeight, lightChange.newHeight);
     }
 
     private void mousePressed(MouseButtonPressEvent event) {
@@ -129,7 +142,7 @@ public final class VoxelGame extends BaseGame {
 
         Vector3f pos = camera.getTransform().position;
         Vector3f dir = camera.getTransform().getForward();
-        raycastResult = Raycast.raycast(level, pos, dir, 32);
+        raycastResult = Raycast.raycast(blockMap, pos, dir, 32);
     }
 
     private void moveCamera(Keyboard kb, float dt) {
@@ -172,7 +185,7 @@ public final class VoxelGame extends BaseGame {
         Matrix4f view = camera.getViewMatrix();
         Matrix4f viewProj = new Matrix4f(proj).mul(view);
 
-        levelRenderer.renderLevel(renderer, level, levelRenderData, viewProj);
+        levelRenderer.renderLevel(renderer, blockMap, lightMap, levelRenderData, viewProj);
 
         if (raycastResult != null) {
             {
@@ -208,10 +221,10 @@ public final class VoxelGame extends BaseGame {
         if (drawSectionBoundaries) {
             int col = Colors.RGBA.YELLOW;
 
-            int s = LevelSection.SIZE;
-            int nx = level.getSectionsX() * s;
-            int ny = level.getSectionsY() * s;
-            int nz = level.getSectionsZ() * s;
+            int s = MapSection.SIZE;
+            int nx = blockMap.getSectionsX() * s;
+            int ny = blockMap.getSectionsY() * s;
+            int nz = blockMap.getSectionsZ() * s;
 
             for (int x = 0; x <= nx; x += s) {
                 for (int y = 0; y <= ny; y += s) {
@@ -226,6 +239,17 @@ public final class VoxelGame extends BaseGame {
             for (int y = 0; y <= ny; y += s) {
                 for (int z = 0; z <= nz; z += s) {
                     lineRenderer.addLine(0, y, z, nx, y, z, col);
+                }
+            }
+        }
+
+        if (drawLightHeights) {
+            int col = Colors.RGBA.GREEN;
+            for (int z = 0; z < blockMap.getBlocksZ(); z++) {
+                for (int x = 0; x < blockMap.getBlocksX(); x++) {
+                    int lightHeight = lightMap.getLightHeight(x, z);
+                    lineRenderer.addLine(x, lightHeight, z, x + 1, lightHeight, z + 1, col);
+                    lineRenderer.addLine(x + 1, lightHeight, z, x, lightHeight, z + 1, col);
                 }
             }
         }
