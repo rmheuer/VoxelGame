@@ -14,8 +14,12 @@ import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.level.MapSection;
 import org.joml.Matrix4fc;
+import org.joml.Vector3fc;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 public final class LevelRenderer implements SafeCloseable {
     private static final VertexLayout LAYOUT = new VertexLayout(
@@ -55,7 +59,19 @@ public final class LevelRenderer implements SafeCloseable {
         );
     }
 
-    public void renderLevel(Renderer renderer, BlockMap blockMap, LightMap lightMap, LevelRenderData renderData, Matrix4fc viewProj) {
+    private static final class TranslucentSection {
+        public final int blockX, blockY, blockZ;
+        public final SectionRenderLayer layer;
+
+        public TranslucentSection(int blockX, int blockY, int blockZ, SectionRenderLayer layer) {
+            this.blockX = blockX;
+            this.blockY = blockY;
+            this.blockZ = blockZ;
+            this.layer = layer;
+        }
+    }
+
+    public void renderLevel(Renderer renderer, BlockMap blockMap, LightMap lightMap, LevelRenderData renderData, Vector3fc cameraPos, Matrix4fc viewProj) {
         int sectionsX = blockMap.getSectionsX();
         int sectionsY = blockMap.getSectionsY();
         int sectionsZ = blockMap.getSectionsZ();
@@ -67,9 +83,9 @@ public final class LevelRenderer implements SafeCloseable {
                     SectionRenderData renderSection = renderData.getSection(sectionX, sectionY, sectionZ);
 
                     if (renderSection.isMeshOutdated()) {
-                        try (VertexData data = createSectionMesh(blockMap, lightMap, sectionX, sectionY, sectionZ)) {
-                            renderSection.updateMesh(renderer, data);
-                            sharedIndexBuffer.ensureCapacity(data.getVertexCount() / 4);
+                        try (SectionMeshes meshes = createSectionMesh(blockMap, lightMap, sectionX, sectionY, sectionZ)) {
+                            renderSection.updateMeshes(renderer, meshes);
+                            sharedIndexBuffer.ensureCapacity(meshes.getRequiredFaceCount());
                         }
                         updated++;
                     }
@@ -86,32 +102,55 @@ public final class LevelRenderer implements SafeCloseable {
             ShaderUniform offsetUniform = pipe.getUniform("u_SectionOffset");
             IndexBuffer indexBuffer = sharedIndexBuffer.getIndexBuffer();
 
+            List<TranslucentSection> translucentToRender = new ArrayList<>();
             for (int sectionY = 0; sectionY < sectionsY; sectionY++) {
                 for (int sectionZ = 0; sectionZ < sectionsZ; sectionZ++) {
                     for (int sectionX = 0; sectionX < sectionsX; sectionX++) {
                         SectionRenderData section = renderData.getSection(sectionX, sectionY, sectionZ);
+                        SectionRenderLayer opaque = section.getOpaqueLayer();
+                        SectionRenderLayer translucent = section.getTranslucentLayer();
 
-                        int elementCount = section.getElementCount();
-                        if (elementCount > 0) {
+                        if (translucent.getElementCount() > 0) {
+                            translucentToRender.add(new TranslucentSection(
+                                    sectionX * MapSection.SIZE,
+                                    sectionY * MapSection.SIZE,
+                                    sectionZ * MapSection.SIZE,
+                                    translucent
+                            ));
+                        }
+
+                        if (opaque.getElementCount() > 0) {
                             offsetUniform.setVec3(
                                     sectionX * MapSection.SIZE,
                                     sectionY * MapSection.SIZE,
                                     sectionZ * MapSection.SIZE
                             );
-                            pipe.draw(section.getVertexBuffer(), indexBuffer, 0, elementCount);
+                            pipe.draw(opaque.getVertexBuffer(), indexBuffer, 0, opaque.getElementCount());
                         }
                     }
                 }
             }
+
+            int halfSz = MapSection.SIZE / 2;
+            translucentToRender.sort(Comparator.comparingDouble((section) -> -cameraPos.distanceSquared(
+                    section.blockX + halfSz,
+                    section.blockY + halfSz,
+                    section.blockZ + halfSz
+            )));
+            for (TranslucentSection section : translucentToRender) {
+                offsetUniform.setVec3(section.blockX, section.blockY, section.blockZ);
+                pipe.draw(section.layer.getVertexBuffer(), indexBuffer, 0, section.layer.getElementCount());
+            }
         }
     }
 
-    private VertexData createSectionMesh(BlockMap blockMap, LightMap lightMap, int sectionX, int sectionY, int sectionZ) {
+    private SectionMeshes createSectionMesh(BlockMap blockMap, LightMap lightMap, int sectionX, int sectionY, int sectionZ) {
         MapSection section = blockMap.getSection(sectionX, sectionY, sectionZ);
-        VertexData data = new VertexData(LAYOUT);
+        VertexData opaqueData = new VertexData(LAYOUT);
+        VertexData translucentData = new VertexData(LAYOUT);
 
         if (section.isEmpty())
-            return data;
+            return new SectionMeshes(opaqueData, translucentData);
 
         MapSection sectionNX = sectionX > 0 ? blockMap.getSection(sectionX - 1, sectionY, sectionZ) : null;
         MapSection sectionNY = sectionY > 0 ? blockMap.getSection(sectionX, sectionY - 1, sectionZ) : null;
@@ -157,6 +196,10 @@ public final class LevelRenderer implements SafeCloseable {
                     int blockX = ox + x;
                     int blockY = oy + y;
                     int blockZ = oz + z;
+
+                    VertexData data = block == Blocks.ID_SOLID
+                            ? opaqueData
+                            : translucentData;
 
                     if (blockNX != null && blockNX != block) {
                         float light = lightMap.isLit(blockX - 1, blockY, blockZ) ? SHADE_LIT : SHADE_SHADOW;
@@ -204,7 +247,7 @@ public final class LevelRenderer implements SafeCloseable {
             }
         }
 
-        return data;
+        return new SectionMeshes(opaqueData, translucentData);
     }
 
     @Override

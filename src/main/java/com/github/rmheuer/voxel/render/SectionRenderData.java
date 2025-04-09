@@ -1,18 +1,18 @@
 package com.github.rmheuer.voxel.render;
 
 import com.github.rmheuer.azalea.render.Renderer;
-import com.github.rmheuer.azalea.render.mesh.DataUsage;
-import com.github.rmheuer.azalea.render.mesh.VertexBuffer;
-import com.github.rmheuer.azalea.render.mesh.VertexData;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
 
 public final class SectionRenderData implements SafeCloseable {
-    private VertexBuffer vertexBuffer;
-    private int elementCount;
+    private final SectionRenderLayer opaque;
+    private final SectionRenderLayer translucent;
+
     private boolean meshOutdated;
 
     public SectionRenderData() {
-        vertexBuffer = null;
+        opaque = new SectionRenderLayer();
+        translucent = new SectionRenderLayer();
+
         meshOutdated = true;
     }
 
@@ -20,30 +20,18 @@ public final class SectionRenderData implements SafeCloseable {
         meshOutdated = true;
     }
 
-    public void updateMesh(Renderer renderer, VertexData data) {
-        elementCount = data.getVertexCount() / 4 * 6;
-
-        if (elementCount > 0) {
-            if (vertexBuffer == null)
-                vertexBuffer = renderer.createVertexBuffer();
-
-            vertexBuffer.setData(data, DataUsage.DYNAMIC);
-        } else {
-            if (vertexBuffer != null) {
-                vertexBuffer.close();
-                vertexBuffer = null;
-            }
-        }
-
+    public void updateMeshes(Renderer renderer, SectionMeshes meshes) {
+        opaque.updateMesh(renderer, meshes.opaqueData);
+        translucent.updateMesh(renderer, meshes.translucentData);
         meshOutdated = false;
     }
 
-    public VertexBuffer getVertexBuffer() {
-        return vertexBuffer;
+    public SectionRenderLayer getOpaqueLayer() {
+        return opaque;
     }
 
-    public int getElementCount() {
-        return elementCount;
+    public SectionRenderLayer getTranslucentLayer() {
+        return translucent;
     }
 
     public boolean isMeshOutdated() {
@@ -52,8 +40,7 @@ public final class SectionRenderData implements SafeCloseable {
 
     @Override
     public void close() {
-        if (vertexBuffer != null) {
-            vertexBuffer.close();
-        }
+        opaque.close();
+        translucent.close();
     }
 }

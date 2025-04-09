@@ -192,7 +192,7 @@ public final class VoxelGame extends BaseGame {
         Matrix4f view = camera.getViewMatrix();
         Matrix4f viewProj = new Matrix4f(proj).mul(view);
 
-        levelRenderer.renderLevel(renderer, blockMap, lightMap, levelRenderData, viewProj);
+        levelRenderer.renderLevel(renderer, blockMap, lightMap, levelRenderData, camera.getTransform().position, viewProj);
 
         if (raycastResult != null) {
             {
