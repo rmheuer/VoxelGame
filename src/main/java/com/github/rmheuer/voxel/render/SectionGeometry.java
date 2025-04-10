@@ -3,22 +3,23 @@ package com.github.rmheuer.voxel.render;
 import com.github.rmheuer.azalea.render.mesh.VertexData;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
 
-public final class SectionMeshes implements SafeCloseable {
-    public final VertexData opaqueData;
-    public final VertexData translucentData;
+import java.util.List;
 
-    public SectionMeshes(VertexData opaqueData, VertexData translucentData) {
+public final class SectionGeometry implements SafeCloseable {
+    public final VertexData opaqueData;
+    public final List<WaterFace> waterFaces;
+
+    public SectionGeometry(VertexData opaqueData, List<WaterFace> waterFaces) {
         this.opaqueData = opaqueData;
-        this.translucentData = translucentData;
+        this.waterFaces = waterFaces;
     }
 
     public int getRequiredFaceCount() {
-        return Math.max(opaqueData.getVertexCount(), translucentData.getVertexCount()) / 4;
+        return Math.max(opaqueData.getVertexCount() / 4, waterFaces.size());
     }
 
     @Override
     public void close() {
         opaqueData.close();
-        translucentData.close();
     }
 }

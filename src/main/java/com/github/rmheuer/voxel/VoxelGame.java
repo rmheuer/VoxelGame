@@ -68,7 +68,10 @@ public final class VoxelGame extends BaseGame {
             int x = (int) (Math.random() * 64);
             int y = 24 + (int) (Math.random() * 4);
             int z = (int) (Math.random() * 64);
-            blockMap.setBlockId(x, y, z, Blocks.ID_SOLID);
+
+            byte block = Math.random() < 0.8 ? Blocks.ID_SOLID : Blocks.ID_WATER;
+
+            blockMap.setBlockId(x, y, z, block);
         }
 
         lightMap.recalculateAll(blockMap);
@@ -99,7 +102,7 @@ public final class VoxelGame extends BaseGame {
         } else if (event.getKey() == Key.ONE) {
             blockIdToPlace = Blocks.ID_SOLID;
         } else if (event.getKey() == Key.TWO) {
-            blockIdToPlace = Blocks.ID_TRANSLUCENT;
+            blockIdToPlace = Blocks.ID_WATER;
         }
     }
 

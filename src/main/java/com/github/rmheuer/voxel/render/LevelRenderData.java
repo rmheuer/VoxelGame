@@ -2,15 +2,20 @@ package com.github.rmheuer.voxel.render;
 
 import com.github.rmheuer.azalea.utils.SafeCloseable;
 import com.github.rmheuer.voxel.level.MapSection;
+import org.joml.Vector3f;
+import org.joml.Vector3fc;
 
 public final class LevelRenderData implements SafeCloseable {
     private final int sectionsX, sectionsY, sectionsZ;
     private final SectionRenderData[] sections;
+    private final Vector3f prevCameraPos;
 
     public LevelRenderData(int sectionsX, int sectionsY, int sectionsZ) {
         this.sectionsX = sectionsX;
         this.sectionsY = sectionsY;
         this.sectionsZ = sectionsZ;
+
+        prevCameraPos = new Vector3f();
 
         int sectionCount = sectionsX * sectionsY * sectionsZ;
         sections = new SectionRenderData[sectionCount];
@@ -86,6 +91,14 @@ public final class LevelRenderData implements SafeCloseable {
             markSectionOutdated(sectionX, minSection - 1, sectionZ);
         if (maxSection < sectionsY - 1 && maxHeight % MapSection.SIZE == MapSection.SIZE - 1)
             markSectionOutdated(sectionX, maxSection + 1, sectionZ);
+    }
+
+    public Vector3f getPrevCameraPos() {
+        return prevCameraPos;
+    }
+
+    public void setPrevCameraPos(Vector3fc pos) {
+        prevCameraPos.set(pos);
     }
 
     @Override

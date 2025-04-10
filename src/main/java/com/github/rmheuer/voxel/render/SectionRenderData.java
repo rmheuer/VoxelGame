@@ -1,17 +1,21 @@
 package com.github.rmheuer.voxel.render;
 
-import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
+
+import java.util.Collections;
+import java.util.List;
 
 public final class SectionRenderData implements SafeCloseable {
     private final SectionRenderLayer opaque;
-    private final SectionRenderLayer translucent;
+    private final SectionRenderLayer water;
+    private List<WaterFace> waterFaces;
 
     private boolean meshOutdated;
 
     public SectionRenderData() {
         opaque = new SectionRenderLayer();
-        translucent = new SectionRenderLayer();
+        water = new SectionRenderLayer();
+        waterFaces = Collections.emptyList();
 
         meshOutdated = true;
     }
@@ -20,9 +24,7 @@ public final class SectionRenderData implements SafeCloseable {
         meshOutdated = true;
     }
 
-    public void updateMeshes(Renderer renderer, SectionMeshes meshes) {
-        opaque.updateMesh(renderer, meshes.opaqueData);
-        translucent.updateMesh(renderer, meshes.translucentData);
+    public void clearOutdated() {
         meshOutdated = false;
     }
 
@@ -30,17 +32,25 @@ public final class SectionRenderData implements SafeCloseable {
         return opaque;
     }
 
-    public SectionRenderLayer getTranslucentLayer() {
-        return translucent;
+    public SectionRenderLayer getWaterLayer() {
+        return water;
     }
 
     public boolean isMeshOutdated() {
         return meshOutdated;
     }
 
+    public List<WaterFace> getWaterFaces() {
+        return waterFaces;
+    }
+
+    public void setWaterFaces(List<WaterFace> waterFaces) {
+        this.waterFaces = waterFaces;
+    }
+
     @Override
     public void close() {
         opaque.close();
-        translucent.close();
+        water.close();
     }
 }

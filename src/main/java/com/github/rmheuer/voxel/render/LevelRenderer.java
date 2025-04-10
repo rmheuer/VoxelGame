@@ -1,6 +1,7 @@
 package com.github.rmheuer.voxel.render;
 
 import com.github.rmheuer.azalea.io.ResourceUtil;
+import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.mesh.*;
@@ -48,7 +49,6 @@ public final class LevelRenderer implements SafeCloseable {
         pipeline = new PipelineInfo(shader)
                 .setDepthTest(true)
                 .setWinding(FaceWinding.CCW_FRONT)
-                .setCullMode(CullMode.BACK)
                 .setFillMode(FillMode.FILLED);
 
         sharedIndexBuffer = new SharedIndexBuffer(
@@ -59,11 +59,11 @@ public final class LevelRenderer implements SafeCloseable {
         );
     }
 
-    private static final class TranslucentSection {
+    private static final class WaterSection {
         public final int blockX, blockY, blockZ;
         public final SectionRenderLayer layer;
 
-        public TranslucentSection(int blockX, int blockY, int blockZ, SectionRenderLayer layer) {
+        public WaterSection(int blockX, int blockY, int blockZ, SectionRenderLayer layer) {
             this.blockX = blockX;
             this.blockY = blockY;
             this.blockZ = blockZ;
@@ -76,18 +76,52 @@ public final class LevelRenderer implements SafeCloseable {
         int sectionsY = blockMap.getSectionsY();
         int sectionsZ = blockMap.getSectionsZ();
 
+        boolean cameraMoved = !renderData.getPrevCameraPos().equals(cameraPos);
+
         int updated = 0;
         for (int sectionY = 0; sectionY < sectionsY; sectionY++) {
             for (int sectionZ = 0; sectionZ < sectionsZ; sectionZ++) {
                 for (int sectionX = 0; sectionX < sectionsX; sectionX++) {
                     SectionRenderData renderSection = renderData.getSection(sectionX, sectionY, sectionZ);
 
+                    int ox = sectionX * MapSection.SIZE;
+                    int oy = sectionY * MapSection.SIZE;
+                    int oz = sectionZ * MapSection.SIZE;
+
+                    boolean updateWater = cameraMoved;
                     if (renderSection.isMeshOutdated()) {
-                        try (SectionMeshes meshes = createSectionMesh(blockMap, lightMap, sectionX, sectionY, sectionZ)) {
-                            renderSection.updateMeshes(renderer, meshes);
-                            sharedIndexBuffer.ensureCapacity(meshes.getRequiredFaceCount());
+                        try (SectionGeometry geom = createSectionGeometry(blockMap, lightMap, sectionX, sectionY, sectionZ)) {
+                            renderSection.getOpaqueLayer().updateMesh(renderer, geom.opaqueData);
+                            renderSection.setWaterFaces(geom.waterFaces);
+                            sharedIndexBuffer.ensureCapacity(geom.getRequiredFaceCount());
+                            renderSection.clearOutdated();
                         }
                         updated++;
+                        updateWater = true;
+                    }
+
+                    if (updateWater) {
+                        List<WaterFace> waterFaces = renderSection.getWaterFaces();
+                        waterFaces.sort(Comparator.comparingDouble((face) -> -cameraPos.distanceSquared(
+                                ox + face.x + 0.5f + face.face.x * 0.5f,
+                                oy + face.y + 0.5f + face.face.y * 0.5f,
+                                oz + face.z + 0.5f + face.face.z * 0.5f
+                        )));
+
+                        int color = Colors.RGBA.fromFloats(0.3f, 0.3f, 1.0f, 0.6f);
+                        try (VertexData data = new VertexData(LAYOUT)) {
+                            for (WaterFace face : waterFaces) {
+                                meshFace(
+                                        data,
+                                        lightMap,
+                                        face.x, face.y, face.z,
+                                        ox + face.x, oy + face.y, oz + face.z,
+                                        face.face,
+                                        color
+                                );
+                            }
+                            renderSection.getWaterLayer().updateMesh(renderer, data);
+                        }
                     }
                 }
             }
@@ -96,26 +130,26 @@ public final class LevelRenderer implements SafeCloseable {
             System.out.println("Updated " + updated + " section mesh(es)");
         }
 
-        try (ActivePipeline pipe = renderer.bindPipeline(pipeline)) {
+        List<WaterSection> waterToRender = new ArrayList<>();
+        try (ActivePipeline pipe = renderer.bindPipeline(pipeline.setCullMode(CullMode.BACK))) {
             pipe.getUniform("u_ViewProj").setMat4(viewProj);
 
             ShaderUniform offsetUniform = pipe.getUniform("u_SectionOffset");
             IndexBuffer indexBuffer = sharedIndexBuffer.getIndexBuffer();
 
-            List<TranslucentSection> translucentToRender = new ArrayList<>();
             for (int sectionY = 0; sectionY < sectionsY; sectionY++) {
                 for (int sectionZ = 0; sectionZ < sectionsZ; sectionZ++) {
                     for (int sectionX = 0; sectionX < sectionsX; sectionX++) {
                         SectionRenderData section = renderData.getSection(sectionX, sectionY, sectionZ);
                         SectionRenderLayer opaque = section.getOpaqueLayer();
-                        SectionRenderLayer translucent = section.getTranslucentLayer();
+                        SectionRenderLayer water = section.getWaterLayer();
 
-                        if (translucent.getElementCount() > 0) {
-                            translucentToRender.add(new TranslucentSection(
+                        if (water.getElementCount() > 0) {
+                            waterToRender.add(new WaterSection(
                                     sectionX * MapSection.SIZE,
                                     sectionY * MapSection.SIZE,
                                     sectionZ * MapSection.SIZE,
-                                    translucent
+                                    water
                             ));
                         }
 
@@ -130,27 +164,40 @@ public final class LevelRenderer implements SafeCloseable {
                     }
                 }
             }
+        }
+
+        try (ActivePipeline pipe = renderer.bindPipeline(pipeline.setCullMode(CullMode.OFF))) {
+            pipe.getUniform("u_ViewProj").setMat4(viewProj);
+
+            ShaderUniform offsetUniform = pipe.getUniform("u_SectionOffset");
+            IndexBuffer indexBuffer = sharedIndexBuffer.getIndexBuffer();
 
             int halfSz = MapSection.SIZE / 2;
-            translucentToRender.sort(Comparator.comparingDouble((section) -> -cameraPos.distanceSquared(
+            waterToRender.sort(Comparator.comparingDouble((section) -> -cameraPos.distanceSquared(
                     section.blockX + halfSz,
                     section.blockY + halfSz,
                     section.blockZ + halfSz
             )));
-            for (TranslucentSection section : translucentToRender) {
+            for (WaterSection section : waterToRender) {
                 offsetUniform.setVec3(section.blockX, section.blockY, section.blockZ);
                 pipe.draw(section.layer.getVertexBuffer(), indexBuffer, 0, section.layer.getElementCount());
             }
         }
+
+        renderData.setPrevCameraPos(cameraPos);
     }
 
-    private SectionMeshes createSectionMesh(BlockMap blockMap, LightMap lightMap, int sectionX, int sectionY, int sectionZ) {
+    private boolean shouldDraw(byte block, byte neighbor) {
+        return neighbor != block && neighbor != Blocks.ID_SOLID;
+    }
+
+    private SectionGeometry createSectionGeometry(BlockMap blockMap, LightMap lightMap, int sectionX, int sectionY, int sectionZ) {
         MapSection section = blockMap.getSection(sectionX, sectionY, sectionZ);
         VertexData opaqueData = new VertexData(LAYOUT);
-        VertexData translucentData = new VertexData(LAYOUT);
+        List<WaterFace> waterFaces = new ArrayList<>();
 
         if (section.isEmpty())
-            return new SectionMeshes(opaqueData, translucentData);
+            return new SectionGeometry(opaqueData, waterFaces);
 
         MapSection sectionNX = sectionX > 0 ? blockMap.getSection(sectionX - 1, sectionY, sectionZ) : null;
         MapSection sectionNY = sectionY > 0 ? blockMap.getSection(sectionX, sectionY - 1, sectionZ) : null;
@@ -169,10 +216,6 @@ public final class LevelRenderer implements SafeCloseable {
                     byte block = section.getBlockId(x, y, z);
                     if (block == Blocks.ID_AIR)
                         continue;
-
-                    int color = block == Blocks.ID_SOLID
-                            ? Colors.RGBA.WHITE
-                            : Colors.RGBA.fromFloats(0.0f, 0.0f, 1.0f, 0.2f);
 
                     Byte blockNX = x > 0
                             ? Byte.valueOf(section.getBlockId(x - 1, y, z))
@@ -197,57 +240,108 @@ public final class LevelRenderer implements SafeCloseable {
                     int blockY = oy + y;
                     int blockZ = oz + z;
 
-                    VertexData data = block == Blocks.ID_SOLID
-                            ? opaqueData
-                            : translucentData;
+                    boolean drawNX = blockNX != null && shouldDraw(block, blockNX);
+                    boolean drawNY = blockNY != null && shouldDraw(block, blockNY);
+                    boolean drawNZ = blockNZ != null && shouldDraw(block, blockNZ);
+                    boolean drawPX = blockPX != null && shouldDraw(block, blockPX);
+                    boolean drawPY = blockPY == null || shouldDraw(block, blockPY);
+                    boolean drawPZ = blockPZ != null && shouldDraw(block, blockPZ);
 
-                    if (blockNX != null && blockNX != block) {
-                        float light = lightMap.isLit(blockX - 1, blockY, blockZ) ? SHADE_LIT : SHADE_SHADOW;
-                        data.putVec3(x, y + 1, z); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
-                        data.putVec3(x, y, z); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
-                        data.putVec3(x, y, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
-                        data.putVec3(x, y + 1, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
-                    }
-                    if (blockNY != null && blockNY != block) {
-                        // Bottom face is always in shadow
-                        data.putVec3(x + 1, y, z); data.putColorRGBA(color); data.putFloat(SHADE_DOWN * SHADE_SHADOW);
-                        data.putVec3(x + 1, y, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_DOWN * SHADE_SHADOW);
-                        data.putVec3(x, y, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_DOWN * SHADE_SHADOW);
-                        data.putVec3(x, y, z); data.putColorRGBA(color); data.putFloat(SHADE_DOWN * SHADE_SHADOW);
-                    }
-                    if (blockNZ != null && blockNZ != block) {
-                        float light = lightMap.isLit(blockX, blockY, blockZ - 1) ? SHADE_LIT : SHADE_SHADOW;
-                        data.putVec3(x + 1, y + 1, z); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
-                        data.putVec3(x + 1, y, z); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
-                        data.putVec3(x, y, z); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
-                        data.putVec3(x, y + 1, z); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
-                    }
-                    if (blockPX != null && blockPX != block) {
-                        float light = lightMap.isLit(blockX + 1, blockY, blockZ) ? SHADE_LIT : SHADE_SHADOW;
-                        data.putVec3(x + 1, y + 1, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
-                        data.putVec3(x + 1, y, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
-                        data.putVec3(x + 1, y, z); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
-                        data.putVec3(x + 1, y + 1, z); data.putColorRGBA(color); data.putFloat(SHADE_LEFT_RIGHT * light);
-                    }
-                    if (blockPY == null || blockPY != block) {
-                        float light = blockPY == null || lightMap.isLit(blockX, blockY + 1, blockZ) ? SHADE_LIT : SHADE_SHADOW;
-                        data.putVec3(x, y + 1, z); data.putColorRGBA(color); data.putFloat(SHADE_UP * light);
-                        data.putVec3(x, y + 1, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_UP * light);
-                        data.putVec3(x + 1, y + 1, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_UP * light);
-                        data.putVec3(x + 1, y + 1, z); data.putColorRGBA(color); data.putFloat(SHADE_UP * light);
-                    }
-                    if (blockPZ != null && blockPZ != block) {
-                        float light = lightMap.isLit(blockX, blockY, blockZ + 1) ? SHADE_LIT : SHADE_SHADOW;
-                        data.putVec3(x, y + 1, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
-                        data.putVec3(x, y, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
-                        data.putVec3(x + 1, y, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
-                        data.putVec3(x + 1, y + 1, z + 1); data.putColorRGBA(color); data.putFloat(SHADE_FRONT_BACK * light);
+                    if (block == Blocks.ID_SOLID) {
+                        int color = Colors.RGBA.WHITE;
+
+                        if (drawNX)
+                            meshFace(opaqueData, lightMap, x, y, z, blockX, blockY, blockZ, CubeFace.NEG_X, color);
+                        if (drawPX)
+                            meshFace(opaqueData, lightMap, x, y, z, blockX, blockY, blockZ, CubeFace.POS_X, color);
+                        if (drawNY)
+                            meshFace(opaqueData, lightMap, x, y, z, blockX, blockY, blockZ, CubeFace.NEG_Y, color);
+                        if (drawPY)
+                            meshFace(opaqueData, lightMap, x, y, z, blockX, blockY, blockZ, CubeFace.POS_Y, color);
+                        if (drawNZ)
+                            meshFace(opaqueData, lightMap, x, y, z, blockX, blockY, blockZ, CubeFace.NEG_Z, color);
+                        if (drawPZ)
+                            meshFace(opaqueData, lightMap, x, y, z, blockX, blockY, blockZ, CubeFace.POS_Z, color);
+                    } else if (block == Blocks.ID_WATER) {
+                        if (drawNX)
+                            waterFaces.add(new WaterFace(x, y, z, CubeFace.NEG_X));
+                        if (drawPX)
+                            waterFaces.add(new WaterFace(x, y, z, CubeFace.POS_X));
+                        if (drawNY)
+                            waterFaces.add(new WaterFace(x, y, z, CubeFace.NEG_Y));
+                        if (drawPY)
+                            waterFaces.add(new WaterFace(x, y, z, CubeFace.POS_Y));
+                        if (drawNZ)
+                            waterFaces.add(new WaterFace(x, y, z, CubeFace.NEG_Z));
+                        if (drawPZ)
+                            waterFaces.add(new WaterFace(x, y, z, CubeFace.POS_Z));
                     }
                 }
             }
         }
 
-        return new SectionMeshes(opaqueData, translucentData);
+        return new SectionGeometry(opaqueData, waterFaces);
+    }
+
+    private void meshFace(VertexData data, LightMap lightMap, int x, int y, int z, int blockX, int blockY, int blockZ, CubeFace face, int color) {
+        int x1, y1, z1, x2, y2, z2, x3, y3, z3, x4, y4, z4;
+        float faceShade;
+        switch (face) {
+            case POS_X:
+                x1 = x + 1; y1 = y + 1; z1 = z + 1;
+                x2 = x + 1; y2 = y;     z2 = z + 1;
+                x3 = x + 1; y3 = y;     z3 = z;
+                x4 = x + 1; y4 = y + 1; z4 = z;
+                faceShade = SHADE_LEFT_RIGHT;
+                break;
+            case NEG_X:
+                x1 = x; y1 = y + 1; z1 = z;
+                x2 = x; y2 = y;     z2 = z;
+                x3 = x; y3 = y;     z3 = z + 1;
+                x4 = x; y4 = y + 1; z4 = z + 1;
+                faceShade = SHADE_LEFT_RIGHT;
+                break;
+            case POS_Y:
+                x1 = x;     y1 = y + 1; z1 = z;
+                x2 = x;     y2 = y + 1; z2 = z + 1;
+                x3 = x + 1; y3 = y + 1; z3 = z + 1;
+                x4 = x + 1; y4 = y + 1; z4 = z;
+                faceShade = SHADE_UP;
+                break;
+            case NEG_Y:
+                x1 = x + 1; y1 = y; z1 = z;
+                x2 = x + 1; y2 = y; z2 = z + 1;
+                x3 = x;     y3 = y; z3 = z + 1;
+                x4 = x;     y4 = y; z4 = z;
+                faceShade = SHADE_DOWN;
+                break;
+            case POS_Z:
+                x1 = x;     y1 = y + 1; z1 = z + 1;
+                x2 = x;     y2 = y;     z2 = z + 1;
+                x3 = x + 1; y3 = y;     z3 = z + 1;
+                x4 = x + 1; y4 = y + 1; z4 = z + 1;
+                faceShade = SHADE_FRONT_BACK;
+                break;
+            case NEG_Z:
+                x1 = x + 1; y1 = y + 1; z1 = z;
+                x2 = x + 1; y2 = y;     z2 = z;
+                x3 = x;     y3 = y;     z3 = z;
+                x4 = x;     y4 = y + 1; z4 = z;
+                faceShade = SHADE_FRONT_BACK;
+                break;
+            default:
+                throw new IllegalArgumentException();
+        }
+
+        float lightShade = lightMap.isLit(blockX + face.x, blockY + face.y, blockZ + face.z)
+                ? SHADE_LIT
+                : SHADE_SHADOW;
+
+        float shade = faceShade * lightShade;
+        data.putVec3(x1, y1, z1); data.putColorRGBA(color); data.putFloat(shade);
+        data.putVec3(x2, y2, z2); data.putColorRGBA(color); data.putFloat(shade);
+        data.putVec3(x3, y3, z3); data.putColorRGBA(color); data.putFloat(shade);
+        data.putVec3(x4, y4, z4); data.putColorRGBA(color); data.putFloat(shade);
     }
 
     @Override
