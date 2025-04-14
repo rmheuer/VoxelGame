@@ -192,6 +192,90 @@ public final class LevelRenderer implements SafeCloseable {
         return neighbor != block && neighbor != Blocks.ID_SOLID;
     }
 
+    private static final class SectionContext {
+        private static final int MAX_COORD = MapSection.SIZE - 1;
+
+        private final MapSection section;
+
+        // Neighbors
+        private final MapSection nx, ny, nz, px, py, pz;
+        private final MapSection pynx, pynz, pypx, pypz;
+
+        private final LightMap lightMap;
+        private final int originX, originY, originZ;
+
+        public SectionContext(BlockMap blockMap, LightMap lightMap, int x, int y, int z, boolean getDiagonals) {
+            section = blockMap.getSection(x, y, z);
+
+            boolean hasNX = x > 0;
+            boolean hasNY = y > 0;
+            boolean hasNZ = z > 0;
+            boolean hasPX = x < blockMap.getSectionsX() - 1;
+            boolean hasPY = y < blockMap.getSectionsY() - 1;
+            boolean hasPZ = z < blockMap.getSectionsZ() - 1;
+
+            nx = hasNX ? blockMap.getSection(x - 1, y, z) : null;
+            ny = hasNY ? blockMap.getSection(x, y - 1, z) : null;
+            nz = hasNZ ? blockMap.getSection(x, y, z - 1) : null;
+            px = hasPX ? blockMap.getSection(x + 1, y, z) : null;
+            py = hasPY ? blockMap.getSection(x, y + 1, z) : null;
+            pz = hasPZ ? blockMap.getSection(x, y, z + 1) : null;
+
+            if (getDiagonals && hasPY) {
+                pynx = hasNX ? blockMap.getSection(x - 1, y + 1, z) : null;
+                pynz = hasNZ ? blockMap.getSection(x, y + 1, z - 1) : null;
+                pypx = hasPX ? blockMap.getSection(x + 1, y + 1, z) : null;
+                pypz = hasPZ ? blockMap.getSection(x, y + 1, z + 1) : null;
+            } else {
+                pynx = pynz = pypx = pypz = null;
+            }
+
+            this.lightMap = lightMap;
+            originX = x * MapSection.SIZE;
+            originY = y * MapSection.SIZE;
+            originZ = z * MapSection.SIZE;
+        }
+
+        // XYZ must be in bounds of the section
+        public byte getBlock(int x, int y, int z) {
+            return section.getBlockId(x, y, z);
+        }
+
+        // XYZ may be 1 block out of bounds from any face or diagonally from a top edge
+        public Byte getNeighbor(int x, int y, int z) {
+            if (y == MapSection.SIZE) {
+                if (x == -1)
+                    return pynx != null ? pynx.getBlockId(MAX_COORD, 0, z) : null;
+                if (z == -1)
+                    return pynz != null ? pynz.getBlockId(x, 0, MAX_COORD) : null;
+                if (x == MapSection.SIZE)
+                    return pypx != null ? pypx.getBlockId(0, 0, z) : null;
+                if (z == MapSection.SIZE)
+                    return pypz != null ? pypz.getBlockId(x, 0, 0) : null;
+
+                return py != null ? py.getBlockId(x, 0, z) : null;
+            }
+
+            if (x == -1)
+                return nx != null ? nx.getBlockId(MAX_COORD, y, z) : null;
+            if (y == -1)
+                return ny != null ? ny.getBlockId(x, MAX_COORD, z) : null;
+            if (z == -1)
+                return nz != null ? nz.getBlockId(x, y, MAX_COORD) : null;
+            if (x == MapSection.SIZE)
+                return px != null ? px.getBlockId(0, y, z) : null;
+            if (z == MapSection.SIZE)
+                return pz != null ? pz.getBlockId(x, y, 0) : null;
+
+            return section.getBlockId(x, y, z);
+        }
+
+        // XYZ must be in bounds for the world
+        public boolean isLit(int x, int y, int z) {
+            return lightMap.isLit(originX + x, originY + y, originZ + z);
+        }
+    }
+
     private SectionGeometry createSectionGeometry(BlockMap blockMap, LightMap lightMap, int sectionX, int sectionY, int sectionZ) {
         MapSection section = blockMap.getSection(sectionX, sectionY, sectionZ);
         VertexData opaqueData = new VertexData(LAYOUT);
