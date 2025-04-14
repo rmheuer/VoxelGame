@@ -1,6 +1,7 @@
 package com.github.rmheuer.voxel.render;
 
 import com.github.rmheuer.azalea.utils.SafeCloseable;
+import com.github.rmheuer.voxel.level.Blocks;
 import com.github.rmheuer.voxel.level.MapSection;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
@@ -33,7 +34,7 @@ public final class LevelRenderData implements SafeCloseable {
         getSection(sectionX, sectionY, sectionZ).markOutdated();
     }
 
-    public void blockChanged(int blockX, int blockY, int blockZ) {
+    public void blockChanged(int blockX, int blockY, int blockZ, byte prevBlock, byte newBlock) {
         int sectionX = blockX / MapSection.SIZE;
         int sectionY = blockY / MapSection.SIZE;
         int sectionZ = blockZ / MapSection.SIZE;
@@ -43,18 +44,39 @@ public final class LevelRenderData implements SafeCloseable {
 
         markSectionOutdated(sectionX, sectionY, sectionZ);
 
-        if (sectionX > 0 && relX == 0)
+        boolean faceNX = sectionX > 0 && relX == 0;
+        boolean faceNY = sectionY > 0 && relY == 0;
+        boolean faceNZ = sectionZ > 0 && relZ == 0;
+        boolean facePX = sectionX < sectionsX - 1 && relX == MapSection.SIZE - 1;
+        boolean facePY = sectionY < sectionsY - 1 && relY == MapSection.SIZE - 1;
+        boolean facePZ = sectionZ < sectionsZ - 1 && relZ == MapSection.SIZE - 1;
+
+        // If touching face, mark adjacent section also
+        if (faceNX)
             markSectionOutdated(sectionX - 1, sectionY, sectionZ);
-        if (sectionY > 0 && relY == 0)
+        if (faceNY)
             markSectionOutdated(sectionX, sectionY - 1, sectionZ);
-        if (sectionZ > 0 && relZ == 0)
+        if (faceNZ)
             markSectionOutdated(sectionX, sectionY, sectionZ - 1);
-        if (sectionX < sectionsX - 1 && relX == MapSection.SIZE - 1)
+        if (facePX)
             markSectionOutdated(sectionX + 1, sectionY, sectionZ);
-        if (sectionY < sectionsY - 1 && relY == MapSection.SIZE - 1)
+        if (facePY)
             markSectionOutdated(sectionX, sectionY + 1, sectionZ);
-        if (sectionZ < sectionsZ - 1 && relZ == MapSection.SIZE - 1)
+        if (facePZ)
             markSectionOutdated(sectionX, sectionY, sectionZ + 1);
+
+        // Water meshing is affected by the block diagonally upwards
+        if (prevBlock == Blocks.ID_WATER || newBlock == Blocks.ID_WATER) {
+            // If touching a bottom edge, mark diagonal section also
+            if (faceNX && faceNY)
+                markSectionOutdated(sectionX - 1, sectionY - 1, sectionZ);
+            if (facePX && faceNY)
+                markSectionOutdated(sectionX + 1, sectionY - 1, sectionZ);
+            if (faceNY && faceNZ)
+                markSectionOutdated(sectionX, sectionY - 1, sectionZ - 1);
+            if (faceNY && facePZ)
+                markSectionOutdated(sectionX, sectionY - 1, sectionZ + 1);
+        }
     }
 
     public void lightChanged(int blockX, int blockZ, int prevHeight, int newHeight) {

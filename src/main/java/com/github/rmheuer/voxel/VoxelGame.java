@@ -57,22 +57,22 @@ public final class VoxelGame extends BaseGame {
         lightMap = new LightMap(blockMap.getBlocksX(), blockMap.getBlocksZ());
         levelRenderData = new LevelRenderData(4, 4, 4);
 
-        for (int y = 0; y < 24; y++) {
+        for (int y = 0; y < 1; y++) {
             for (int z = 0; z < 64; z++) {
                 for (int x = 0; x < 64; x++) {
                     blockMap.setBlockId(x, y, z, Blocks.ID_SOLID);
                 }
             }
         }
-        for (int i = 0; i < 1024; i++) {
-            int x = (int) (Math.random() * 64);
-            int y = 24 + (int) (Math.random() * 4);
-            int z = (int) (Math.random() * 64);
-
-            byte block = Math.random() < 0.8 ? Blocks.ID_SOLID : Blocks.ID_WATER;
-
-            blockMap.setBlockId(x, y, z, block);
-        }
+//        for (int i = 0; i < 1024; i++) {
+//            int x = (int) (Math.random() * 64);
+//            int y = 24 + (int) (Math.random() * 4);
+//            int z = (int) (Math.random() * 64);
+//
+//            byte block = Math.random() < 0.8 ? Blocks.ID_SOLID : Blocks.ID_WATER;
+//
+//            blockMap.setBlockId(x, y, z, block);
+//        }
 
         lightMap.recalculateAll(blockMap);
 
@@ -121,7 +121,10 @@ public final class VoxelGame extends BaseGame {
 
     private void setBlock(Vector3i pos, byte blockId) {
         byte prevId = blockMap.setBlockId(pos.x, pos.y, pos.z, blockId);
-        levelRenderData.blockChanged(pos.x, pos.y, pos.z);
+        if (blockId == prevId)
+            return;
+
+        levelRenderData.blockChanged(pos.x, pos.y, pos.z, prevId, blockId);
 
         LightMap.Change lightChange = lightMap.blockChanged(blockMap, pos.x, pos.y, pos.z, prevId, blockId);
         if (lightChange != null)
@@ -195,7 +198,8 @@ public final class VoxelGame extends BaseGame {
         Matrix4f view = camera.getViewMatrix();
         Matrix4f viewProj = new Matrix4f(proj).mul(view);
 
-        levelRenderer.renderLevel(renderer, blockMap, lightMap, levelRenderData, camera.getTransform().position, viewProj);
+        boolean wireframe = getWindow().getKeyboard().isKeyPressed(Key.TAB);
+        levelRenderer.renderLevel(renderer, blockMap, lightMap, levelRenderData, camera.getTransform().position, viewProj, wireframe);
 
         if (raycastResult != null) {
             {
