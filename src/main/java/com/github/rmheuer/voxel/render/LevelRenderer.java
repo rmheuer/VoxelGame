@@ -15,6 +15,7 @@ import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.level.MapSection;
 import org.joml.Matrix4fc;
+import org.joml.Vector3f;
 import org.joml.Vector3fc;
 
 import java.io.IOException;
@@ -59,11 +60,11 @@ public final class LevelRenderer implements SafeCloseable {
         );
     }
 
-    private static final class WaterSection {
+    private static final class TranslucentSection {
         public final int blockX, blockY, blockZ;
         public final SectionRenderLayer layer;
 
-        public WaterSection(int blockX, int blockY, int blockZ, SectionRenderLayer layer) {
+        public TranslucentSection(int blockX, int blockY, int blockZ, SectionRenderLayer layer) {
             this.blockX = blockX;
             this.blockY = blockY;
             this.blockZ = blockZ;
@@ -88,38 +89,27 @@ public final class LevelRenderer implements SafeCloseable {
                     int oy = sectionY * MapSection.SIZE;
                     int oz = sectionZ * MapSection.SIZE;
 
-                    boolean updateWater = cameraMoved;
+                    boolean updateTranslucent = cameraMoved;
                     if (renderSection.isMeshOutdated()) {
-                        try (SectionGeometry geom = createSectionGeometry(blockMap, lightMap, sectionX, sectionY, sectionZ)) {
-                            renderSection.getOpaqueLayer().updateMesh(renderer, geom.opaqueData);
-                            renderSection.setWaterFaces(geom.waterFaces);
+                        try (SectionGeometry2 geom = createSectionGeometry2(blockMap, lightMap, sectionX, sectionY, sectionZ)) {
+                            renderSection.getOpaqueLayer().updateMesh(renderer, geom.getOpaqueData());
+                            renderSection.setTranslucentFaces(geom.getTranslucentFaces());
                             sharedIndexBuffer.ensureCapacity(geom.getRequiredFaceCount());
                             renderSection.clearOutdated();
                         }
                         updated++;
-                        updateWater = true;
+                        updateTranslucent = true;
                     }
 
-                    if (updateWater) {
-                        List<WaterFace> waterFaces = renderSection.getWaterFaces();
-                        waterFaces.sort(Comparator.comparingDouble((face) -> -cameraPos.distanceSquared(face.getCenterPos(ox, oy, oz))));
+                    if (updateTranslucent) {
+                        List<BlockFace> translucentFaces = renderSection.getTranslucentFaces();
+                        translucentFaces.sort(Comparator.comparingDouble((face) -> -cameraPos.distanceSquared(face.getCenterPos(ox, oy, oz))));
 
-                        int color = Colors.RGBA.fromFloats(0.3f, 0.3f, 1.0f, 0.6f);
                         try (VertexData data = new VertexData(LAYOUT)) {
-                            for (WaterFace face : waterFaces) {
-                                meshFace(
-                                        data,
-                                        lightMap,
-                                        face.x, face.y, face.z,
-                                        ox + face.x, oy + face.y, oz + face.z,
-                                        face.face,
-                                        face.botH,
-                                        face.topH,
-                                        face.depth,
-                                        color
-                                );
+                            for (BlockFace face : translucentFaces) {
+                                face.addToMesh(data);
                             }
-                            renderSection.getWaterLayer().updateMesh(renderer, data);
+                            renderSection.getTranslucentLayer().updateMesh(renderer, data);
                         }
                     }
                 }
@@ -131,7 +121,7 @@ public final class LevelRenderer implements SafeCloseable {
 
         pipeline.setFillMode(wireframe ? FillMode.WIREFRAME : FillMode.FILLED);
 
-        List<WaterSection> waterToRender = new ArrayList<>();
+        List<TranslucentSection> translucentToRender = new ArrayList<>();
         try (ActivePipeline pipe = renderer.bindPipeline(pipeline.setCullMode(CullMode.BACK))) {
             pipe.getUniform("u_ViewProj").setMat4(viewProj);
 
@@ -143,14 +133,14 @@ public final class LevelRenderer implements SafeCloseable {
                     for (int sectionX = 0; sectionX < sectionsX; sectionX++) {
                         SectionRenderData section = renderData.getSection(sectionX, sectionY, sectionZ);
                         SectionRenderLayer opaque = section.getOpaqueLayer();
-                        SectionRenderLayer water = section.getWaterLayer();
+                        SectionRenderLayer translucent = section.getTranslucentLayer();
 
-                        if (water.getElementCount() > 0) {
-                            waterToRender.add(new WaterSection(
+                        if (translucent.getElementCount() > 0) {
+                            translucentToRender.add(new TranslucentSection(
                                     sectionX * MapSection.SIZE,
                                     sectionY * MapSection.SIZE,
                                     sectionZ * MapSection.SIZE,
-                                    water
+                                    translucent
                             ));
                         }
 
@@ -174,12 +164,12 @@ public final class LevelRenderer implements SafeCloseable {
             IndexBuffer indexBuffer = sharedIndexBuffer.getIndexBuffer();
 
             int halfSz = MapSection.SIZE / 2;
-            waterToRender.sort(Comparator.comparingDouble((section) -> -cameraPos.distanceSquared(
+            translucentToRender.sort(Comparator.comparingDouble((section) -> -cameraPos.distanceSquared(
                     section.blockX + halfSz,
                     section.blockY + halfSz,
                     section.blockZ + halfSz
             )));
-            for (WaterSection section : waterToRender) {
+            for (TranslucentSection section : translucentToRender) {
                 offsetUniform.setVec3(section.blockX, section.blockY, section.blockZ);
                 pipe.draw(section.layer.getVertexBuffer(), indexBuffer, 0, section.layer.getElementCount());
             }
@@ -193,42 +183,15 @@ public final class LevelRenderer implements SafeCloseable {
     }
 
     private static final class SectionContext {
-        private static final int MAX_COORD = MapSection.SIZE - 1;
-
+        private final BlockMap blockMap;
         private final MapSection section;
-
-        // Neighbors
-        private final MapSection nx, ny, nz, px, py, pz;
-        private final MapSection pynx, pynz, pypx, pypz;
 
         private final LightMap lightMap;
         private final int originX, originY, originZ;
 
-        public SectionContext(BlockMap blockMap, LightMap lightMap, int x, int y, int z, boolean getDiagonals) {
+        public SectionContext(BlockMap blockMap, LightMap lightMap, int x, int y, int z) {
+            this.blockMap = blockMap;
             section = blockMap.getSection(x, y, z);
-
-            boolean hasNX = x > 0;
-            boolean hasNY = y > 0;
-            boolean hasNZ = z > 0;
-            boolean hasPX = x < blockMap.getSectionsX() - 1;
-            boolean hasPY = y < blockMap.getSectionsY() - 1;
-            boolean hasPZ = z < blockMap.getSectionsZ() - 1;
-
-            nx = hasNX ? blockMap.getSection(x - 1, y, z) : null;
-            ny = hasNY ? blockMap.getSection(x, y - 1, z) : null;
-            nz = hasNZ ? blockMap.getSection(x, y, z - 1) : null;
-            px = hasPX ? blockMap.getSection(x + 1, y, z) : null;
-            py = hasPY ? blockMap.getSection(x, y + 1, z) : null;
-            pz = hasPZ ? blockMap.getSection(x, y, z + 1) : null;
-
-            if (getDiagonals && hasPY) {
-                pynx = hasNX ? blockMap.getSection(x - 1, y + 1, z) : null;
-                pynz = hasNZ ? blockMap.getSection(x, y + 1, z - 1) : null;
-                pypx = hasPX ? blockMap.getSection(x + 1, y + 1, z) : null;
-                pypz = hasPZ ? blockMap.getSection(x, y + 1, z + 1) : null;
-            } else {
-                pynx = pynz = pypx = pypz = null;
-            }
 
             this.lightMap = lightMap;
             originX = x * MapSection.SIZE;
@@ -236,43 +199,258 @@ public final class LevelRenderer implements SafeCloseable {
             originZ = z * MapSection.SIZE;
         }
 
+        public boolean isEmpty() {
+            return section.isEmpty();
+        }
+
         // XYZ must be in bounds of the section
-        public byte getBlock(int x, int y, int z) {
+        public byte getLocalBlock(int x, int y, int z) {
             return section.getBlockId(x, y, z);
         }
 
-        // XYZ may be 1 block out of bounds from any face or diagonally from a top edge
-        public Byte getNeighbor(int x, int y, int z) {
-            if (y == MapSection.SIZE) {
-                if (x == -1)
-                    return pynx != null ? pynx.getBlockId(MAX_COORD, 0, z) : null;
-                if (z == -1)
-                    return pynz != null ? pynz.getBlockId(x, 0, MAX_COORD) : null;
-                if (x == MapSection.SIZE)
-                    return pypx != null ? pypx.getBlockId(0, 0, z) : null;
-                if (z == MapSection.SIZE)
-                    return pypz != null ? pypz.getBlockId(x, 0, 0) : null;
+        // Returns null if outside world
+        public Byte getSurroundingBlock(int x, int y, int z) {
+            int blockX = x + originX;
+            int blockY = y + originY;
+            int blockZ = z + originZ;
 
-                return py != null ? py.getBlockId(x, 0, z) : null;
+            int sectionX = Math.floorDiv(blockX, MapSection.SIZE);
+            int sectionY = Math.floorDiv(blockY, MapSection.SIZE);
+            int sectionZ = Math.floorDiv(blockZ, MapSection.SIZE);
+
+            if (sectionX < 0 || sectionX >= blockMap.getSectionsX()
+                    || sectionY < 0 || sectionY >= blockMap.getSectionsY()
+                    || sectionZ < 0 || sectionZ >= blockMap.getSectionsZ()) {
+                return null;
             }
 
-            if (x == -1)
-                return nx != null ? nx.getBlockId(MAX_COORD, y, z) : null;
-            if (y == -1)
-                return ny != null ? ny.getBlockId(x, MAX_COORD, z) : null;
-            if (z == -1)
-                return nz != null ? nz.getBlockId(x, y, MAX_COORD) : null;
-            if (x == MapSection.SIZE)
-                return px != null ? px.getBlockId(0, y, z) : null;
-            if (z == MapSection.SIZE)
-                return pz != null ? pz.getBlockId(x, y, 0) : null;
-
-            return section.getBlockId(x, y, z);
+            return blockMap.getSection(sectionX, sectionY, sectionZ).getBlockId(
+                    Math.floorMod(blockX, MapSection.SIZE),
+                    Math.floorMod(blockY, MapSection.SIZE),
+                    Math.floorMod(blockZ, MapSection.SIZE)
+            );
         }
 
         // XYZ must be in bounds for the world
         public boolean isLit(int x, int y, int z) {
+            System.out.println(x + ", " + y + ", " + z);
             return lightMap.isLit(originX + x, originY + y, originZ + z);
+        }
+    }
+
+    private static final class SectionGeometry2 implements SafeCloseable {
+        private final VertexData opaqueData;
+        private final List<BlockFace> translucentFaces;
+
+        public SectionGeometry2() {
+            opaqueData = new VertexData(LAYOUT);
+            translucentFaces = new ArrayList<>();
+        }
+
+        public void addOpaqueFace(BlockFace face) {
+            face.addToMesh(opaqueData);
+        }
+
+        public void addTranslucentFace(BlockFace face) {
+            translucentFaces.add(face);
+        }
+
+        public int getRequiredFaceCount() {
+            return Math.max(opaqueData.getVertexCount() / 4, translucentFaces.size());
+        }
+
+        public VertexData getOpaqueData() {
+            return opaqueData;
+        }
+
+        public List<BlockFace> getTranslucentFaces() {
+            return translucentFaces;
+        }
+
+        @Override
+        public void close() {
+            opaqueData.close();
+        }
+    }
+
+    private SectionGeometry2 createSectionGeometry2(BlockMap blockMap, LightMap lightMap, int sectionX, int sectionY, int sectionZ) {
+        SectionGeometry2 geom = new SectionGeometry2();
+        SectionContext ctx = new SectionContext(blockMap, lightMap, sectionX, sectionY, sectionZ);
+        if (ctx.isEmpty())
+            return geom;
+
+        for (int y = 0; y < MapSection.SIZE; y++) {
+            for (int z = 0; z < MapSection.SIZE; z++) {
+                for (int x = 0; x < MapSection.SIZE; x++) {
+                    byte block = ctx.getLocalBlock(x, y, z);
+
+                    if (block == Blocks.ID_AIR)
+                        continue;
+                    if (block == Blocks.ID_SOLID)
+                        meshCube(ctx, x, y, z, geom);
+                    if (block == Blocks.ID_WATER)
+                        meshWater(ctx, x, y, z, geom);
+                }
+            }
+        }
+
+        return geom;
+    }
+
+    private static final class CubeFaceTemplate {
+        public final CubeFace face;
+        private final Vector3f v1, v2, v3, v4;
+        private final float faceShade;
+
+        public CubeFaceTemplate(CubeFace face, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, float x4, float y4, float z4, float faceShade) {
+            this.face = face;
+            this.v1 = new Vector3f(x1, y1, z1);
+            this.v2 = new Vector3f(x2, y2, z2);
+            this.v3 = new Vector3f(x3, y3, z3);
+            this.v4 = new Vector3f(x4, y4, z4);
+            this.faceShade = faceShade;
+        }
+
+        public BlockFace makeFace(int x, int y, int z, int color, float lightShade) {
+            return new BlockFace(
+                    new Vector3f(v1).add(x, y, z),
+                    new Vector3f(v2).add(x, y, z),
+                    new Vector3f(v3).add(x, y, z),
+                    new Vector3f(v4).add(x, y, z),
+                    color,
+                    faceShade * lightShade
+            );
+        }
+    }
+
+    private static final CubeFaceTemplate[] CUBE_TEMPLATES = {
+            new CubeFaceTemplate(CubeFace.POS_X, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, SHADE_LEFT_RIGHT),
+            new CubeFaceTemplate(CubeFace.NEG_X, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, SHADE_LEFT_RIGHT),
+            new CubeFaceTemplate(CubeFace.POS_Y, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, SHADE_UP),
+            new CubeFaceTemplate(CubeFace.NEG_Y, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, SHADE_DOWN),
+            new CubeFaceTemplate(CubeFace.POS_Z, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, SHADE_FRONT_BACK),
+            new CubeFaceTemplate(CubeFace.NEG_Z, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, SHADE_FRONT_BACK)
+    };
+
+    private void meshCube(SectionContext ctx, int x, int y, int z, SectionGeometry2 geom) {
+        for (CubeFaceTemplate faceTemplate : CUBE_TEMPLATES) {
+            int nx = x + faceTemplate.face.x;
+            int ny = y + faceTemplate.face.y;
+            int nz = z + faceTemplate.face.z;
+
+            Byte neighbor = ctx.getSurroundingBlock(nx, ny, nz);
+            if (neighbor == null && faceTemplate.face != CubeFace.POS_Y)
+                continue;
+            if (neighbor != null && neighbor == Blocks.ID_SOLID)
+                continue;
+
+            System.out.println(faceTemplate.face + " and neighbor " + neighbor);
+            System.out.println(ctx.originX + " " + ctx.originY + " " + ctx.originZ);
+            boolean lit = ctx.isLit(nx, ny, nz);
+            float lightShade = lit ? SHADE_LIT : SHADE_SHADOW;
+
+            int color = Colors.RGBA.WHITE;
+            geom.addOpaqueFace(faceTemplate.makeFace(x, y, z, color, lightShade));
+        }
+    }
+
+    private static final float WATER_SURFACE_HEIGHT = 0.9f;
+
+    private static final class WaterSideTemplate {
+        public final CubeFace face;
+        private final float x1, z1, x2, z2;
+        private final float faceShade;
+
+        public WaterSideTemplate(CubeFace face, float x1, float z1, float x2, float z2, float faceShade) {
+            this.face = face;
+            this.x1 = x1;
+            this.z1 = z1;
+            this.x2 = x2;
+            this.z2 = z2;
+            this.faceShade = faceShade;
+        }
+
+        public BlockFace makeFace(int x, int y, int z, int color, float lightShade, float bottomY, float topY) {
+            return new BlockFace(
+                    new Vector3f(x + x1, y + topY, z + z1),
+                    new Vector3f(x + x1, y + bottomY, z + z1),
+                    new Vector3f(x + x2, y + bottomY, z + z2),
+                    new Vector3f(x + x2, y + topY, z + z2),
+                    color,
+                    faceShade * lightShade
+            );
+        }
+    }
+
+    private static final WaterSideTemplate[] WATER_SIDE_TEMPLATES = {
+            new WaterSideTemplate(CubeFace.POS_X, 1, 1, 1, 0, SHADE_LEFT_RIGHT),
+            new WaterSideTemplate(CubeFace.NEG_X, 0, 0, 0, 1, SHADE_LEFT_RIGHT),
+            new WaterSideTemplate(CubeFace.POS_Z, 0, 1, 1, 1, SHADE_FRONT_BACK),
+            new WaterSideTemplate(CubeFace.NEG_Z, 1, 0, 0, 0, SHADE_FRONT_BACK)
+    };
+
+    private void meshWater(SectionContext ctx, int x, int y, int z, SectionGeometry2 geom) {
+        Byte above = ctx.getSurroundingBlock(x, y + 1, z);
+        boolean tall = above != null && above == Blocks.ID_WATER;
+
+        int color = Colors.RGBA.fromFloats(0.3f, 0.3f, 1.0f, 0.6f);
+        float lightShade = ctx.isLit(x, y, z) ? SHADE_LIT : SHADE_SHADOW;
+
+        if (!tall) {
+            boolean surface = false;
+            for (int j = -1; j <= 1; j++) {
+                for (int i = -1; i <= 1; i++) {
+                    Byte aboveNeighbor = ctx.getSurroundingBlock(x + i, y + 1, z + j);
+                    if (aboveNeighbor == null || aboveNeighbor == Blocks.ID_AIR) {
+                        surface = true;
+                        break;
+                    }
+                }
+            }
+
+            if (surface) {
+                float h = WATER_SURFACE_HEIGHT;
+                geom.addTranslucentFace(new BlockFace(
+                        new Vector3f(x, y + h, z),
+                        new Vector3f(x, y + h, z + 1),
+                        new Vector3f(x + 1, y + h, z + 1),
+                        new Vector3f(x + 1, y + h, z),
+                        color,
+                        lightShade * SHADE_UP
+                ));
+            }
+        }
+
+        for (WaterSideTemplate sideTemplate : WATER_SIDE_TEMPLATES) {
+            int nx = x + sideTemplate.face.x;
+            int nz = z + sideTemplate.face.z;
+
+            Byte neighbor = ctx.getSurroundingBlock(nx, y, nz);
+            if (neighbor == null)
+                continue;
+
+            if (neighbor == Blocks.ID_AIR) {
+                float h = tall ? 1 : WATER_SURFACE_HEIGHT;
+                geom.addTranslucentFace(sideTemplate.makeFace(x, y, z, color, lightShade, 0, h));
+            } else if (tall && neighbor == Blocks.ID_WATER) {
+                Byte aboveNeighbor = ctx.getSurroundingBlock(nx, y + 1, nz);
+                boolean neighborTall = aboveNeighbor != null && aboveNeighbor == Blocks.ID_WATER;
+
+                if (!neighborTall)
+                    geom.addTranslucentFace(sideTemplate.makeFace(x, y, z, color, lightShade, WATER_SURFACE_HEIGHT, 1));
+            }
+        }
+
+        Byte below = ctx.getSurroundingBlock(x, y - 1, z);
+        if (below != null && below == Blocks.ID_AIR) {
+            geom.addTranslucentFace(new BlockFace(
+                    new Vector3f(x + 1, y, z),
+                    new Vector3f(x + 1, y, z + 1),
+                    new Vector3f(x, y, z + 1),
+                    new Vector3f(x, y, z),
+                    color,
+                    lightShade * SHADE_DOWN
+            ));
         }
     }
 

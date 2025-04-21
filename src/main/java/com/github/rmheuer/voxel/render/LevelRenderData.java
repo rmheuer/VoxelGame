@@ -34,7 +34,7 @@ public final class LevelRenderData implements SafeCloseable {
         getSection(sectionX, sectionY, sectionZ).markOutdated();
     }
 
-    public void blockChanged(int blockX, int blockY, int blockZ, byte prevBlock, byte newBlock) {
+    public void blockChanged(int blockX, int blockY, int blockZ) {
         int sectionX = blockX / MapSection.SIZE;
         int sectionY = blockY / MapSection.SIZE;
         int sectionZ = blockZ / MapSection.SIZE;
@@ -65,18 +65,25 @@ public final class LevelRenderData implements SafeCloseable {
         if (facePZ)
             markSectionOutdated(sectionX, sectionY, sectionZ + 1);
 
-        // Water meshing is affected by the block diagonally upwards
-        if (prevBlock == Blocks.ID_WATER || newBlock == Blocks.ID_WATER) {
-            // If touching a bottom edge, mark diagonal section also
-            if (faceNX && faceNY)
-                markSectionOutdated(sectionX - 1, sectionY - 1, sectionZ);
-            if (facePX && faceNY)
-                markSectionOutdated(sectionX + 1, sectionY - 1, sectionZ);
-            if (faceNY && faceNZ)
-                markSectionOutdated(sectionX, sectionY - 1, sectionZ - 1);
-            if (faceNY && facePZ)
-                markSectionOutdated(sectionX, sectionY - 1, sectionZ + 1);
-        }
+        // If touching a bottom edge, mark diagonal section also
+        if (faceNX && faceNY)
+            markSectionOutdated(sectionX - 1, sectionY - 1, sectionZ);
+        if (facePX && faceNY)
+            markSectionOutdated(sectionX + 1, sectionY - 1, sectionZ);
+        if (faceNY && faceNZ)
+            markSectionOutdated(sectionX, sectionY - 1, sectionZ - 1);
+        if (faceNY && facePZ)
+            markSectionOutdated(sectionX, sectionY - 1, sectionZ + 1);
+
+        // If touching a bottom corner, mark diagonal section also
+        if (faceNX && faceNY && faceNZ)
+            markSectionOutdated(sectionX - 1, sectionY - 1, sectionZ - 1);
+        if (facePX && faceNY && faceNZ)
+            markSectionOutdated(sectionX + 1, sectionY - 1, sectionZ - 1);
+        if (faceNX && faceNY && facePZ)
+            markSectionOutdated(sectionX - 1, sectionY - 1, sectionZ + 1);
+        if (facePX && faceNY && facePZ)
+            markSectionOutdated(sectionX + 1, sectionY - 1, sectionZ + 1);
     }
 
     public void lightChanged(int blockX, int blockZ, int prevHeight, int newHeight) {

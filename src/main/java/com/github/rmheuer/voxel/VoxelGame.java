@@ -57,26 +57,17 @@ public final class VoxelGame extends BaseGame {
         lightMap = new LightMap(blockMap.getBlocksX(), blockMap.getBlocksZ());
         levelRenderData = new LevelRenderData(4, 4, 4);
 
-        for (int y = 0; y < 1; y++) {
-            for (int z = 0; z < 64; z++) {
-                for (int x = 0; x < 64; x++) {
-                    blockMap.setBlockId(x, y, z, Blocks.ID_SOLID);
-                }
+        for (int z = 0; z < 64; z++) {
+            for (int x = 0; x < 64; x++) {
+                blockMap.setBlockId(x, 0, z, Blocks.ID_SOLID);
+                blockMap.setBlockId(x, 1, z, Blocks.ID_WATER);
+                blockMap.setBlockId(x, 2, z, Blocks.ID_WATER);
             }
         }
-//        for (int i = 0; i < 1024; i++) {
-//            int x = (int) (Math.random() * 64);
-//            int y = 24 + (int) (Math.random() * 4);
-//            int z = (int) (Math.random() * 64);
-//
-//            byte block = Math.random() < 0.8 ? Blocks.ID_SOLID : Blocks.ID_WATER;
-//
-//            blockMap.setBlockId(x, y, z, block);
-//        }
 
         lightMap.recalculateAll(blockMap);
 
-        setMouseCaptured(true);
+        setMouseCaptured(false);
         getEventBus().addHandler(KeyPressEvent.class, this::keyPressed);
         getEventBus().addHandler(MouseMoveEvent.class, this::mouseMoved);
         getEventBus().addHandler(MouseButtonPressEvent.class, this::mousePressed);
@@ -124,7 +115,7 @@ public final class VoxelGame extends BaseGame {
         if (blockId == prevId)
             return;
 
-        levelRenderData.blockChanged(pos.x, pos.y, pos.z, prevId, blockId);
+        levelRenderData.blockChanged(pos.x, pos.y, pos.z);
 
         LightMap.Change lightChange = lightMap.blockChanged(blockMap, pos.x, pos.y, pos.z, prevId, blockId);
         if (lightChange != null)

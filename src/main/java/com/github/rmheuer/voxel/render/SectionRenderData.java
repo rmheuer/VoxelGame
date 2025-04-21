@@ -7,15 +7,15 @@ import java.util.List;
 
 public final class SectionRenderData implements SafeCloseable {
     private final SectionRenderLayer opaque;
-    private final SectionRenderLayer water;
-    private List<WaterFace> waterFaces;
+    private final SectionRenderLayer translucent;
+    private List<BlockFace> translucentFaces;
 
     private boolean meshOutdated;
 
     public SectionRenderData() {
         opaque = new SectionRenderLayer();
-        water = new SectionRenderLayer();
-        waterFaces = Collections.emptyList();
+        translucent = new SectionRenderLayer();
+        translucentFaces = Collections.emptyList();
 
         meshOutdated = true;
     }
@@ -32,25 +32,25 @@ public final class SectionRenderData implements SafeCloseable {
         return opaque;
     }
 
-    public SectionRenderLayer getWaterLayer() {
-        return water;
+    public SectionRenderLayer getTranslucentLayer() {
+        return translucent;
     }
 
     public boolean isMeshOutdated() {
         return meshOutdated;
     }
 
-    public List<WaterFace> getWaterFaces() {
-        return waterFaces;
+    public List<BlockFace> getTranslucentFaces() {
+        return translucentFaces;
     }
 
-    public void setWaterFaces(List<WaterFace> waterFaces) {
-        this.waterFaces = waterFaces;
+    public void setTranslucentFaces(List<BlockFace> translucentFaces) {
+        this.translucentFaces = translucentFaces;
     }
 
     @Override
     public void close() {
         opaque.close();
-        water.close();
+        translucent.close();
     }
 }
