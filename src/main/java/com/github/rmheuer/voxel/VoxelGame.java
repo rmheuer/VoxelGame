@@ -13,10 +13,12 @@ import com.github.rmheuer.azalea.render.camera.Camera;
 import com.github.rmheuer.azalea.render.camera.PerspectiveProjection;
 import com.github.rmheuer.azalea.render.utils.DebugLineRenderer;
 import com.github.rmheuer.azalea.runtime.BaseGame;
+import com.github.rmheuer.azalea.runtime.FixedRateExecutor;
 import com.github.rmheuer.voxel.level.Blocks;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.level.MapSection;
+import com.github.rmheuer.voxel.particle.ParticleSystem;
 import com.github.rmheuer.voxel.physics.Raycast;
 import com.github.rmheuer.voxel.render.LevelRenderData;
 import com.github.rmheuer.voxel.render.LevelRenderer;
@@ -30,8 +32,11 @@ public final class VoxelGame extends BaseGame {
             new WindowSettings(640, 480, "Voxel")
                 .setVSync(false);
 
+    private final FixedRateExecutor ticker;
+
     private final LevelRenderer levelRenderer;
     private final DebugLineRenderer lineRenderer;
+    private final ParticleSystem particleSystem;
 
     private final Camera camera;
     private final BlockMap blockMap;
@@ -48,8 +53,11 @@ public final class VoxelGame extends BaseGame {
     public VoxelGame() throws IOException {
         super(WINDOW_SETTINGS);
 
+        ticker = new FixedRateExecutor(1 / 20.0f, this::fixedTick);
+
         levelRenderer = new LevelRenderer(getRenderer());
         lineRenderer = new DebugLineRenderer(getRenderer());
+        particleSystem = new ParticleSystem(getRenderer());
 
         camera = new Camera(new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f));
 
@@ -128,7 +136,17 @@ public final class VoxelGame extends BaseGame {
 
         if (event.getButton() == MouseButton.LEFT) {
             if (raycastResult != null) {
-                setBlock(raycastResult.blockPos, Blocks.ID_AIR);
+                Vector3i pos = raycastResult.blockPos;
+                byte brokenBlock = blockMap.getBlockId(pos.x, pos.y, pos.z);
+                if (brokenBlock != Blocks.ID_AIR) {
+                    setBlock(pos, Blocks.ID_AIR);
+
+                    int color = brokenBlock == Blocks.ID_SOLID
+                            ? Colors.RGBA.WHITE
+                            : Colors.RGBA.fromFloats(0.3f, 0.3f, 1.0f);
+
+                    particleSystem.spawnBreakParticles(pos.x, pos.y, pos.z, color);
+                }
             }
         } else if (event.getButton() == MouseButton.RIGHT) {
             if (raycastResult != null && raycastResult.hitFace != null) {
@@ -136,6 +154,10 @@ public final class VoxelGame extends BaseGame {
                         .add(raycastResult.hitFace.getDirection());
 
                 setBlock(pos, blockIdToPlace);
+            }
+        } else if (event.getButton() == MouseButton.MIDDLE) {
+            if (raycastResult != null) {
+                blockIdToPlace = blockMap.getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z);
             }
         }
     }
@@ -147,6 +169,8 @@ public final class VoxelGame extends BaseGame {
         Vector3f pos = camera.getTransform().position;
         Vector3f dir = camera.getTransform().getForward();
         raycastResult = Raycast.raycast(blockMap, pos, dir, 32);
+
+        ticker.update(dt);
     }
 
     private void moveCamera(Keyboard kb, float dt) {
@@ -182,6 +206,10 @@ public final class VoxelGame extends BaseGame {
             rot.x -= turn;
     }
 
+    private void fixedTick(float dt) {
+        particleSystem.tickParticles(blockMap);
+    }
+
     @Override
     protected void render(Renderer renderer) {
         Vector2i windowSize = getWindow().getFramebufferSize();
@@ -190,7 +218,21 @@ public final class VoxelGame extends BaseGame {
         Matrix4f viewProj = new Matrix4f(proj).mul(view);
 
         boolean wireframe = getWindow().getKeyboard().isKeyPressed(Key.TAB);
-        levelRenderer.renderLevel(renderer, blockMap, lightMap, levelRenderData, camera.getTransform().position, viewProj, wireframe);
+        LevelRenderer.PreparedRender levelRender = levelRenderer.prepareRender(
+                renderer,
+                blockMap,
+                lightMap,
+                levelRenderData,
+                camera.getTransform().position,
+                wireframe
+        );
+
+        levelRender.renderOpaqueLayer(renderer, viewProj);
+
+        float subtick = ticker.getSubtickPercent();
+        particleSystem.renderParticles(renderer, view, proj, subtick, lightMap);
+
+        levelRender.renderTranslucentLayer(renderer, viewProj);
 
         if (raycastResult != null) {
             {
@@ -266,6 +308,7 @@ public final class VoxelGame extends BaseGame {
     protected void cleanUp() {
         levelRenderData.close();
         levelRenderer.close();
+        particleSystem.close();
     }
 
     public static void main(String[] args) {

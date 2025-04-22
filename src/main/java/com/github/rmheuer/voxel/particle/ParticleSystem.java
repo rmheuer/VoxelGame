@@ -1,0 +1,185 @@
+package com.github.rmheuer.voxel.particle;
+
+import com.github.rmheuer.azalea.io.ResourceUtil;
+import com.github.rmheuer.azalea.render.Renderer;
+import com.github.rmheuer.azalea.render.mesh.*;
+import com.github.rmheuer.azalea.render.pipeline.ActivePipeline;
+import com.github.rmheuer.azalea.render.pipeline.CullMode;
+import com.github.rmheuer.azalea.render.pipeline.FaceWinding;
+import com.github.rmheuer.azalea.render.pipeline.PipelineInfo;
+import com.github.rmheuer.azalea.render.shader.ShaderProgram;
+import com.github.rmheuer.azalea.render.utils.SharedIndexBuffer;
+import com.github.rmheuer.azalea.utils.SafeCloseable;
+import com.github.rmheuer.voxel.level.BlockMap;
+import com.github.rmheuer.voxel.level.LightMap;
+import com.github.rmheuer.voxel.render.LightingConstants;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Random;
+
+public final class ParticleSystem implements SafeCloseable {
+    private static final VertexLayout LAYOUT = new VertexLayout(
+            AttribType.VEC3, // Position
+            AttribType.COLOR_RGBA, // Color
+            AttribType.FLOAT // Shade
+    );
+
+    private static final int BREAK_PARTICLES_PER_AXIS = 10;
+    private static final float GRAVITY = 0.08f;
+
+    private static final class Particle {
+        private final float size;
+        private final int color;
+
+        private final Vector3f position;
+        private final Vector3f prevPosition;
+        private final Vector3f velocity;
+
+        private int ticksLeft;
+
+        public Particle(float size, int color, Vector3f position, Vector3f velocity, int lifeTime) {
+            this.size = size;
+            this.color = color;
+            this.position = position;
+            this.velocity = velocity;
+
+            prevPosition = new Vector3f(position);
+            ticksLeft = lifeTime;
+        }
+
+        public void tick(BlockMap map) {
+            prevPosition.set(position);
+            position.add(velocity);
+
+            velocity.y -= GRAVITY;
+
+            ticksLeft--;
+        }
+
+        public boolean shouldRemove() {
+            return ticksLeft <= 0;
+        }
+    }
+
+    private final ShaderProgram shader;
+    private final PipelineInfo pipeline;
+    private final VertexBuffer vertexBuffer;
+    private final SharedIndexBuffer indexBuffer;
+
+    private final List<Particle> particles;
+    private final Random random;
+
+    public ParticleSystem(Renderer renderer) throws IOException {
+        shader = renderer.createShaderProgram(
+                ResourceUtil.readAsStream("shaders/particle-vert.glsl"),
+                ResourceUtil.readAsStream("shaders/particle-frag.glsl")
+        );
+        pipeline = new PipelineInfo(shader)
+                .setWinding(FaceWinding.CCW_FRONT)
+                .setCullMode(CullMode.BACK)
+                .setBlend(true)
+                .setDepthTest(true);
+
+        vertexBuffer = renderer.createVertexBuffer();
+        indexBuffer = new SharedIndexBuffer(renderer, PrimitiveType.TRIANGLES, 4, 0, 1, 2, 0, 2, 3);
+
+        particles = new ArrayList<>();
+        random = new Random();
+    }
+
+    private float particlePos(int index) {
+        return (index + 0.5f) / BREAK_PARTICLES_PER_AXIS;
+    }
+
+    private float velocityRand() {
+        return (float) random.nextGaussian() * 0.05f;
+    }
+
+    public void spawnBreakParticles(int blockX, int blockY, int blockZ, int color) {
+        for (int i = 0; i < BREAK_PARTICLES_PER_AXIS; i++) {
+            for (int j = 0; j < BREAK_PARTICLES_PER_AXIS; j++) {
+                for (int k = 0; k < BREAK_PARTICLES_PER_AXIS; k++) {
+                    Vector3f pos = new Vector3f(blockX + particlePos(i), blockY + particlePos(j), blockZ + particlePos(k));
+                    Vector3f vel = new Vector3f(pos)
+                            .sub(blockX + 0.5f, blockY + 0.5f, blockZ + 0.5f)
+                            .normalize()
+                            .mul(0.12f)
+                            .add(velocityRand(), velocityRand(), velocityRand())
+                            .mul(15);
+
+                    float size = (random.nextFloat() * 2 + 2) / 16f;
+
+                    int lifeTime = 10 + random.nextInt(8);
+
+                    particles.add(new Particle(size, color, pos, vel, lifeTime));
+                }
+            }
+        }
+    }
+
+    public void tickParticles(BlockMap map) {
+        for (Iterator<Particle> iter = particles.iterator(); iter.hasNext(); ) {
+            Particle particle = iter.next();
+            if (particle.shouldRemove()) {
+                iter.remove();
+            } else {
+                particle.tick(map);
+            }
+        }
+    }
+
+    public void renderParticles(Renderer renderer, Matrix4f view, Matrix4f proj, float subtick, LightMap lightMap) {
+        if (particles.isEmpty())
+            return;
+
+        Matrix4f viewInv = new Matrix4f(view).invert();
+        Vector3f right = viewInv.getColumn(0, new Vector3f());
+        Vector3f up = viewInv.getColumn(1, new Vector3f());
+
+        try (VertexData data = new VertexData(LAYOUT)) {
+            for (Particle particle : particles) {
+                Vector3f pos = new Vector3f(particle.prevPosition).lerp(particle.position, subtick);
+
+                float halfSz = particle.size / 2;
+                Vector3f v1 = new Vector3f(pos).fma(-halfSz, right).fma(halfSz, up);
+                Vector3f v2 = new Vector3f(pos).fma(-halfSz, right).fma(-halfSz, up);
+                Vector3f v3 = new Vector3f(pos).fma(halfSz, right).fma(-halfSz, up);
+                Vector3f v4 = new Vector3f(pos).fma(halfSz, right).fma(halfSz, up);
+
+                int blockX = (int) Math.floor(pos.x);
+                int blockY = (int) Math.floor(pos.y);
+                int blockZ = (int) Math.floor(pos.z);
+
+                float shade = !lightMap.isInBounds(blockX, blockZ) || lightMap.isLit(blockX, blockY, blockZ)
+                        ? LightingConstants.SHADE_LIT
+                        : LightingConstants.SHADE_SHADOW;
+
+                data.putVec3(v1); data.putColorRGBA(particle.color); data.putFloat(shade);
+                data.putVec3(v2); data.putColorRGBA(particle.color); data.putFloat(shade);
+                data.putVec3(v3); data.putColorRGBA(particle.color); data.putFloat(shade);
+                data.putVec3(v4); data.putColorRGBA(particle.color); data.putFloat(shade);
+            }
+
+            vertexBuffer.setData(data, DataUsage.STREAM);
+        }
+        indexBuffer.ensureCapacity(particles.size());
+
+        Matrix4f viewProj = new Matrix4f(proj).mul(view);
+        try (ActivePipeline pipe = renderer.bindPipeline(pipeline)) {
+            pipe.getUniform("u_ViewProj").setMat4(viewProj);
+            pipe.draw(vertexBuffer, indexBuffer.getIndexBuffer(), 0, particles.size() * 6);
+        }
+    }
+
+    @Override
+    public void close() {
+        shader.close();
+        vertexBuffer.close();
+        indexBuffer.close();
+    }
+}

@@ -1,7 +1,6 @@
 package com.github.rmheuer.voxel.render;
 
 import com.github.rmheuer.azalea.utils.SafeCloseable;
-import com.github.rmheuer.voxel.level.Blocks;
 import com.github.rmheuer.voxel.level.MapSection;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;

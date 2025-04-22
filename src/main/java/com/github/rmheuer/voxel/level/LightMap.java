@@ -79,4 +79,9 @@ public final class LightMap {
 
         return new Change(currentHeight, newHeight);
     }
+
+    public boolean isInBounds(int blockX, int blockZ) {
+        return blockX >= 0 && blockX < blocksX
+                && blockZ >= 0 && blockZ < blocksZ;
+    }
 }
