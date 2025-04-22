@@ -1,5 +1,10 @@
 package com.github.rmheuer.voxel.level;
 
+import com.github.rmheuer.azalea.math.AABB;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public final class BlockMap {
     private final int sectionsX, sectionsY, sectionsZ;
     private final int blocksX, blocksY, blocksZ;
@@ -59,6 +64,39 @@ public final class BlockMap {
         return blockX >= 0 && blockX < blocksX
                 && blockY >= 0 && blockY < blocksY
                 && blockZ >= 0 && blockZ < blocksZ;
+    }
+
+    public List<AABB> getCollidersWithin(AABB region) {
+        List<AABB> colliders = new ArrayList<>();
+
+        int minX = (int) Math.floor(region.minX);
+        int minZ = (int) Math.floor(region.minZ);
+        int maxX = (int) Math.ceil(region.maxX);
+        int maxZ = (int) Math.ceil(region.maxZ);
+
+        int minY = (int) Math.max(Math.floor(region.minY), 0);
+        int maxY = (int) Math.min(Math.ceil(region.maxY), blocksY);
+
+        for (int y = minY; y < maxY; y++) {
+            for (int z = minZ; z < maxZ; z++) {
+                boolean zInBounds = z >= 0 && z < blocksZ;
+                for (int x = minX; x < maxX; x++) {
+                    boolean xInBounds = x >= 0 && x < blocksX;
+
+                    if (xInBounds && zInBounds) {
+                        byte block = getBlockId(x, y, z);
+                        if (block == Blocks.ID_SOLID) {
+                            colliders.add(new AABB(x, y, z, x + 1, y + 1, z + 1));
+                        }
+                    } else {
+                        // Make horizontal border of world solid
+                        colliders.add(new AABB(x, y, z, x + 1, y + 1, z + 1));
+                    }
+                }
+            }
+        }
+
+        return colliders;
     }
 
     public int getSectionsX() {

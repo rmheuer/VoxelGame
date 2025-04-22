@@ -1,6 +1,8 @@
 package com.github.rmheuer.voxel.particle;
 
 import com.github.rmheuer.azalea.io.ResourceUtil;
+import com.github.rmheuer.azalea.math.AABB;
+import com.github.rmheuer.azalea.math.Axis;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.mesh.*;
 import com.github.rmheuer.azalea.render.pipeline.ActivePipeline;
@@ -29,8 +31,11 @@ public final class ParticleSystem implements SafeCloseable {
             AttribType.FLOAT // Shade
     );
 
-    private static final int BREAK_PARTICLES_PER_AXIS = 10;
-    private static final float GRAVITY = 0.08f;
+    private static final int BREAK_PARTICLES_PER_AXIS = 4;
+
+    private static final float GRAVITY = 0.04f;
+    private static final float AIR_RESISTANCE = 0.98f;
+    private static final float FRICTION = 0.7f;
 
     private static final class Particle {
         private final float size;
@@ -54,9 +59,46 @@ public final class ParticleSystem implements SafeCloseable {
 
         public void tick(BlockMap map) {
             prevPosition.set(position);
-            position.add(velocity);
 
             velocity.y -= GRAVITY;
+
+            AABB box = AABB.fromCenterSize(position.x, position.y, position.z, 0.2f, 0.2f, 0.2f);
+            AABB extended = box.expandTowards(velocity.x, velocity.y, velocity.z);
+            List<AABB> colliders = map.getCollidersWithin(extended);
+
+            float moveY = velocity.y;
+            for (AABB collider : colliders) {
+                moveY = box.collideAlongAxis(collider, Axis.Y, moveY);
+            }
+            box = box.translate(0, moveY, 0);
+            float moveX = velocity.x;
+            for (AABB collider : colliders) {
+                moveX = box.collideAlongAxis(collider, Axis.X, moveX);
+            }
+            box = box.translate(moveX, 0, 0);
+            float moveZ = velocity.z;
+            for (AABB collider : colliders) {
+                moveZ = box.collideAlongAxis(collider, Axis.Z, moveZ);
+            }
+
+            if (moveX != velocity.x)
+                velocity.x = 0;
+            if (moveZ != velocity.z)
+                velocity.z = 0;
+
+            boolean onGround = false;
+            if (moveY != velocity.y) {
+                if (velocity.y < 0)
+                    onGround = true;
+                velocity.y = 0;
+            }
+
+            position.add(moveX, moveY, moveZ);
+            velocity.mul(AIR_RESISTANCE);
+            if (onGround) {
+                velocity.x *= FRICTION;
+                velocity.z *= FRICTION;
+            }
 
             ticksLeft--;
         }
@@ -97,7 +139,7 @@ public final class ParticleSystem implements SafeCloseable {
     }
 
     private float velocityRand() {
-        return (float) random.nextGaussian() * 0.05f;
+        return (random.nextFloat() * 2 - 1) * 0.4f;
     }
 
     public void spawnBreakParticles(int blockX, int blockY, int blockZ, int color) {
@@ -107,14 +149,13 @@ public final class ParticleSystem implements SafeCloseable {
                     Vector3f pos = new Vector3f(blockX + particlePos(i), blockY + particlePos(j), blockZ + particlePos(k));
                     Vector3f vel = new Vector3f(pos)
                             .sub(blockX + 0.5f, blockY + 0.5f, blockZ + 0.5f)
-                            .normalize()
-                            .mul(0.12f)
                             .add(velocityRand(), velocityRand(), velocityRand())
-                            .mul(15);
+                            .normalize()
+                            .mul((random.nextFloat() + random.nextFloat() + 1) * 0.06f);
+                    vel.y += 0.1f;
 
-                    float size = (random.nextFloat() * 2 + 2) / 16f;
-
-                    int lifeTime = 10 + random.nextInt(8);
+                    float size = 0.2f * (random.nextFloat() * 0.5f + 0.5f);
+                    int lifeTime = (int) (4 / (random.nextFloat() * 0.9f + 0.1f));
 
                     particles.add(new Particle(size, color, pos, vel, lifeTime));
                 }
@@ -158,6 +199,7 @@ public final class ParticleSystem implements SafeCloseable {
                 float shade = !lightMap.isInBounds(blockX, blockZ) || lightMap.isLit(blockX, blockY, blockZ)
                         ? LightingConstants.SHADE_LIT
                         : LightingConstants.SHADE_SHADOW;
+                shade *= 0.6f;
 
                 data.putVec3(v1); data.putColorRGBA(particle.color); data.putFloat(shade);
                 data.putVec3(v2); data.putColorRGBA(particle.color); data.putFloat(shade);
