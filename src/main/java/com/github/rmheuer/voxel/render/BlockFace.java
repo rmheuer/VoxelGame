@@ -27,4 +27,8 @@ public final class BlockFace {
     public Vector3f getCenterPos(int ox, int oy, int oz) {
         return new Vector3f(v1).add(v2).add(v3).add(v4).div(4).add(ox, oy, oz);
     }
+
+    public BlockFace makeBackFace() {
+        return new BlockFace(v4, v3, v2, v1, color, shade);
+    }
 }

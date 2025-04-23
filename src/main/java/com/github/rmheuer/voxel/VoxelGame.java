@@ -143,10 +143,7 @@ public final class VoxelGame extends BaseGame {
                 if (brokenBlock != Blocks.ID_AIR) {
                     setBlock(pos, Blocks.ID_AIR);
 
-                    int color = brokenBlock == Blocks.ID_SOLID
-                            ? Colors.RGBA.WHITE
-                            : Colors.RGBA.fromFloats(0.3f, 0.3f, 1.0f);
-
+                    int color = Blocks.getColor(brokenBlock);
                     particleSystem.spawnBreakParticles(pos.x, pos.y, pos.z, color);
                 }
             }

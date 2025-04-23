@@ -1,10 +1,10 @@
 To Do:
 
 Support for other block shapes:
-  Opaque liquid (lava)
+  [x] Opaque liquid (lava)
     [x] Add the block
-    Make it render to opaque layer
-    Make faces double-sided again
+    [x] Make it render to opaque layer
+    [x] Make faces double-sided again
   Slab
   Cross
 Player physics:

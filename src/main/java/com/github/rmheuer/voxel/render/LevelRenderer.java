@@ -42,7 +42,8 @@ public final class LevelRenderer implements SafeCloseable {
         pipeline = new PipelineInfo(shader)
                 .setDepthTest(true)
                 .setWinding(FaceWinding.CCW_FRONT)
-                .setFillMode(FillMode.FILLED);
+                .setFillMode(FillMode.FILLED)
+                .setCullMode(CullMode.BACK);
 
         sharedIndexBuffer = new SharedIndexBuffer(
                 renderer,
@@ -78,12 +79,10 @@ public final class LevelRenderer implements SafeCloseable {
         }
 
         public void renderOpaqueLayer(Renderer renderer, Matrix4f viewProj) {
-            pipeline.setCullMode(CullMode.BACK);
             renderLayer(renderer, viewProj, opaqueToRender);
         }
 
         public void renderTranslucentLayer(Renderer renderer, Matrix4f viewProj) {
-            pipeline.setCullMode(CullMode.OFF);
             renderLayer(renderer, viewProj, translucentToRender);
         }
 
@@ -245,12 +244,24 @@ public final class LevelRenderer implements SafeCloseable {
             translucentFaces = new ArrayList<>();
         }
 
-        public void addOpaqueFace(BlockFace face) {
-            face.addToMesh(opaqueData);
+//        public void addOpaqueFace(BlockFace face) {
+//            face.addToMesh(opaqueData);
+//        }
+//
+//        public void addTranslucentFace(BlockFace face) {
+//            translucentFaces.add(face);
+//        }
+
+        public void addFace(boolean opaque, BlockFace face) {
+            if (opaque)
+                face.addToMesh(opaqueData);
+            else
+                translucentFaces.add(face);
         }
 
-        public void addTranslucentFace(BlockFace face) {
-            translucentFaces.add(face);
+        public void addDoubleSidedFace(boolean opaque, BlockFace face) {
+            addFace(opaque, face);
+            addFace(opaque, face.makeBackFace());
         }
 
         public int getRequiredFaceCount() {
@@ -284,12 +295,14 @@ public final class LevelRenderer implements SafeCloseable {
 
                     if (block == Blocks.ID_AIR)
                         continue;
+
+                    int color = Blocks.getColor(block);
                     if (block == Blocks.ID_SOLID)
-                        meshCube(ctx, x, y, z, geom);
+                        meshCube(ctx, x, y, z, color, geom);
                     if (block == Blocks.ID_WATER)
-                        meshLiquid(ctx, x, y, z, Colors.RGBA.fromFloats(0.3f, 0.3f, 1.0f, 0.6f), Blocks.ID_WATER, geom);
+                        meshLiquid(ctx, x, y, z, color, false, Blocks.ID_WATER, geom);
                     if (block == Blocks.ID_LAVA)
-                        meshLiquid(ctx, x, y, z, Colors.RGBA.fromFloats(1.0f, 0.5f, 0.0f), Blocks.ID_LAVA, geom);
+                        meshLiquid(ctx, x, y, z, color, true, Blocks.ID_LAVA, geom);
                 }
             }
         }
@@ -332,7 +345,7 @@ public final class LevelRenderer implements SafeCloseable {
             new CubeFaceTemplate(CubeFace.NEG_Z, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, LightingConstants.SHADE_FRONT_BACK)
     };
 
-    private void meshCube(SectionContext ctx, int x, int y, int z, SectionGeometry geom) {
+    private void meshCube(SectionContext ctx, int x, int y, int z, int color, SectionGeometry geom) {
         for (CubeFaceTemplate faceTemplate : CUBE_TEMPLATES) {
             int nx = x + faceTemplate.face.x;
             int ny = y + faceTemplate.face.y;
@@ -347,8 +360,7 @@ public final class LevelRenderer implements SafeCloseable {
             boolean lit = ctx.isLit(nx, ny, nz);
             float lightShade = lit ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
 
-            int color = Colors.RGBA.WHITE;
-            geom.addOpaqueFace(faceTemplate.makeFace(x, y, z, color, lightShade));
+            geom.addFace(true, faceTemplate.makeFace(x, y, z, color, lightShade));
         }
     }
 
@@ -388,7 +400,7 @@ public final class LevelRenderer implements SafeCloseable {
             new LiquidSideTemplate(CubeFace.NEG_Z, 1, LIQUID_INSET, 0, LIQUID_INSET, LightingConstants.SHADE_FRONT_BACK)
     };
 
-    private void meshLiquid(SectionContext ctx, int x, int y, int z, int color, byte selfId, SectionGeometry geom) {
+    private void meshLiquid(SectionContext ctx, int x, int y, int z, int color, boolean opaque, byte selfId, SectionGeometry geom) {
         Byte above = ctx.getSurroundingBlock(x, y + 1, z);
         boolean tall = above != null && above == selfId;
 
@@ -399,7 +411,7 @@ public final class LevelRenderer implements SafeCloseable {
             for (int j = -1; j <= 1; j++) {
                 for (int i = -1; i <= 1; i++) {
                     Byte aboveNeighbor = ctx.getSurroundingBlock(x + i, y + 1, z + j);
-                    if (aboveNeighbor == null || (aboveNeighbor != selfId && !Blocks.isOpaque(aboveNeighbor))) {
+                    if (aboveNeighbor == null || (aboveNeighbor != selfId && Blocks.isTransparent(aboveNeighbor))) {
                         surface = true;
                         break;
                     }
@@ -408,7 +420,7 @@ public final class LevelRenderer implements SafeCloseable {
 
             if (surface) {
                 float h = LIQUID_SURFACE_HEIGHT;
-                geom.addTranslucentFace(new BlockFace(
+                geom.addDoubleSidedFace(opaque, new BlockFace(
                         new Vector3f(x, y + h, z),
                         new Vector3f(x, y + h, z + 1),
                         new Vector3f(x + 1, y + h, z + 1),
@@ -427,21 +439,21 @@ public final class LevelRenderer implements SafeCloseable {
             if (neighbor == null)
                 continue;
 
-            if (neighbor != selfId && !Blocks.isOpaque(neighbor)) {
+            if (neighbor != selfId && Blocks.isTransparent(neighbor)) {
                 float h = tall ? 1 : LIQUID_SURFACE_HEIGHT;
-                geom.addTranslucentFace(sideTemplate.makeFace(x, y, z, color, lightShade, 0, h));
+                geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, color, lightShade, 0, h));
             } else if (tall && neighbor == selfId) {
                 Byte aboveNeighbor = ctx.getSurroundingBlock(nx, y + 1, nz);
                 boolean neighborTall = aboveNeighbor != null && aboveNeighbor == selfId;
 
                 if (!neighborTall)
-                    geom.addTranslucentFace(sideTemplate.makeFace(x, y, z, color, lightShade, LIQUID_SURFACE_HEIGHT, 1));
+                    geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, color, lightShade, LIQUID_SURFACE_HEIGHT - LIQUID_INSET, 1));
             }
         }
 
         Byte below = ctx.getSurroundingBlock(x, y - 1, z);
-        if (below != null && below != selfId && !Blocks.isOpaque(below)) {
-            geom.addTranslucentFace(new BlockFace(
+        if (below != null && below != selfId && Blocks.isTransparent(below)) {
+            geom.addDoubleSidedFace(opaque, new BlockFace(
                     new Vector3f(x + 1, y + LIQUID_INSET, z),
                     new Vector3f(x + 1, y + LIQUID_INSET, z + 1),
                     new Vector3f(x, y + LIQUID_INSET, z + 1),
