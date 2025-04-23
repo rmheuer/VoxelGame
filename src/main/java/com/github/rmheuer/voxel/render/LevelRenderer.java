@@ -8,6 +8,7 @@ import com.github.rmheuer.azalea.render.mesh.*;
 import com.github.rmheuer.azalea.render.pipeline.*;
 import com.github.rmheuer.azalea.render.shader.ShaderProgram;
 import com.github.rmheuer.azalea.render.shader.ShaderUniform;
+import com.github.rmheuer.azalea.render.texture.Texture2D;
 import com.github.rmheuer.azalea.render.utils.SharedIndexBuffer;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
 import com.github.rmheuer.voxel.level.*;
@@ -30,6 +31,7 @@ public final class LevelRenderer implements SafeCloseable {
     private final ShaderProgram shader;
     private final PipelineInfo pipeline;
     private final SharedIndexBuffer sharedIndexBuffer;
+    private final Texture2D atlasTexture;
 
     public LevelRenderer(Renderer renderer) throws IOException {
         shader = renderer.createShaderProgram(
@@ -48,6 +50,8 @@ public final class LevelRenderer implements SafeCloseable {
                 4,
                 0, 1, 2, 0, 2, 3
         );
+
+        atlasTexture = renderer.createTexture2D(ResourceUtil.readAsStream("terrain.png"));
     }
 
     private static final class RenderSection {
@@ -65,12 +69,14 @@ public final class LevelRenderer implements SafeCloseable {
     public static final class PreparedRender {
         private final PipelineInfo pipeline;
         private final IndexBuffer indexBuffer;
+        private final Texture2D atlasTexture;
         private final List<RenderSection> opaqueToRender;
         private final List<RenderSection> translucentToRender;
 
-        PreparedRender(PipelineInfo pipeline, IndexBuffer indexBuffer, List<RenderSection> opaqueToRender, List<RenderSection> translucentToRender) {
+        PreparedRender(PipelineInfo pipeline, IndexBuffer indexBuffer, Texture2D atlasTexture, List<RenderSection> opaqueToRender, List<RenderSection> translucentToRender) {
             this.pipeline = pipeline;
             this.indexBuffer = indexBuffer;
+            this.atlasTexture = atlasTexture;
             this.opaqueToRender = opaqueToRender;
             this.translucentToRender = translucentToRender;
         }
@@ -85,6 +91,7 @@ public final class LevelRenderer implements SafeCloseable {
 
         private void renderLayer(Renderer renderer, Matrix4f viewProj, List<RenderSection> sectionsToRender) {
             try (ActivePipeline pipe = renderer.bindPipeline(pipeline)) {
+                pipe.bindTexture(0, atlasTexture);
                 pipe.getUniform("u_ViewProj").setMat4(viewProj);
 
                 ShaderUniform offsetUniform = pipe.getUniform("u_SectionOffset");
@@ -174,7 +181,7 @@ public final class LevelRenderer implements SafeCloseable {
 
         pipeline.setFillMode(wireframe ? FillMode.WIREFRAME : FillMode.FILLED);
 
-        return new PreparedRender(pipeline, sharedIndexBuffer.getIndexBuffer(), opaqueToRender, translucentToRender);
+        return new PreparedRender(pipeline, sharedIndexBuffer.getIndexBuffer(), atlasTexture, opaqueToRender, translucentToRender);
     }
 
     private static final class SectionContext {
@@ -516,5 +523,6 @@ public final class LevelRenderer implements SafeCloseable {
     public void close() {
         shader.close();
         sharedIndexBuffer.close();
+        atlasTexture.close();
     }
 }

@@ -1,6 +1,6 @@
 To Do:
 
-Support for other block shapes:
+[x] Support for other block shapes:
   [x] Opaque liquid (lava)
     [x] Add the block
     [x] Make it render to opaque layer
