@@ -1,14 +1,15 @@
 package com.github.rmheuer.voxel.render;
 
 import com.github.rmheuer.azalea.io.ResourceUtil;
+import com.github.rmheuer.azalea.math.Axis;
 import com.github.rmheuer.azalea.math.CubeFace;
-import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.mesh.*;
 import com.github.rmheuer.azalea.render.pipeline.*;
 import com.github.rmheuer.azalea.render.shader.ShaderProgram;
 import com.github.rmheuer.azalea.render.shader.ShaderUniform;
 import com.github.rmheuer.azalea.render.texture.Texture2D;
+import com.github.rmheuer.azalea.render.texture.Texture2DRegion;
 import com.github.rmheuer.azalea.render.utils.SharedIndexBuffer;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
 import com.github.rmheuer.voxel.level.*;
@@ -24,7 +25,7 @@ import java.util.List;
 public final class LevelRenderer implements SafeCloseable {
     private static final VertexLayout LAYOUT = new VertexLayout(
             AttribType.VEC3, // Position
-            AttribType.COLOR_RGBA, // Color
+            AttribType.VEC2, // UV
             AttribType.FLOAT // Shade
     );
 
@@ -292,17 +293,17 @@ public final class LevelRenderer implements SafeCloseable {
                     if (block == Blocks.ID_AIR)
                         continue;
 
-                    int color = Blocks.getColor(block);
+                    AtlasSprite sprite = Blocks.getSprite(block);
                     if (block == Blocks.ID_SOLID)
-                        meshCube(ctx, x, y, z, color, geom);
+                        meshCube(ctx, x, y, z, sprite, geom);
                     if (block == Blocks.ID_WATER)
-                        meshLiquid(ctx, x, y, z, color, false, true, Blocks.ID_WATER, geom);
+                        meshLiquid(ctx, x, y, z, sprite, false, true, Blocks.ID_WATER, geom);
                     if (block == Blocks.ID_LAVA)
-                        meshLiquid(ctx, x, y, z, color, true, false, Blocks.ID_LAVA, geom);
+                        meshLiquid(ctx, x, y, z, sprite, true, false, Blocks.ID_LAVA, geom);
                     if (block == Blocks.ID_CROSS)
-                        meshCross(ctx, x, y, z, color, geom);
+                        meshCross(ctx, x, y, z, sprite, geom);
                     if (block == Blocks.ID_SLAB)
-                        meshSlab(ctx, x, y, z, color, geom);
+                        meshSlab(ctx, x, y, z, sprite, new AtlasSprite(5, 0), geom);
                 }
             }
         }
@@ -324,13 +325,13 @@ public final class LevelRenderer implements SafeCloseable {
             this.faceShade = faceShade;
         }
 
-        public BlockFace makeFace(int x, int y, int z, int color, float lightShade) {
+        public BlockFace makeFace(int x, int y, int z, AtlasSprite sprite, float lightShade) {
             return new BlockFace(
                     new Vector3f(v1).add(x, y, z),
                     new Vector3f(v2).add(x, y, z),
                     new Vector3f(v3).add(x, y, z),
                     new Vector3f(v4).add(x, y, z),
-                    color,
+                    sprite,
                     faceShade * lightShade
             );
         }
@@ -345,7 +346,7 @@ public final class LevelRenderer implements SafeCloseable {
             new CubeFaceTemplate(CubeFace.NEG_Z, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, LightingConstants.SHADE_FRONT_BACK)
     };
 
-    private void meshCube(SectionContext ctx, int x, int y, int z, int color, SectionGeometry geom) {
+    private void meshCube(SectionContext ctx, int x, int y, int z, AtlasSprite sprite, SectionGeometry geom) {
         for (CubeFaceTemplate faceTemplate : CUBE_TEMPLATES) {
             int nx = x + faceTemplate.face.x;
             int ny = y + faceTemplate.face.y;
@@ -360,7 +361,7 @@ public final class LevelRenderer implements SafeCloseable {
             boolean lit = ctx.isLit(nx, ny, nz);
             float lightShade = lit ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
 
-            geom.addFace(true, faceTemplate.makeFace(x, y, z, color, lightShade));
+            geom.addFace(true, faceTemplate.makeFace(x, y, z, sprite, lightShade));
         }
     }
 
@@ -373,7 +374,9 @@ public final class LevelRenderer implements SafeCloseable {
             new CubeFaceTemplate(CubeFace.NEG_Z, 1, 0.5f, 0, 1, 0,    0, 0, 0,    0, 0, 0.5f, 0, LightingConstants.SHADE_FRONT_BACK)
     };
 
-    private void meshSlab(SectionContext ctx, int x, int y, int z, int color, SectionGeometry geom) {
+    private void meshSlab(SectionContext ctx, int x, int y, int z, AtlasSprite topSprite, AtlasSprite sideSprite, SectionGeometry geom) {
+        AtlasSprite sideHalf = sideSprite.getSection(0, 0, 1, 0.5f);
+
         for (CubeFaceTemplate faceTemplate : SLAB_TEMPLATES) {
             int nx = x + faceTemplate.face.x;
             int ny = y + faceTemplate.face.y;
@@ -394,7 +397,8 @@ public final class LevelRenderer implements SafeCloseable {
             boolean lit = ctx.isLit(nx, ny, nz);
             float lightShade = lit ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
 
-            geom.addFace(true, faceTemplate.makeFace(x, y, z, color, lightShade));
+            AtlasSprite sprite = faceTemplate.face.axis == Axis.Y ? topSprite : sideHalf;
+            geom.addFace(true, faceTemplate.makeFace(x, y, z, sprite, lightShade));
         }
     }
 
@@ -415,13 +419,13 @@ public final class LevelRenderer implements SafeCloseable {
             this.faceShade = faceShade;
         }
 
-        public BlockFace makeFace(int x, int y, int z, int color, float lightShade, boolean applyShade, float bottomY, float topY) {
+        public BlockFace makeFace(int x, int y, int z, AtlasSprite tile, float lightShade, boolean applyShade, float bottomY, float topY) {
             return new BlockFace(
                     new Vector3f(x + x1, y + topY, z + z1),
                     new Vector3f(x + x1, y + bottomY, z + z1),
                     new Vector3f(x + x2, y + bottomY, z + z2),
                     new Vector3f(x + x2, y + topY, z + z2),
-                    color,
+                    tile.getSection(0, 1 - topY, 1, 1 - bottomY),
                     applyShade ? faceShade * lightShade : 1.0f
             );
         }
@@ -434,7 +438,7 @@ public final class LevelRenderer implements SafeCloseable {
             new LiquidSideTemplate(CubeFace.NEG_Z, 1, LIQUID_INSET, 0, LIQUID_INSET, LightingConstants.SHADE_FRONT_BACK)
     };
 
-    private void meshLiquid(SectionContext ctx, int x, int y, int z, int color, boolean opaque, boolean applyShade, byte selfId, SectionGeometry geom) {
+    private void meshLiquid(SectionContext ctx, int x, int y, int z, AtlasSprite sprite, boolean opaque, boolean applyShade, byte selfId, SectionGeometry geom) {
         Byte above = ctx.getSurroundingBlock(x, y + 1, z);
         boolean tall = above != null && above == selfId;
 
@@ -459,7 +463,7 @@ public final class LevelRenderer implements SafeCloseable {
                         new Vector3f(x, y + h, z + 1),
                         new Vector3f(x + 1, y + h, z + 1),
                         new Vector3f(x + 1, y + h, z),
-                        color,
+                        sprite,
                         applyShade ? lightShade * LightingConstants.SHADE_UP : 1.0f
                 ));
             }
@@ -475,13 +479,13 @@ public final class LevelRenderer implements SafeCloseable {
 
             if (neighbor != selfId && Blocks.getOcclusion(neighbor, sideTemplate.face.getReverse()) != OcclusionType.FULL) {
                 float h = tall ? 1 : LIQUID_SURFACE_HEIGHT;
-                geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, color, lightShade, applyShade, 0, h));
+                geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, sprite, lightShade, applyShade, 0, h));
             } else if (tall && neighbor == selfId) {
                 Byte aboveNeighbor = ctx.getSurroundingBlock(nx, y + 1, nz);
                 boolean neighborTall = aboveNeighbor != null && aboveNeighbor == selfId;
 
                 if (!neighborTall)
-                    geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, color, lightShade, applyShade, LIQUID_SURFACE_HEIGHT - LIQUID_INSET, 1));
+                    geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, sprite, lightShade, applyShade, LIQUID_SURFACE_HEIGHT - LIQUID_INSET, 1));
             }
         }
 
@@ -492,13 +496,13 @@ public final class LevelRenderer implements SafeCloseable {
                     new Vector3f(x + 1, y + LIQUID_INSET, z + 1),
                     new Vector3f(x, y + LIQUID_INSET, z + 1),
                     new Vector3f(x, y + LIQUID_INSET, z),
-                    color,
+                    sprite,
                     applyShade ? lightShade * LightingConstants.SHADE_DOWN : 1.0f
             ));
         }
     }
 
-    private void meshCross(SectionContext ctx, int x, int y, int z, int color, SectionGeometry geom) {
+    private void meshCross(SectionContext ctx, int x, int y, int z, AtlasSprite sprite, SectionGeometry geom) {
         float lightShade = ctx.isLit(x, y, z) ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
 
         geom.addDoubleSidedFace(true, new BlockFace(
@@ -506,7 +510,7 @@ public final class LevelRenderer implements SafeCloseable {
                 new Vector3f(x, y, z),
                 new Vector3f(x + 1, y, z + 1),
                 new Vector3f(x + 1, y + 1, z + 1),
-                color,
+                sprite,
                 lightShade
         ));
         geom.addDoubleSidedFace(true, new BlockFace(
@@ -514,7 +518,7 @@ public final class LevelRenderer implements SafeCloseable {
                 new Vector3f(x + 1, y, z),
                 new Vector3f(x, y, z + 1),
                 new Vector3f(x, y + 1, z + 1),
-                color,
+                sprite,
                 lightShade
         ));
     }

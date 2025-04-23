@@ -72,6 +72,18 @@ public final class VoxelGame extends BaseGame {
                 blockMap.setBlockId(x, 2, z, Blocks.ID_WATER);
             }
         }
+        for (int z = 8; z < 56; z++) {
+            for (int x = 8; x < 56; x++) {
+                for (int y = 1; y < 3; y++) {
+                    blockMap.setBlockId(x, y, z, Blocks.ID_SOLID);
+                }
+            }
+        }
+        blockMap.setBlockId(10, 4, 10, Blocks.ID_SOLID);
+        blockMap.setBlockId(12, 4, 10, Blocks.ID_WATER);
+        blockMap.setBlockId(14, 4, 10, Blocks.ID_LAVA);
+        blockMap.setBlockId(16, 4, 10, Blocks.ID_CROSS);
+        blockMap.setBlockId(18, 4, 10, Blocks.ID_SLAB);
 
         lightMap.recalculateAll(blockMap);
 

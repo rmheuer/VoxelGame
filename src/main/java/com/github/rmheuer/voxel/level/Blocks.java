@@ -2,6 +2,7 @@ package com.github.rmheuer.voxel.level;
 
 import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.azalea.render.Colors;
+import com.github.rmheuer.voxel.render.AtlasSprite;
 
 public final class Blocks {
     public static final byte ID_AIR = 0;
@@ -43,6 +44,18 @@ public final class Blocks {
 
             default:
                 throw new AssertionError();
+        }
+    }
+
+    public static AtlasSprite getSprite(byte id) {
+        switch (id) {
+            case ID_SOLID: return new AtlasSprite(1, 0);
+            case ID_WATER: return new AtlasSprite(14, 0);
+            case ID_LAVA: return new AtlasSprite(14, 1);
+            case ID_CROSS: return new AtlasSprite(15, 0);
+            case ID_SLAB: return new AtlasSprite(6, 0);
+            default:
+                return new AtlasSprite(15, 15);
         }
     }
 

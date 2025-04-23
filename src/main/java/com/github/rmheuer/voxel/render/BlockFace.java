@@ -5,23 +5,23 @@ import org.joml.Vector3f;
 
 public final class BlockFace {
     public final Vector3f v1, v2, v3, v4;
-    public final int color;
+    public final AtlasSprite sprite;
     public final float shade;
 
-    public BlockFace(Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4, int color, float shade) {
+    public BlockFace(Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4, AtlasSprite sprite, float shade) {
         this.v1 = v1;
         this.v2 = v2;
         this.v3 = v3;
         this.v4 = v4;
-        this.color = color;
+        this.sprite = sprite;
         this.shade = shade;
     }
 
     public void addToMesh(VertexData out) {
-        out.putVec3(v1); out.putColorRGBA(color); out.putFloat(shade);
-        out.putVec3(v2); out.putColorRGBA(color); out.putFloat(shade);
-        out.putVec3(v3); out.putColorRGBA(color); out.putFloat(shade);
-        out.putVec3(v4); out.putColorRGBA(color); out.putFloat(shade);
+        out.putVec3(v1); out.putVec2(sprite.u1, sprite.v1); out.putFloat(shade);
+        out.putVec3(v2); out.putVec2(sprite.u1, sprite.v2); out.putFloat(shade);
+        out.putVec3(v3); out.putVec2(sprite.u2, sprite.v2); out.putFloat(shade);
+        out.putVec3(v4); out.putVec2(sprite.u2, sprite.v1); out.putFloat(shade);
     }
 
     public Vector3f getCenterPos(int ox, int oy, int oz) {
@@ -29,6 +29,6 @@ public final class BlockFace {
     }
 
     public BlockFace makeBackFace() {
-        return new BlockFace(v4, v3, v2, v1, color, shade);
+        return new BlockFace(v4, v3, v2, v1, sprite.flipHorizontally(), shade);
     }
 }
