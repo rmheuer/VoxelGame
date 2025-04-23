@@ -6,7 +6,7 @@ Support for other block shapes:
     [x] Make it render to opaque layer
     [x] Make faces double-sided again
   Slab
-  Cross
+  [x] Cross
 Player physics:
   Basic land movement
   Stair stepping

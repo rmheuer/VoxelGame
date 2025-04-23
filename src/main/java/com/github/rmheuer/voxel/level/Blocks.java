@@ -7,6 +7,7 @@ public final class Blocks {
     public static final byte ID_SOLID = 1;
     public static final byte ID_WATER = 2;
     public static final byte ID_LAVA = 3;
+    public static final byte ID_CROSS = 4;
 
     public static boolean isTransparent(byte id) {
         return id != ID_SOLID;
@@ -20,6 +21,8 @@ public final class Blocks {
                 return Colors.RGBA.fromFloats(0.3f, 0.3f, 1.0f, 0.6f);
             case ID_LAVA:
                 return Colors.RGBA.fromFloats(1.0f, 0.5f, 0.0f);
+            case ID_CROSS:
+                return Colors.RGBA.fromFloats(0.2f, 0.5f, 0.2f);
 
             default:
                 return Colors.RGBA.MAGENTA;

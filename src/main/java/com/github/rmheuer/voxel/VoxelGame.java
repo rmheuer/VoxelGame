@@ -92,18 +92,30 @@ public final class VoxelGame extends BaseGame {
     }
 
     private void keyPressed(KeyPressEvent event) {
-        if (event.getKey() == Key.ESCAPE) {
-            setMouseCaptured(!mouseCaptured);
-        } else if (event.getKey() == Key.F1) {
-            drawSectionBoundaries = !drawSectionBoundaries;
-        } else if (event.getKey() == Key.F2) {
-            drawLightHeights = !drawLightHeights;
-        } else if (event.getKey() == Key.ONE) {
-            blockIdToPlace = Blocks.ID_SOLID;
-        } else if (event.getKey() == Key.TWO) {
-            blockIdToPlace = Blocks.ID_WATER;
-        } else if (event.getKey() == Key.THREE) {
-            blockIdToPlace = Blocks.ID_LAVA;
+        switch (event.getKey()) {
+            case ESCAPE:
+                setMouseCaptured(!mouseCaptured);
+                break;
+
+            case F1:
+                drawSectionBoundaries = !drawSectionBoundaries;
+                break;
+            case F2:
+                drawLightHeights = !drawLightHeights;
+                break;
+
+            case ONE:
+                blockIdToPlace = Blocks.ID_SOLID;
+                break;
+            case TWO:
+                blockIdToPlace = Blocks.ID_WATER;
+                break;
+            case THREE:
+                blockIdToPlace = Blocks.ID_LAVA;
+                break;
+            case FOUR:
+                blockIdToPlace = Blocks.ID_CROSS;
+                break;
         }
     }
 

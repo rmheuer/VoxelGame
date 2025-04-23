@@ -244,14 +244,6 @@ public final class LevelRenderer implements SafeCloseable {
             translucentFaces = new ArrayList<>();
         }
 
-//        public void addOpaqueFace(BlockFace face) {
-//            face.addToMesh(opaqueData);
-//        }
-//
-//        public void addTranslucentFace(BlockFace face) {
-//            translucentFaces.add(face);
-//        }
-
         public void addFace(boolean opaque, BlockFace face) {
             if (opaque)
                 face.addToMesh(opaqueData);
@@ -303,6 +295,8 @@ public final class LevelRenderer implements SafeCloseable {
                         meshLiquid(ctx, x, y, z, color, false, Blocks.ID_WATER, geom);
                     if (block == Blocks.ID_LAVA)
                         meshLiquid(ctx, x, y, z, color, true, Blocks.ID_LAVA, geom);
+                    if (block == Blocks.ID_CROSS)
+                        meshCross(ctx, x, y, z, color, geom);
                 }
             }
         }
@@ -462,6 +456,27 @@ public final class LevelRenderer implements SafeCloseable {
                     lightShade * LightingConstants.SHADE_DOWN
             ));
         }
+    }
+
+    private void meshCross(SectionContext ctx, int x, int y, int z, int color, SectionGeometry geom) {
+        float lightShade = ctx.isLit(x, y, z) ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
+
+        geom.addDoubleSidedFace(true, new BlockFace(
+                new Vector3f(x, y + 1, z),
+                new Vector3f(x, y, z),
+                new Vector3f(x + 1, y, z + 1),
+                new Vector3f(x + 1, y + 1, z + 1),
+                color,
+                lightShade
+        ));
+        geom.addDoubleSidedFace(true, new BlockFace(
+                new Vector3f(x + 1, y + 1, z),
+                new Vector3f(x + 1, y, z),
+                new Vector3f(x, y, z + 1),
+                new Vector3f(x, y + 1, z + 1),
+                color,
+                lightShade
+        ));
     }
 
     @Override
