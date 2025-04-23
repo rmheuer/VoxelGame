@@ -5,6 +5,22 @@ import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.voxel.render.AtlasSprite;
 
 public final class Blocks {
+    /*
+    Block {
+      shape, lightPassthrough, collision box, picking box
+    }
+
+    Shape {
+      invisible, cube(TransparencyType), liquid(opaque, shaded), cross, slab
+    }
+
+    TransparencyType {
+      opaque,
+      transparent,
+      transparent occlude self
+    }
+     */
+
     public static final byte ID_AIR = 0;
     public static final byte ID_SOLID = 1;
     public static final byte ID_WATER = 2;
