@@ -116,6 +116,9 @@ public final class VoxelGame extends BaseGame {
             case FOUR:
                 blockIdToPlace = Blocks.ID_CROSS;
                 break;
+            case FIVE:
+                blockIdToPlace = Blocks.ID_SLAB;
+                break;
         }
     }
 

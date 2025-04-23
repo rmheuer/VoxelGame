@@ -39,7 +39,7 @@ public final class LightMap {
     private int findTopSurface(BlockMap map, int blockX, int blockZ, int startHeight) {
         int height;
         for (height = startHeight; height > 0; height--) {
-            if (map.getBlockId(blockX, height - 1, blockZ) == Blocks.ID_SOLID) {
+            if (Blocks.blocksLight(map.getBlockId(blockX, height - 1, blockZ))) {
                 break;
             }
         }
@@ -62,8 +62,8 @@ public final class LightMap {
         if (blockY < currentHeight - 1)
             return null;
 
-        boolean prevOpaque = prevId == Blocks.ID_SOLID;
-        boolean newOpaque = newId == Blocks.ID_SOLID;
+        boolean prevOpaque = Blocks.blocksLight(prevId);
+        boolean newOpaque = Blocks.blocksLight(newId);
         if (prevOpaque == newOpaque)
             return null;
 

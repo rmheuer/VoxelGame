@@ -5,12 +5,13 @@ Support for other block shapes:
     [x] Add the block
     [x] Make it render to opaque layer
     [x] Make faces double-sided again
-  Slab
+  [x] Slab
   [x] Cross
 Player physics:
   Basic land movement
   Stair stepping
   Swimming
+Block textures
 Add all classic blocks
 Animated block textures
 Fog:

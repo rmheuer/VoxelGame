@@ -10,10 +10,7 @@ import com.github.rmheuer.azalea.render.shader.ShaderProgram;
 import com.github.rmheuer.azalea.render.shader.ShaderUniform;
 import com.github.rmheuer.azalea.render.utils.SharedIndexBuffer;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
-import com.github.rmheuer.voxel.level.Blocks;
-import com.github.rmheuer.voxel.level.BlockMap;
-import com.github.rmheuer.voxel.level.LightMap;
-import com.github.rmheuer.voxel.level.MapSection;
+import com.github.rmheuer.voxel.level.*;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
@@ -292,11 +289,13 @@ public final class LevelRenderer implements SafeCloseable {
                     if (block == Blocks.ID_SOLID)
                         meshCube(ctx, x, y, z, color, geom);
                     if (block == Blocks.ID_WATER)
-                        meshLiquid(ctx, x, y, z, color, false, Blocks.ID_WATER, geom);
+                        meshLiquid(ctx, x, y, z, color, false, true, Blocks.ID_WATER, geom);
                     if (block == Blocks.ID_LAVA)
-                        meshLiquid(ctx, x, y, z, color, true, Blocks.ID_LAVA, geom);
+                        meshLiquid(ctx, x, y, z, color, true, false, Blocks.ID_LAVA, geom);
                     if (block == Blocks.ID_CROSS)
                         meshCross(ctx, x, y, z, color, geom);
+                    if (block == Blocks.ID_SLAB)
+                        meshSlab(ctx, x, y, z, color, geom);
                 }
             }
         }
@@ -348,8 +347,42 @@ public final class LevelRenderer implements SafeCloseable {
             Byte neighbor = ctx.getSurroundingBlock(nx, ny, nz);
             if (neighbor == null && faceTemplate.face != CubeFace.POS_Y)
                 continue;
-            if (neighbor != null && neighbor == Blocks.ID_SOLID)
+            if (neighbor != null && Blocks.getOcclusion(neighbor, faceTemplate.face.getReverse()) == OcclusionType.FULL)
                 continue;
+
+            boolean lit = ctx.isLit(nx, ny, nz);
+            float lightShade = lit ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
+
+            geom.addFace(true, faceTemplate.makeFace(x, y, z, color, lightShade));
+        }
+    }
+
+    private static final CubeFaceTemplate[] SLAB_TEMPLATES = {
+            new CubeFaceTemplate(CubeFace.POS_X, 1, 0.5f, 1, 1, 0,    1, 1, 0,    0, 1, 0.5f, 0, LightingConstants.SHADE_LEFT_RIGHT),
+            new CubeFaceTemplate(CubeFace.NEG_X, 0, 0.5f, 0, 0, 0,    0, 0, 0,    1, 0, 0.5f, 1, LightingConstants.SHADE_LEFT_RIGHT),
+            new CubeFaceTemplate(CubeFace.POS_Y, 0, 0.5f, 0, 0, 0.5f, 1, 1, 0.5f, 1, 1, 0.5f, 0, LightingConstants.SHADE_UP),
+            new CubeFaceTemplate(CubeFace.NEG_Y, 1, 0,    0, 1, 0,    1, 0, 0,    1, 0, 0,    0, LightingConstants.SHADE_DOWN),
+            new CubeFaceTemplate(CubeFace.POS_Z, 0, 0.5f, 1, 0, 0,    1, 1, 0,    1, 1, 0.5f, 1, LightingConstants.SHADE_FRONT_BACK),
+            new CubeFaceTemplate(CubeFace.NEG_Z, 1, 0.5f, 0, 1, 0,    0, 0, 0,    0, 0, 0.5f, 0, LightingConstants.SHADE_FRONT_BACK)
+    };
+
+    private void meshSlab(SectionContext ctx, int x, int y, int z, int color, SectionGeometry geom) {
+        for (CubeFaceTemplate faceTemplate : SLAB_TEMPLATES) {
+            int nx = x + faceTemplate.face.x;
+            int ny = y + faceTemplate.face.y;
+            int nz = z + faceTemplate.face.z;
+
+            if (faceTemplate.face != CubeFace.POS_Y) {
+                Byte neighbor = ctx.getSurroundingBlock(nx, ny, nz);
+                if (neighbor == null)
+                    continue;
+
+                OcclusionType occlusion = Blocks.getOcclusion(neighbor, faceTemplate.face.getReverse());
+                if (faceTemplate.face == CubeFace.NEG_Y && occlusion == OcclusionType.FULL)
+                    continue;
+                if (faceTemplate.face != CubeFace.NEG_Y && occlusion != OcclusionType.NONE)
+                    continue;
+            }
 
             boolean lit = ctx.isLit(nx, ny, nz);
             float lightShade = lit ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
@@ -375,14 +408,14 @@ public final class LevelRenderer implements SafeCloseable {
             this.faceShade = faceShade;
         }
 
-        public BlockFace makeFace(int x, int y, int z, int color, float lightShade, float bottomY, float topY) {
+        public BlockFace makeFace(int x, int y, int z, int color, float lightShade, boolean applyShade, float bottomY, float topY) {
             return new BlockFace(
                     new Vector3f(x + x1, y + topY, z + z1),
                     new Vector3f(x + x1, y + bottomY, z + z1),
                     new Vector3f(x + x2, y + bottomY, z + z2),
                     new Vector3f(x + x2, y + topY, z + z2),
                     color,
-                    faceShade * lightShade
+                    applyShade ? faceShade * lightShade : 1.0f
             );
         }
     }
@@ -394,18 +427,18 @@ public final class LevelRenderer implements SafeCloseable {
             new LiquidSideTemplate(CubeFace.NEG_Z, 1, LIQUID_INSET, 0, LIQUID_INSET, LightingConstants.SHADE_FRONT_BACK)
     };
 
-    private void meshLiquid(SectionContext ctx, int x, int y, int z, int color, boolean opaque, byte selfId, SectionGeometry geom) {
+    private void meshLiquid(SectionContext ctx, int x, int y, int z, int color, boolean opaque, boolean applyShade, byte selfId, SectionGeometry geom) {
         Byte above = ctx.getSurroundingBlock(x, y + 1, z);
         boolean tall = above != null && above == selfId;
 
-        float lightShade = ctx.isLit(x, y, z) ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
+        float lightShade = ctx.isLit(x, y + 1, z) ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
 
         if (!tall) {
             boolean surface = false;
             for (int j = -1; j <= 1; j++) {
                 for (int i = -1; i <= 1; i++) {
                     Byte aboveNeighbor = ctx.getSurroundingBlock(x + i, y + 1, z + j);
-                    if (aboveNeighbor == null || (aboveNeighbor != selfId && Blocks.isTransparent(aboveNeighbor))) {
+                    if (aboveNeighbor == null || (aboveNeighbor != selfId && Blocks.getOcclusion(aboveNeighbor, CubeFace.NEG_Y) != OcclusionType.FULL)) {
                         surface = true;
                         break;
                     }
@@ -420,7 +453,7 @@ public final class LevelRenderer implements SafeCloseable {
                         new Vector3f(x + 1, y + h, z + 1),
                         new Vector3f(x + 1, y + h, z),
                         color,
-                        lightShade * LightingConstants.SHADE_UP
+                        applyShade ? lightShade * LightingConstants.SHADE_UP : 1.0f
                 ));
             }
         }
@@ -433,27 +466,27 @@ public final class LevelRenderer implements SafeCloseable {
             if (neighbor == null)
                 continue;
 
-            if (neighbor != selfId && Blocks.isTransparent(neighbor)) {
+            if (neighbor != selfId && Blocks.getOcclusion(neighbor, sideTemplate.face.getReverse()) != OcclusionType.FULL) {
                 float h = tall ? 1 : LIQUID_SURFACE_HEIGHT;
-                geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, color, lightShade, 0, h));
+                geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, color, lightShade, applyShade, 0, h));
             } else if (tall && neighbor == selfId) {
                 Byte aboveNeighbor = ctx.getSurroundingBlock(nx, y + 1, nz);
                 boolean neighborTall = aboveNeighbor != null && aboveNeighbor == selfId;
 
                 if (!neighborTall)
-                    geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, color, lightShade, LIQUID_SURFACE_HEIGHT - LIQUID_INSET, 1));
+                    geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, color, lightShade, applyShade, LIQUID_SURFACE_HEIGHT - LIQUID_INSET, 1));
             }
         }
 
         Byte below = ctx.getSurroundingBlock(x, y - 1, z);
-        if (below != null && below != selfId && Blocks.isTransparent(below)) {
+        if (below != null && below != selfId && Blocks.getOcclusion(below, CubeFace.POS_Y) != OcclusionType.FULL) {
             geom.addDoubleSidedFace(opaque, new BlockFace(
                     new Vector3f(x + 1, y + LIQUID_INSET, z),
                     new Vector3f(x + 1, y + LIQUID_INSET, z + 1),
                     new Vector3f(x, y + LIQUID_INSET, z + 1),
                     new Vector3f(x, y + LIQUID_INSET, z),
                     color,
-                    lightShade * LightingConstants.SHADE_DOWN
+                    applyShade ? lightShade * LightingConstants.SHADE_DOWN : 1.0f
             ));
         }
     }
