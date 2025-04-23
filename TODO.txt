@@ -11,7 +11,7 @@ Player physics:
   Basic land movement
   Stair stepping
   Swimming
-Block textures
+[x] Block textures
 Particle textures
 Add all classic blocks
 Animated block textures

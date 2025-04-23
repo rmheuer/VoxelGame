@@ -96,6 +96,8 @@ public final class VoxelGame extends BaseGame {
 
         drawSectionBoundaries = false;
         drawLightHeights = false;
+
+        setBackgroundColor(Colors.RGBA.fromFloats(0.5f, 0.8f, 1.0f));
     }
 
     private void setMouseCaptured(boolean mouseCaptured) {
