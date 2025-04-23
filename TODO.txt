@@ -1,0 +1,30 @@
+To Do:
+
+Support for other block shapes:
+  Opaque liquid (lava)
+    [x] Add the block
+    Make it render to opaque layer
+    Make faces double-sided again
+  Slab
+  Cross
+Player physics:
+  Basic land movement
+  Stair stepping
+  Swimming
+Add all classic blocks
+Animated block textures
+Fog:
+  Land fog
+  Underwater fog
+  Under-lava fog
+Fake terrain outside world
+Pause menu:
+  Text rendering
+  Buttons
+Multiplayer:
+  Connect to server
+    Possibly a UI to input server address?
+  Connection progress screen
+  Chat
+  Handle gameplay
+  Render other players

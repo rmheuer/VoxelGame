@@ -102,6 +102,8 @@ public final class VoxelGame extends BaseGame {
             blockIdToPlace = Blocks.ID_SOLID;
         } else if (event.getKey() == Key.TWO) {
             blockIdToPlace = Blocks.ID_WATER;
+        } else if (event.getKey() == Key.THREE) {
+            blockIdToPlace = Blocks.ID_LAVA;
         }
     }
 

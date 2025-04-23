@@ -287,7 +287,9 @@ public final class LevelRenderer implements SafeCloseable {
                     if (block == Blocks.ID_SOLID)
                         meshCube(ctx, x, y, z, geom);
                     if (block == Blocks.ID_WATER)
-                        meshWater(ctx, x, y, z, geom);
+                        meshLiquid(ctx, x, y, z, Colors.RGBA.fromFloats(0.3f, 0.3f, 1.0f, 0.6f), Blocks.ID_WATER, geom);
+                    if (block == Blocks.ID_LAVA)
+                        meshLiquid(ctx, x, y, z, Colors.RGBA.fromFloats(1.0f, 0.5f, 0.0f), Blocks.ID_LAVA, geom);
                 }
             }
         }
@@ -350,14 +352,15 @@ public final class LevelRenderer implements SafeCloseable {
         }
     }
 
-    private static final float WATER_SURFACE_HEIGHT = 0.9f;
+    private static final float LIQUID_SURFACE_HEIGHT = 0.9f;
+    private static final float LIQUID_INSET = 0.0015f; // To prevent Z-fighting on touching faces
 
-    private static final class WaterSideTemplate {
+    private static final class LiquidSideTemplate {
         public final CubeFace face;
         private final float x1, z1, x2, z2;
         private final float faceShade;
 
-        public WaterSideTemplate(CubeFace face, float x1, float z1, float x2, float z2, float faceShade) {
+        public LiquidSideTemplate(CubeFace face, float x1, float z1, float x2, float z2, float faceShade) {
             this.face = face;
             this.x1 = x1;
             this.z1 = z1;
@@ -378,18 +381,17 @@ public final class LevelRenderer implements SafeCloseable {
         }
     }
 
-    private static final WaterSideTemplate[] WATER_SIDE_TEMPLATES = {
-            new WaterSideTemplate(CubeFace.POS_X, 1, 1, 1, 0, LightingConstants.SHADE_LEFT_RIGHT),
-            new WaterSideTemplate(CubeFace.NEG_X, 0, 0, 0, 1, LightingConstants.SHADE_LEFT_RIGHT),
-            new WaterSideTemplate(CubeFace.POS_Z, 0, 1, 1, 1, LightingConstants.SHADE_FRONT_BACK),
-            new WaterSideTemplate(CubeFace.NEG_Z, 1, 0, 0, 0, LightingConstants.SHADE_FRONT_BACK)
+    private static final LiquidSideTemplate[] LIQUID_SIDE_TEMPLATES = {
+            new LiquidSideTemplate(CubeFace.POS_X, 1 - LIQUID_INSET, 1, 1 - LIQUID_INSET, 0, LightingConstants.SHADE_LEFT_RIGHT),
+            new LiquidSideTemplate(CubeFace.NEG_X, LIQUID_INSET, 0, LIQUID_INSET, 1, LightingConstants.SHADE_LEFT_RIGHT),
+            new LiquidSideTemplate(CubeFace.POS_Z, 0, 1 - LIQUID_INSET, 1, 1 - LIQUID_INSET, LightingConstants.SHADE_FRONT_BACK),
+            new LiquidSideTemplate(CubeFace.NEG_Z, 1, LIQUID_INSET, 0, LIQUID_INSET, LightingConstants.SHADE_FRONT_BACK)
     };
 
-    private void meshWater(SectionContext ctx, int x, int y, int z, SectionGeometry geom) {
+    private void meshLiquid(SectionContext ctx, int x, int y, int z, int color, byte selfId, SectionGeometry geom) {
         Byte above = ctx.getSurroundingBlock(x, y + 1, z);
-        boolean tall = above != null && above == Blocks.ID_WATER;
+        boolean tall = above != null && above == selfId;
 
-        int color = Colors.RGBA.fromFloats(0.3f, 0.3f, 1.0f, 0.6f);
         float lightShade = ctx.isLit(x, y, z) ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
 
         if (!tall) {
@@ -397,7 +399,7 @@ public final class LevelRenderer implements SafeCloseable {
             for (int j = -1; j <= 1; j++) {
                 for (int i = -1; i <= 1; i++) {
                     Byte aboveNeighbor = ctx.getSurroundingBlock(x + i, y + 1, z + j);
-                    if (aboveNeighbor == null || aboveNeighbor == Blocks.ID_AIR) {
+                    if (aboveNeighbor == null || (aboveNeighbor != selfId && !Blocks.isOpaque(aboveNeighbor))) {
                         surface = true;
                         break;
                     }
@@ -405,7 +407,7 @@ public final class LevelRenderer implements SafeCloseable {
             }
 
             if (surface) {
-                float h = WATER_SURFACE_HEIGHT;
+                float h = LIQUID_SURFACE_HEIGHT;
                 geom.addTranslucentFace(new BlockFace(
                         new Vector3f(x, y + h, z),
                         new Vector3f(x, y + h, z + 1),
@@ -417,7 +419,7 @@ public final class LevelRenderer implements SafeCloseable {
             }
         }
 
-        for (WaterSideTemplate sideTemplate : WATER_SIDE_TEMPLATES) {
+        for (LiquidSideTemplate sideTemplate : LIQUID_SIDE_TEMPLATES) {
             int nx = x + sideTemplate.face.x;
             int nz = z + sideTemplate.face.z;
 
@@ -425,25 +427,25 @@ public final class LevelRenderer implements SafeCloseable {
             if (neighbor == null)
                 continue;
 
-            if (neighbor == Blocks.ID_AIR) {
-                float h = tall ? 1 : WATER_SURFACE_HEIGHT;
+            if (neighbor != selfId && !Blocks.isOpaque(neighbor)) {
+                float h = tall ? 1 : LIQUID_SURFACE_HEIGHT;
                 geom.addTranslucentFace(sideTemplate.makeFace(x, y, z, color, lightShade, 0, h));
-            } else if (tall && neighbor == Blocks.ID_WATER) {
+            } else if (tall && neighbor == selfId) {
                 Byte aboveNeighbor = ctx.getSurroundingBlock(nx, y + 1, nz);
-                boolean neighborTall = aboveNeighbor != null && aboveNeighbor == Blocks.ID_WATER;
+                boolean neighborTall = aboveNeighbor != null && aboveNeighbor == selfId;
 
                 if (!neighborTall)
-                    geom.addTranslucentFace(sideTemplate.makeFace(x, y, z, color, lightShade, WATER_SURFACE_HEIGHT, 1));
+                    geom.addTranslucentFace(sideTemplate.makeFace(x, y, z, color, lightShade, LIQUID_SURFACE_HEIGHT, 1));
             }
         }
 
         Byte below = ctx.getSurroundingBlock(x, y - 1, z);
-        if (below != null && below == Blocks.ID_AIR) {
+        if (below != null && below != selfId && !Blocks.isOpaque(below)) {
             geom.addTranslucentFace(new BlockFace(
-                    new Vector3f(x + 1, y, z),
-                    new Vector3f(x + 1, y, z + 1),
-                    new Vector3f(x, y, z + 1),
-                    new Vector3f(x, y, z),
+                    new Vector3f(x + 1, y + LIQUID_INSET, z),
+                    new Vector3f(x + 1, y + LIQUID_INSET, z + 1),
+                    new Vector3f(x, y + LIQUID_INSET, z + 1),
+                    new Vector3f(x, y + LIQUID_INSET, z),
                     color,
                     lightShade * LightingConstants.SHADE_DOWN
             ));
