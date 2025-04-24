@@ -172,7 +172,7 @@ public final class VoxelGame extends BaseGame {
                 if (brokenBlock != Blocks.ID_AIR) {
                     setBlock(pos, Blocks.ID_AIR);
 
-                    int color = Blocks.getColor(brokenBlock);
+                    int color = Blocks.getBlock(brokenBlock).getParticleColor();
                     particleSystem.spawnBreakParticles(pos.x, pos.y, pos.z, color);
                 }
             }

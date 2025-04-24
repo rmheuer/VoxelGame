@@ -12,6 +12,7 @@ import com.github.rmheuer.azalea.render.texture.Texture2D;
 import com.github.rmheuer.azalea.render.texture.Texture2DRegion;
 import com.github.rmheuer.azalea.render.utils.SharedIndexBuffer;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
+import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.level.*;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
@@ -23,12 +24,6 @@ import java.util.Comparator;
 import java.util.List;
 
 public final class LevelRenderer implements SafeCloseable {
-    private static final VertexLayout LAYOUT = new VertexLayout(
-            AttribType.VEC3, // Position
-            AttribType.VEC2, // UV
-            AttribType.FLOAT // Shade
-    );
-
     private final ShaderProgram shader;
     private final PipelineInfo pipeline;
     private final SharedIndexBuffer sharedIndexBuffer;
@@ -142,7 +137,7 @@ public final class LevelRenderer implements SafeCloseable {
                         List<BlockFace> translucentFaces = renderSection.getTranslucentFaces();
                         translucentFaces.sort(Comparator.comparingDouble((face) -> -cameraPos.distanceSquared(face.getCenterPos(ox, oy, oz))));
 
-                        try (VertexData data = new VertexData(LAYOUT)) {
+                        try (VertexData data = new VertexData(BlockFace.VERTEX_LAYOUT)) {
                             for (BlockFace face : translucentFaces) {
                                 face.addToMesh(data);
                             }
@@ -185,100 +180,6 @@ public final class LevelRenderer implements SafeCloseable {
         return new PreparedRender(pipeline, sharedIndexBuffer.getIndexBuffer(), atlasTexture, opaqueToRender, translucentToRender);
     }
 
-    private static final class SectionContext {
-        private final BlockMap blockMap;
-        private final MapSection section;
-
-        private final LightMap lightMap;
-        private final int originX, originY, originZ;
-
-        public SectionContext(BlockMap blockMap, LightMap lightMap, int x, int y, int z) {
-            this.blockMap = blockMap;
-            section = blockMap.getSection(x, y, z);
-
-            this.lightMap = lightMap;
-            originX = x * MapSection.SIZE;
-            originY = y * MapSection.SIZE;
-            originZ = z * MapSection.SIZE;
-        }
-
-        public boolean isEmpty() {
-            return section.isEmpty();
-        }
-
-        // XYZ must be in bounds of the section
-        public byte getLocalBlock(int x, int y, int z) {
-            return section.getBlockId(x, y, z);
-        }
-
-        // Returns null if outside world
-        public Byte getSurroundingBlock(int x, int y, int z) {
-            int blockX = x + originX;
-            int blockY = y + originY;
-            int blockZ = z + originZ;
-
-            int sectionX = Math.floorDiv(blockX, MapSection.SIZE);
-            int sectionY = Math.floorDiv(blockY, MapSection.SIZE);
-            int sectionZ = Math.floorDiv(blockZ, MapSection.SIZE);
-
-            if (sectionX < 0 || sectionX >= blockMap.getSectionsX()
-                    || sectionY < 0 || sectionY >= blockMap.getSectionsY()
-                    || sectionZ < 0 || sectionZ >= blockMap.getSectionsZ()) {
-                return null;
-            }
-
-            return blockMap.getSection(sectionX, sectionY, sectionZ).getBlockId(
-                    Math.floorMod(blockX, MapSection.SIZE),
-                    Math.floorMod(blockY, MapSection.SIZE),
-                    Math.floorMod(blockZ, MapSection.SIZE)
-            );
-        }
-
-        // XYZ must be in bounds for the world
-        public boolean isLit(int x, int y, int z) {
-            return lightMap.isLit(originX + x, originY + y, originZ + z);
-        }
-    }
-
-    private static final class SectionGeometry implements SafeCloseable {
-        private final VertexData opaqueData;
-        private final List<BlockFace> translucentFaces;
-
-        public SectionGeometry() {
-            opaqueData = new VertexData(LAYOUT);
-            translucentFaces = new ArrayList<>();
-        }
-
-        public void addFace(boolean opaque, BlockFace face) {
-            if (opaque)
-                face.addToMesh(opaqueData);
-            else
-                translucentFaces.add(face);
-        }
-
-        public void addDoubleSidedFace(boolean opaque, BlockFace face) {
-            addFace(opaque, face);
-            addFace(opaque, face.makeBackFace());
-        }
-
-        public int getRequiredFaceCount() {
-            return Math.max(opaqueData.getVertexCount() / 4, translucentFaces.size());
-        }
-
-        public VertexData getOpaqueData() {
-            return opaqueData;
-        }
-
-        public List<BlockFace> getTranslucentFaces() {
-            return translucentFaces;
-        }
-
-        @Override
-        public void close() {
-            opaqueData.close();
-        }
-    }
-
     private SectionGeometry createSectionGeometry(BlockMap blockMap, LightMap lightMap, int sectionX, int sectionY, int sectionZ) {
         SectionGeometry geom = new SectionGeometry();
         SectionContext ctx = new SectionContext(blockMap, lightMap, sectionX, sectionY, sectionZ);
@@ -288,239 +189,14 @@ public final class LevelRenderer implements SafeCloseable {
         for (int y = 0; y < MapSection.SIZE; y++) {
             for (int z = 0; z < MapSection.SIZE; z++) {
                 for (int x = 0; x < MapSection.SIZE; x++) {
-                    byte block = ctx.getLocalBlock(x, y, z);
+                    Block block = ctx.getLocalBlock(x, y, z);
 
-                    if (block == Blocks.ID_AIR)
-                        continue;
-
-                    AtlasSprite sprite = Blocks.getSprite(block);
-                    if (block == Blocks.ID_SOLID)
-                        meshCube(ctx, x, y, z, sprite, geom);
-                    if (block == Blocks.ID_WATER)
-                        meshLiquid(ctx, x, y, z, sprite, false, true, Blocks.ID_WATER, geom);
-                    if (block == Blocks.ID_LAVA)
-                        meshLiquid(ctx, x, y, z, sprite, true, false, Blocks.ID_LAVA, geom);
-                    if (block == Blocks.ID_CROSS)
-                        meshCross(ctx, x, y, z, sprite, geom);
-                    if (block == Blocks.ID_SLAB)
-                        meshSlab(ctx, x, y, z, sprite, new AtlasSprite(5, 0), geom);
+                    block.getShape().mesh(ctx, block, x, y, z, geom);
                 }
             }
         }
 
         return geom;
-    }
-
-    private static final class CubeFaceTemplate {
-        public final CubeFace face;
-        private final Vector3f v1, v2, v3, v4;
-        private final float faceShade;
-
-        public CubeFaceTemplate(CubeFace face, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, float x4, float y4, float z4, float faceShade) {
-            this.face = face;
-            this.v1 = new Vector3f(x1, y1, z1);
-            this.v2 = new Vector3f(x2, y2, z2);
-            this.v3 = new Vector3f(x3, y3, z3);
-            this.v4 = new Vector3f(x4, y4, z4);
-            this.faceShade = faceShade;
-        }
-
-        public BlockFace makeFace(int x, int y, int z, AtlasSprite sprite, float lightShade) {
-            return new BlockFace(
-                    new Vector3f(v1).add(x, y, z),
-                    new Vector3f(v2).add(x, y, z),
-                    new Vector3f(v3).add(x, y, z),
-                    new Vector3f(v4).add(x, y, z),
-                    sprite,
-                    faceShade * lightShade
-            );
-        }
-    }
-
-    private static final CubeFaceTemplate[] CUBE_TEMPLATES = {
-            new CubeFaceTemplate(CubeFace.POS_X, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, LightingConstants.SHADE_LEFT_RIGHT),
-            new CubeFaceTemplate(CubeFace.NEG_X, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, LightingConstants.SHADE_LEFT_RIGHT),
-            new CubeFaceTemplate(CubeFace.POS_Y, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, LightingConstants.SHADE_UP),
-            new CubeFaceTemplate(CubeFace.NEG_Y, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, LightingConstants.SHADE_DOWN),
-            new CubeFaceTemplate(CubeFace.POS_Z, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 1, LightingConstants.SHADE_FRONT_BACK),
-            new CubeFaceTemplate(CubeFace.NEG_Z, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, LightingConstants.SHADE_FRONT_BACK)
-    };
-
-    private void meshCube(SectionContext ctx, int x, int y, int z, AtlasSprite sprite, SectionGeometry geom) {
-        for (CubeFaceTemplate faceTemplate : CUBE_TEMPLATES) {
-            int nx = x + faceTemplate.face.x;
-            int ny = y + faceTemplate.face.y;
-            int nz = z + faceTemplate.face.z;
-
-            Byte neighbor = ctx.getSurroundingBlock(nx, ny, nz);
-            if (neighbor == null && faceTemplate.face != CubeFace.POS_Y)
-                continue;
-            if (neighbor != null && Blocks.getOcclusion(neighbor, faceTemplate.face.getReverse()) == OcclusionType.FULL)
-                continue;
-
-            boolean lit = ctx.isLit(nx, ny, nz);
-            float lightShade = lit ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
-
-            geom.addFace(true, faceTemplate.makeFace(x, y, z, sprite, lightShade));
-        }
-    }
-
-    private static final CubeFaceTemplate[] SLAB_TEMPLATES = {
-            new CubeFaceTemplate(CubeFace.POS_X, 1, 0.5f, 1, 1, 0,    1, 1, 0,    0, 1, 0.5f, 0, LightingConstants.SHADE_LEFT_RIGHT),
-            new CubeFaceTemplate(CubeFace.NEG_X, 0, 0.5f, 0, 0, 0,    0, 0, 0,    1, 0, 0.5f, 1, LightingConstants.SHADE_LEFT_RIGHT),
-            new CubeFaceTemplate(CubeFace.POS_Y, 0, 0.5f, 0, 0, 0.5f, 1, 1, 0.5f, 1, 1, 0.5f, 0, LightingConstants.SHADE_UP),
-            new CubeFaceTemplate(CubeFace.NEG_Y, 1, 0,    0, 1, 0,    1, 0, 0,    1, 0, 0,    0, LightingConstants.SHADE_DOWN),
-            new CubeFaceTemplate(CubeFace.POS_Z, 0, 0.5f, 1, 0, 0,    1, 1, 0,    1, 1, 0.5f, 1, LightingConstants.SHADE_FRONT_BACK),
-            new CubeFaceTemplate(CubeFace.NEG_Z, 1, 0.5f, 0, 1, 0,    0, 0, 0,    0, 0, 0.5f, 0, LightingConstants.SHADE_FRONT_BACK)
-    };
-
-    private void meshSlab(SectionContext ctx, int x, int y, int z, AtlasSprite topSprite, AtlasSprite sideSprite, SectionGeometry geom) {
-        AtlasSprite sideHalf = sideSprite.getSection(0, 0, 1, 0.5f);
-
-        for (CubeFaceTemplate faceTemplate : SLAB_TEMPLATES) {
-            int nx = x + faceTemplate.face.x;
-            int ny = y + faceTemplate.face.y;
-            int nz = z + faceTemplate.face.z;
-
-            if (faceTemplate.face != CubeFace.POS_Y) {
-                Byte neighbor = ctx.getSurroundingBlock(nx, ny, nz);
-                if (neighbor == null)
-                    continue;
-
-                OcclusionType occlusion = Blocks.getOcclusion(neighbor, faceTemplate.face.getReverse());
-                if (faceTemplate.face == CubeFace.NEG_Y && occlusion == OcclusionType.FULL)
-                    continue;
-                if (faceTemplate.face != CubeFace.NEG_Y && occlusion != OcclusionType.NONE)
-                    continue;
-            }
-
-            boolean lit = ctx.isLit(nx, ny, nz);
-            float lightShade = lit ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
-
-            AtlasSprite sprite = faceTemplate.face.axis == Axis.Y ? topSprite : sideHalf;
-            geom.addFace(true, faceTemplate.makeFace(x, y, z, sprite, lightShade));
-        }
-    }
-
-    private static final float LIQUID_SURFACE_HEIGHT = 0.9f;
-    private static final float LIQUID_INSET = 0.0015f; // To prevent Z-fighting on touching faces
-
-    private static final class LiquidSideTemplate {
-        public final CubeFace face;
-        private final float x1, z1, x2, z2;
-        private final float faceShade;
-
-        public LiquidSideTemplate(CubeFace face, float x1, float z1, float x2, float z2, float faceShade) {
-            this.face = face;
-            this.x1 = x1;
-            this.z1 = z1;
-            this.x2 = x2;
-            this.z2 = z2;
-            this.faceShade = faceShade;
-        }
-
-        public BlockFace makeFace(int x, int y, int z, AtlasSprite tile, float lightShade, boolean applyShade, float bottomY, float topY) {
-            return new BlockFace(
-                    new Vector3f(x + x1, y + topY, z + z1),
-                    new Vector3f(x + x1, y + bottomY, z + z1),
-                    new Vector3f(x + x2, y + bottomY, z + z2),
-                    new Vector3f(x + x2, y + topY, z + z2),
-                    tile.getSection(0, 1 - topY, 1, 1 - bottomY),
-                    applyShade ? faceShade * lightShade : 1.0f
-            );
-        }
-    }
-
-    private static final LiquidSideTemplate[] LIQUID_SIDE_TEMPLATES = {
-            new LiquidSideTemplate(CubeFace.POS_X, 1 - LIQUID_INSET, 1, 1 - LIQUID_INSET, 0, LightingConstants.SHADE_LEFT_RIGHT),
-            new LiquidSideTemplate(CubeFace.NEG_X, LIQUID_INSET, 0, LIQUID_INSET, 1, LightingConstants.SHADE_LEFT_RIGHT),
-            new LiquidSideTemplate(CubeFace.POS_Z, 0, 1 - LIQUID_INSET, 1, 1 - LIQUID_INSET, LightingConstants.SHADE_FRONT_BACK),
-            new LiquidSideTemplate(CubeFace.NEG_Z, 1, LIQUID_INSET, 0, LIQUID_INSET, LightingConstants.SHADE_FRONT_BACK)
-    };
-
-    private void meshLiquid(SectionContext ctx, int x, int y, int z, AtlasSprite sprite, boolean opaque, boolean applyShade, byte selfId, SectionGeometry geom) {
-        Byte above = ctx.getSurroundingBlock(x, y + 1, z);
-        boolean tall = above != null && above == selfId;
-
-        float lightShade = ctx.isLit(x, y + 1, z) ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
-
-        if (!tall) {
-            boolean surface = false;
-            for (int j = -1; j <= 1; j++) {
-                for (int i = -1; i <= 1; i++) {
-                    Byte aboveNeighbor = ctx.getSurroundingBlock(x + i, y + 1, z + j);
-                    if (aboveNeighbor == null || (aboveNeighbor != selfId && Blocks.getOcclusion(aboveNeighbor, CubeFace.NEG_Y) != OcclusionType.FULL)) {
-                        surface = true;
-                        break;
-                    }
-                }
-            }
-
-            if (surface) {
-                float h = LIQUID_SURFACE_HEIGHT;
-                geom.addDoubleSidedFace(opaque, new BlockFace(
-                        new Vector3f(x, y + h, z),
-                        new Vector3f(x, y + h, z + 1),
-                        new Vector3f(x + 1, y + h, z + 1),
-                        new Vector3f(x + 1, y + h, z),
-                        sprite,
-                        applyShade ? lightShade * LightingConstants.SHADE_UP : 1.0f
-                ));
-            }
-        }
-
-        for (LiquidSideTemplate sideTemplate : LIQUID_SIDE_TEMPLATES) {
-            int nx = x + sideTemplate.face.x;
-            int nz = z + sideTemplate.face.z;
-
-            Byte neighbor = ctx.getSurroundingBlock(nx, y, nz);
-            if (neighbor == null)
-                continue;
-
-            if (neighbor != selfId && Blocks.getOcclusion(neighbor, sideTemplate.face.getReverse()) != OcclusionType.FULL) {
-                float h = tall ? 1 : LIQUID_SURFACE_HEIGHT;
-                geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, sprite, lightShade, applyShade, 0, h));
-            } else if (tall && neighbor == selfId) {
-                Byte aboveNeighbor = ctx.getSurroundingBlock(nx, y + 1, nz);
-                boolean neighborTall = aboveNeighbor != null && aboveNeighbor == selfId;
-
-                if (!neighborTall)
-                    geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, sprite, lightShade, applyShade, LIQUID_SURFACE_HEIGHT - LIQUID_INSET, 1));
-            }
-        }
-
-        Byte below = ctx.getSurroundingBlock(x, y - 1, z);
-        if (below != null && below != selfId && Blocks.getOcclusion(below, CubeFace.POS_Y) != OcclusionType.FULL) {
-            geom.addDoubleSidedFace(opaque, new BlockFace(
-                    new Vector3f(x + 1, y + LIQUID_INSET, z),
-                    new Vector3f(x + 1, y + LIQUID_INSET, z + 1),
-                    new Vector3f(x, y + LIQUID_INSET, z + 1),
-                    new Vector3f(x, y + LIQUID_INSET, z),
-                    sprite,
-                    applyShade ? lightShade * LightingConstants.SHADE_DOWN : 1.0f
-            ));
-        }
-    }
-
-    private void meshCross(SectionContext ctx, int x, int y, int z, AtlasSprite sprite, SectionGeometry geom) {
-        float lightShade = ctx.isLit(x, y, z) ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
-
-        geom.addDoubleSidedFace(true, new BlockFace(
-                new Vector3f(x, y + 1, z),
-                new Vector3f(x, y, z),
-                new Vector3f(x + 1, y, z + 1),
-                new Vector3f(x + 1, y + 1, z + 1),
-                sprite,
-                lightShade
-        ));
-        geom.addDoubleSidedFace(true, new BlockFace(
-                new Vector3f(x + 1, y + 1, z),
-                new Vector3f(x + 1, y, z),
-                new Vector3f(x, y, z + 1),
-                new Vector3f(x, y + 1, z + 1),
-                sprite,
-                lightShade
-        ));
     }
 
     @Override

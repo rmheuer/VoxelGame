@@ -1,9 +1,17 @@
 package com.github.rmheuer.voxel.render;
 
+import com.github.rmheuer.azalea.render.mesh.AttribType;
 import com.github.rmheuer.azalea.render.mesh.VertexData;
+import com.github.rmheuer.azalea.render.mesh.VertexLayout;
 import org.joml.Vector3f;
 
 public final class BlockFace {
+    public static final VertexLayout VERTEX_LAYOUT = new VertexLayout(
+            AttribType.VEC3, // Position
+            AttribType.VEC2, // UV
+            AttribType.FLOAT // Shade
+    );
+
     public final Vector3f v1, v2, v3, v4;
     public final AtlasSprite sprite;
     public final float shade;
