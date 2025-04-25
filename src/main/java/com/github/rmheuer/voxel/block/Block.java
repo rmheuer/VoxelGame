@@ -43,7 +43,6 @@ public final class Block {
     }
 
     public OcclusionType getOcclusion(CubeFace face) {
-        // FIXME
-        return OcclusionType.NONE;
+        return shape.getOcclusion(face);
     }
 }

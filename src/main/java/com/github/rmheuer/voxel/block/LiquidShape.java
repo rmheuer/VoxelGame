@@ -119,4 +119,9 @@ public final class LiquidShape implements BlockShape {
             ));
         }
     }
+
+    @Override
+    public OcclusionType getOcclusion(CubeFace face) {
+        return OcclusionType.NONE;
+    }
 }

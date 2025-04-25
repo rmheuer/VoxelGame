@@ -1,5 +1,7 @@
 package com.github.rmheuer.voxel.block;
 
+import com.github.rmheuer.azalea.math.CubeFace;
+import com.github.rmheuer.voxel.level.OcclusionType;
 import com.github.rmheuer.voxel.render.*;
 import org.joml.Vector3f;
 
@@ -30,5 +32,10 @@ public final class CrossShape implements BlockShape {
                 sprite,
                 lightShade
         ));
+    }
+
+    @Override
+    public OcclusionType getOcclusion(CubeFace face) {
+        return OcclusionType.NONE;
     }
 }

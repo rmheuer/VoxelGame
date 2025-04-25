@@ -43,4 +43,9 @@ public final class CubeShape implements BlockShape {
             geom.addFace(true, faceTemplate.makeFace(x, y, z, sprite, lightShade));
         }
     }
+
+    @Override
+    public OcclusionType getOcclusion(CubeFace face) {
+        return OcclusionType.FULL;
+    }
 }

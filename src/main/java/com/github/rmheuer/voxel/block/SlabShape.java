@@ -52,4 +52,13 @@ public final class SlabShape implements BlockShape {
             geom.addFace(true, faceTemplate.makeFace(x, y, z, sprite, lightShade));
         }
     }
+
+    @Override
+    public OcclusionType getOcclusion(CubeFace face) {
+        switch (face) {
+            case POS_Y: return OcclusionType.NONE;
+            case NEG_Y: return OcclusionType.FULL;
+            default: return OcclusionType.HALF;
+        }
+    }
 }
