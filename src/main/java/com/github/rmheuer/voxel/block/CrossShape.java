@@ -38,4 +38,9 @@ public final class CrossShape implements BlockShape {
     public OcclusionType getOcclusion(CubeFace face) {
         return OcclusionType.NONE;
     }
+
+    @Override
+    public AtlasSprite getParticleSprite() {
+        return sprite;
+    }
 }

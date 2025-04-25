@@ -31,17 +31,17 @@ public final class Blocks {
 
     private static final Block[] BLOCKS = new Block[256];
     static {
-        BLOCKS[ID_AIR] = new Block(new InvisibleShape(), Colors.RGBA.TRANSPARENT)
+        BLOCKS[ID_AIR] = new Block(new InvisibleShape())
                 .setLightBlocking(false);
-        BLOCKS[ID_SOLID] = new Block(new CubeShape(new AtlasSprite(1, 0)), Colors.RGBA.WHITE);
-        BLOCKS[ID_WATER] = new Block(new LiquidShape(new AtlasSprite(14, 0), false, true), Colors.RGBA.fromFloats(0.3f, 0.3f, 1.0f, 0.6f))
+        BLOCKS[ID_SOLID] = new Block(new CubeShape(new AtlasSprite(1, 0)));
+        BLOCKS[ID_WATER] = new Block(new LiquidShape(new AtlasSprite(14, 0), false, true))
                 .setLiquid(Liquid.WATER)
                 .setLightBlocking(false);
-        BLOCKS[ID_LAVA] = new Block(new LiquidShape(new AtlasSprite(14, 1), true, false), Colors.RGBA.fromFloats(1.0f, 0.5f, 0.0f))
+        BLOCKS[ID_LAVA] = new Block(new LiquidShape(new AtlasSprite(14, 1), true, false))
                 .setLiquid(Liquid.LAVA);
-        BLOCKS[ID_CROSS] = new Block(new CrossShape(new AtlasSprite(15, 0)), Colors.RGBA.fromFloats(0.2f, 0.5f, 0.2f))
+        BLOCKS[ID_CROSS] = new Block(new CrossShape(new AtlasSprite(15, 0)))
                 .setLightBlocking(false);
-        BLOCKS[ID_SLAB] = new Block(new SlabShape(new AtlasSprite(6, 0), new AtlasSprite(5, 0)), Colors.RGBA.fromFloats(0.8f, 0.6f, 0.6f));
+        BLOCKS[ID_SLAB] = new Block(new SlabShape(new AtlasSprite(6, 0), new AtlasSprite(5, 0)));
     }
 
     public static Block getBlock(byte id) {

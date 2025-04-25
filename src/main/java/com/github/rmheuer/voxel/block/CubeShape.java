@@ -48,4 +48,9 @@ public final class CubeShape implements BlockShape {
     public OcclusionType getOcclusion(CubeFace face) {
         return OcclusionType.FULL;
     }
+
+    @Override
+    public AtlasSprite getParticleSprite() {
+        return sprite;
+    }
 }

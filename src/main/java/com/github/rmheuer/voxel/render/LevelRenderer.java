@@ -24,12 +24,15 @@ import java.util.Comparator;
 import java.util.List;
 
 public final class LevelRenderer implements SafeCloseable {
+    private final Texture2D atlasTexture;
+
     private final ShaderProgram shader;
     private final PipelineInfo pipeline;
     private final SharedIndexBuffer sharedIndexBuffer;
-    private final Texture2D atlasTexture;
 
-    public LevelRenderer(Renderer renderer) throws IOException {
+    public LevelRenderer(Renderer renderer, Texture2D atlasTexture) throws IOException {
+        this.atlasTexture = atlasTexture;
+
         shader = renderer.createShaderProgram(
                 ResourceUtil.readAsStream("shaders/block-vert.glsl"),
                 ResourceUtil.readAsStream("shaders/block-frag.glsl")
@@ -46,8 +49,6 @@ public final class LevelRenderer implements SafeCloseable {
                 4,
                 0, 1, 2, 0, 2, 3
         );
-
-        atlasTexture = renderer.createTexture2D(ResourceUtil.readAsStream("terrain.png"));
     }
 
     private static final class RenderSection {
@@ -203,6 +204,5 @@ public final class LevelRenderer implements SafeCloseable {
     public void close() {
         shader.close();
         sharedIndexBuffer.close();
-        atlasTexture.close();
     }
 }

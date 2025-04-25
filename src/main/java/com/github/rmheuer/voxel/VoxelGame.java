@@ -6,11 +6,13 @@ import com.github.rmheuer.azalea.input.keyboard.Keyboard;
 import com.github.rmheuer.azalea.input.mouse.MouseButton;
 import com.github.rmheuer.azalea.input.mouse.MouseButtonPressEvent;
 import com.github.rmheuer.azalea.input.mouse.MouseMoveEvent;
+import com.github.rmheuer.azalea.io.ResourceUtil;
 import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.WindowSettings;
 import com.github.rmheuer.azalea.render.camera.Camera;
 import com.github.rmheuer.azalea.render.camera.PerspectiveProjection;
+import com.github.rmheuer.azalea.render.texture.Texture2D;
 import com.github.rmheuer.azalea.render.utils.DebugLineRenderer;
 import com.github.rmheuer.azalea.runtime.BaseGame;
 import com.github.rmheuer.azalea.runtime.FixedRateExecutor;
@@ -20,6 +22,7 @@ import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.level.MapSection;
 import com.github.rmheuer.voxel.particle.ParticleSystem;
 import com.github.rmheuer.voxel.physics.Raycast;
+import com.github.rmheuer.voxel.render.AtlasSprite;
 import com.github.rmheuer.voxel.render.LevelRenderData;
 import com.github.rmheuer.voxel.render.LevelRenderer;
 import org.joml.*;
@@ -34,6 +37,7 @@ public final class VoxelGame extends BaseGame {
 
     private final FixedRateExecutor ticker;
 
+    private final Texture2D atlasTexture;
     private final LevelRenderer levelRenderer;
     private final DebugLineRenderer lineRenderer;
     private final ParticleSystem particleSystem;
@@ -55,9 +59,11 @@ public final class VoxelGame extends BaseGame {
 
         ticker = new FixedRateExecutor(1 / 20.0f, this::fixedTick);
 
-        levelRenderer = new LevelRenderer(getRenderer());
+        atlasTexture = getRenderer().createTexture2D(ResourceUtil.readAsStream("terrain.png"));
+
+        levelRenderer = new LevelRenderer(getRenderer(), atlasTexture);
         lineRenderer = new DebugLineRenderer(getRenderer());
-        particleSystem = new ParticleSystem(getRenderer());
+        particleSystem = new ParticleSystem(getRenderer(), atlasTexture);
 
         camera = new Camera(new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f));
 
@@ -172,8 +178,8 @@ public final class VoxelGame extends BaseGame {
                 if (brokenBlock != Blocks.ID_AIR) {
                     setBlock(pos, Blocks.ID_AIR);
 
-                    int color = Blocks.getBlock(brokenBlock).getParticleColor();
-                    particleSystem.spawnBreakParticles(pos.x, pos.y, pos.z, color);
+                    AtlasSprite sprite = Blocks.getBlock(brokenBlock).getShape().getParticleSprite();
+                    particleSystem.spawnBreakParticles(pos.x, pos.y, pos.z, sprite);
                 }
             }
         } else if (event.getButton() == MouseButton.RIGHT) {
@@ -337,6 +343,7 @@ public final class VoxelGame extends BaseGame {
         levelRenderData.close();
         levelRenderer.close();
         particleSystem.close();
+        atlasTexture.close();
     }
 
     public static void main(String[] args) {

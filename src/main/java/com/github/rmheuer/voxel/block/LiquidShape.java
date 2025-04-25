@@ -124,4 +124,9 @@ public final class LiquidShape implements BlockShape {
     public OcclusionType getOcclusion(CubeFace face) {
         return OcclusionType.NONE;
     }
+
+    @Override
+    public AtlasSprite getParticleSprite() {
+        return sprite;
+    }
 }

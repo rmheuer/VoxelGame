@@ -10,12 +10,15 @@ import com.github.rmheuer.azalea.render.pipeline.CullMode;
 import com.github.rmheuer.azalea.render.pipeline.FaceWinding;
 import com.github.rmheuer.azalea.render.pipeline.PipelineInfo;
 import com.github.rmheuer.azalea.render.shader.ShaderProgram;
+import com.github.rmheuer.azalea.render.texture.Texture2D;
 import com.github.rmheuer.azalea.render.utils.SharedIndexBuffer;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
+import com.github.rmheuer.voxel.render.AtlasSprite;
 import com.github.rmheuer.voxel.render.LightingConstants;
 import org.joml.Matrix4f;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 import java.io.IOException;
@@ -27,7 +30,7 @@ import java.util.Random;
 public final class ParticleSystem implements SafeCloseable {
     private static final VertexLayout LAYOUT = new VertexLayout(
             AttribType.VEC3, // Position
-            AttribType.COLOR_RGBA, // Color
+            AttribType.VEC2, // Color
             AttribType.FLOAT // Shade
     );
 
@@ -38,18 +41,19 @@ public final class ParticleSystem implements SafeCloseable {
     private static final float FRICTION = 0.7f;
 
     private static final class Particle {
-        private final float size;
-        private final int color;
+        public final float size;
+        public final Vector2f uv1, uv2;
 
-        private final Vector3f position;
-        private final Vector3f prevPosition;
+        public final Vector3f position;
+        public final Vector3f prevPosition;
         private final Vector3f velocity;
 
         private int ticksLeft;
 
-        public Particle(float size, int color, Vector3f position, Vector3f velocity, int lifeTime) {
+        public Particle(float size, Vector2f uv1, Vector2f uv2, Vector3f position, Vector3f velocity, int lifeTime) {
             this.size = size;
-            this.color = color;
+            this.uv1 = uv1;
+            this.uv2 = uv2;
             this.position = position;
             this.velocity = velocity;
 
@@ -108,6 +112,8 @@ public final class ParticleSystem implements SafeCloseable {
         }
     }
 
+    private final Texture2D atlasTexture;
+
     private final ShaderProgram shader;
     private final PipelineInfo pipeline;
     private final VertexBuffer vertexBuffer;
@@ -116,7 +122,9 @@ public final class ParticleSystem implements SafeCloseable {
     private final List<Particle> particles;
     private final Random random;
 
-    public ParticleSystem(Renderer renderer) throws IOException {
+    public ParticleSystem(Renderer renderer, Texture2D atlasTexture) throws IOException {
+        this.atlasTexture = atlasTexture;
+
         shader = renderer.createShaderProgram(
                 ResourceUtil.readAsStream("shaders/particle-vert.glsl"),
                 ResourceUtil.readAsStream("shaders/particle-frag.glsl")
@@ -142,7 +150,7 @@ public final class ParticleSystem implements SafeCloseable {
         return (random.nextFloat() * 2 - 1) * 0.4f;
     }
 
-    public void spawnBreakParticles(int blockX, int blockY, int blockZ, int color) {
+    public void spawnBreakParticles(int blockX, int blockY, int blockZ, AtlasSprite sprite) {
         for (int i = 0; i < BREAK_PARTICLES_PER_AXIS; i++) {
             for (int j = 0; j < BREAK_PARTICLES_PER_AXIS; j++) {
                 for (int k = 0; k < BREAK_PARTICLES_PER_AXIS; k++) {
@@ -157,7 +165,17 @@ public final class ParticleSystem implements SafeCloseable {
                     float size = 0.2f * (random.nextFloat() * 0.5f + 0.5f);
                     int lifeTime = (int) (4 / (random.nextFloat() * 0.9f + 0.1f));
 
-                    particles.add(new Particle(size, color, pos, vel, lifeTime));
+                    float texOffsetU = (1 - size) * random.nextFloat();
+                    float texOffsetV = (1 - size) * random.nextFloat();
+                    AtlasSprite part = sprite.getSection(
+                            texOffsetU, texOffsetV,
+                            texOffsetU + size, texOffsetV + size
+                    );
+
+                    Vector2f uv1 = new Vector2f(part.u1, part.v1);
+                    Vector2f uv2 = new Vector2f(part.u2, part.v2);
+
+                    particles.add(new Particle(size, uv1, uv2, pos, vel, lifeTime));
                 }
             }
         }
@@ -201,10 +219,10 @@ public final class ParticleSystem implements SafeCloseable {
                         : LightingConstants.SHADE_SHADOW;
                 shade *= 0.6f;
 
-                data.putVec3(v1); data.putColorRGBA(particle.color); data.putFloat(shade);
-                data.putVec3(v2); data.putColorRGBA(particle.color); data.putFloat(shade);
-                data.putVec3(v3); data.putColorRGBA(particle.color); data.putFloat(shade);
-                data.putVec3(v4); data.putColorRGBA(particle.color); data.putFloat(shade);
+                data.putVec3(v1); data.putVec2(particle.uv1); data.putFloat(shade);
+                data.putVec3(v2); data.putVec2(particle.uv1.x, particle.uv2.y); data.putFloat(shade);
+                data.putVec3(v3); data.putVec2(particle.uv2); data.putFloat(shade);
+                data.putVec3(v4); data.putVec2(particle.uv2.x, particle.uv1.y); data.putFloat(shade);
             }
 
             vertexBuffer.setData(data, DataUsage.STREAM);
@@ -213,6 +231,7 @@ public final class ParticleSystem implements SafeCloseable {
 
         Matrix4f viewProj = new Matrix4f(proj).mul(view);
         try (ActivePipeline pipe = renderer.bindPipeline(pipeline)) {
+            pipe.bindTexture(0, atlasTexture);
             pipe.getUniform("u_ViewProj").setMat4(viewProj);
             pipe.draw(vertexBuffer, indexBuffer.getIndexBuffer(), 0, particles.size() * 6);
         }

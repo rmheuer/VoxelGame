@@ -61,4 +61,9 @@ public final class SlabShape implements BlockShape {
             default: return OcclusionType.HALF;
         }
     }
+
+    @Override
+    public AtlasSprite getParticleSprite() {
+        return topSprite;
+    }
 }

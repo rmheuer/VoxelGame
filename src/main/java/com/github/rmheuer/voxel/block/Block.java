@@ -5,13 +5,11 @@ import com.github.rmheuer.voxel.level.OcclusionType;
 
 public final class Block {
     private final BlockShape shape;
-    private final int particleColor;
     private boolean lightBlocking;
     private Liquid liquid;
 
-    public Block(BlockShape shape, int particleColor) {
+    public Block(BlockShape shape) {
         this.shape = shape;
-        this.particleColor = particleColor;
         lightBlocking = true;
         liquid = null;
     }
@@ -32,10 +30,6 @@ public final class Block {
 
     public boolean isLightBlocking() {
         return lightBlocking;
-    }
-
-    public int getParticleColor() {
-        return particleColor;
     }
 
     public Liquid getLiquid() {

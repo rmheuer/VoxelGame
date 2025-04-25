@@ -12,7 +12,7 @@ Player physics:
   Stair stepping
   Swimming
 [x] Block textures
-Particle textures
+[x] Particle textures
 Add all classic blocks
 Animated block textures
 Fog:
