@@ -15,6 +15,7 @@ import com.github.rmheuer.azalea.render.camera.PerspectiveProjection;
 import com.github.rmheuer.azalea.render.texture.Bitmap;
 import com.github.rmheuer.azalea.render.texture.Texture2D;
 import com.github.rmheuer.azalea.render.utils.DebugLineRenderer;
+import com.github.rmheuer.azalea.render2d.Renderer2D;
 import com.github.rmheuer.azalea.runtime.BaseGame;
 import com.github.rmheuer.azalea.runtime.FixedRateExecutor;
 import com.github.rmheuer.voxel.anim.LavaAnimationGenerator;
@@ -27,6 +28,9 @@ import com.github.rmheuer.voxel.particle.ParticleSystem;
 import com.github.rmheuer.voxel.physics.Raycast;
 import com.github.rmheuer.voxel.render.LevelRenderData;
 import com.github.rmheuer.voxel.render.LevelRenderer;
+import com.github.rmheuer.voxel.ui.UIDrawList;
+import com.github.rmheuer.voxel.ui.UISprite;
+import com.github.rmheuer.voxel.ui.UISprites;
 import org.joml.*;
 
 import java.io.IOException;
@@ -37,15 +41,12 @@ public final class VoxelGame extends BaseGame {
             new WindowSettings(640, 480, "Voxel")
                 .setVSync(false);
 
-    private static final byte[] HOTKEY_BLOCKS = {
-            Blocks.ID_STONE, Blocks.ID_GRASS, Blocks.ID_DIRT,
-            Blocks.ID_COBBLESTONE, Blocks.ID_PLANKS, Blocks.ID_SAPLING,
-            Blocks.ID_LOG, Blocks.ID_STILL_WATER, Blocks.ID_STILL_LAVA
-    };
-
     private final FixedRateExecutor ticker;
+    private final Renderer2D renderer2D;
 
     private final Texture2D atlasTexture;
+    private final UISprites uiSprites;
+
     private final LevelRenderer levelRenderer;
     private final DebugLineRenderer lineRenderer;
     private final ParticleSystem particleSystem;
@@ -60,7 +61,9 @@ public final class VoxelGame extends BaseGame {
 
     private boolean mouseCaptured;
     private Raycast.Result raycastResult;
-    private byte blockIdToPlace;
+
+    private final byte[] hotbar;
+    private int selectedSlot;
 
     private boolean drawSectionBoundaries;
     private boolean drawLightHeights;
@@ -71,8 +74,10 @@ public final class VoxelGame extends BaseGame {
         super(WINDOW_SETTINGS);
 
         ticker = new FixedRateExecutor(1 / 20.0f, this::fixedTick);
+        renderer2D = new Renderer2D(getRenderer());
 
         atlasTexture = getRenderer().createTexture2D(ResourceUtil.readAsStream("terrain.png"));
+        uiSprites = new UISprites(getRenderer());
 
         levelRenderer = new LevelRenderer(getRenderer(), atlasTexture);
         lineRenderer = new DebugLineRenderer(getRenderer());
@@ -100,7 +105,12 @@ public final class VoxelGame extends BaseGame {
         getEventBus().addHandler(MouseMoveEvent.class, this::mouseMoved);
         getEventBus().addHandler(MouseButtonPressEvent.class, this::mousePressed);
 
-        blockIdToPlace = Blocks.ID_STONE;
+        hotbar = new byte[] {
+                Blocks.ID_STONE, Blocks.ID_GRASS, Blocks.ID_DIRT,
+                Blocks.ID_COBBLESTONE, Blocks.ID_PLANKS, Blocks.ID_SAPLING,
+                Blocks.ID_LOG, Blocks.ID_STILL_WATER, Blocks.ID_STILL_LAVA
+        };
+        selectedSlot = 0;
 
         drawSectionBoundaries = false;
         drawLightHeights = false;
@@ -129,7 +139,7 @@ public final class VoxelGame extends BaseGame {
 
             default:
                 if (key.isNumberKey() && key.getNumber() > 0) {
-                    blockIdToPlace = HOTKEY_BLOCKS[key.getNumber() - 1];
+                    selectedSlot = key.getNumber() - 1;
                 }
                 break;
         }
@@ -179,11 +189,11 @@ public final class VoxelGame extends BaseGame {
                 Vector3i pos = new Vector3i(raycastResult.blockPos)
                         .add(raycastResult.hitFace.getDirection());
 
-                setBlock(pos, blockIdToPlace);
+                setBlock(pos, hotbar[selectedSlot]);
             }
         } else if (event.getButton() == MouseButton.MIDDLE) {
             if (raycastResult != null) {
-                blockIdToPlace = blockMap.getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z);
+                hotbar[selectedSlot] = blockMap.getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z);
             }
         }
     }
@@ -343,6 +353,26 @@ public final class VoxelGame extends BaseGame {
         }
 
         lineRenderer.flush(renderer, viewProj);
+
+        int guiScale = 2;
+        UIDrawList uiDraw = new UIDrawList(windowSize.x / guiScale, windowSize.y / guiScale, atlasTexture);
+        drawHotbar(uiDraw);
+        renderer2D.draw(uiDraw.getDrawList(), new Matrix4f().ortho(0, (float) windowSize.x / guiScale, (float) windowSize.y / guiScale, 0, -1, 1));
+    }
+
+    private void drawHotbar(UIDrawList draw) {
+        UISprite hotbarSprite = uiSprites.getHotbar();
+        UISprite highlightSprite = uiSprites.getHotbarHighlight();
+
+        int x = draw.getWidth() / 2 - hotbarSprite.getWidth() / 2;
+        int y = draw.getHeight() - hotbarSprite.getHeight();
+        draw.drawSprite(x, y, hotbarSprite);
+
+        for (int slot = 0; slot < 9; slot++) {
+            draw.drawBlockAsItem(x + 3 + slot * 20, y + 3, Blocks.getBlock(hotbar[slot]));
+        }
+
+        draw.drawSprite(x - 1 + selectedSlot * 20, y - 1, highlightSprite);
     }
 
     @Override
@@ -350,7 +380,9 @@ public final class VoxelGame extends BaseGame {
         levelRenderData.close();
         levelRenderer.close();
         particleSystem.close();
+        uiSprites.close();
         atlasTexture.close();
+        renderer2D.close();
     }
 
     public static void main(String[] args) {

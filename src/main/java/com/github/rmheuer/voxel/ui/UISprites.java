@@ -13,31 +13,32 @@ public final class UISprites implements SafeCloseable {
 
     private final Texture2D atlasTexture;
 
-    private final Texture2DRegion hotbar;
-    private final Texture2DRegion hotbarHighlight;
+    private final UISprite hotbar;
+    private final UISprite hotbarHighlight;
 
     public UISprites(Renderer renderer) throws IOException {
         atlasTexture = renderer.createTexture2D(ResourceUtil.readAsStream("gui.png"));
 
-        // TODO: Figure out what the coordinates of each one are
-        hotbar = getSprite(0, 0, 0, 0);
-        hotbarHighlight = getSprite(0, 0, 0, 0);
+        hotbar = getSprite(0, 0, 182, 22);
+        hotbarHighlight = getSprite(0, 22, 24, 24);
     }
 
-    private Texture2DRegion getSprite(int x, int y, int w, int h) {
-        return atlasTexture.getSubRegion(
+    private UISprite getSprite(int x, int y, int w, int h) {
+        Texture2DRegion texture = atlasTexture.getSubRegion(
                 (float) x / ATLAS_SIZE,
                 (float) y / ATLAS_SIZE,
                 (float) (x + w) / ATLAS_SIZE,
                 (float) (y + h) / ATLAS_SIZE
         );
+
+        return new UISprite(w, h, texture);
     }
 
-    public Texture2DRegion getHotbar() {
+    public UISprite getHotbar() {
         return hotbar;
     }
 
-    public Texture2DRegion getHotbarHighlight() {
+    public UISprite getHotbarHighlight() {
         return hotbarHighlight;
     }
 
