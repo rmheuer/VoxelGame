@@ -11,6 +11,11 @@ public final class Blocks {
     public static final byte ID_PLANKS = 5;
     public static final byte ID_SAPLING = 6;
 
+    public static final byte ID_FLOWING_WATER = 8;
+    public static final byte ID_STILL_WATER = 9;
+    public static final byte ID_FLOWING_LAVA = 10;
+    public static final byte ID_STILL_LAVA = 11;
+
     public static final byte ID_LOG = 17;
     public static final byte ID_LEAVES = 18;
 
@@ -30,6 +35,20 @@ public final class Blocks {
         BLOCKS[ID_SAPLING] = new Block(new CrossShape(new AtlasSprite(15, 0)))
                 .setLightBlocking(false)
                 .setSolid(false);
+
+        Block water = new Block(new LiquidShape(new AtlasSprite(14, 0), false, true))
+                .setLiquid(Liquid.WATER)
+                .setLightBlocking(false)
+                .setSolid(false);
+        BLOCKS[ID_FLOWING_WATER] = water;
+        BLOCKS[ID_STILL_WATER] = water;
+
+        Block lava = new Block(new LiquidShape(new AtlasSprite(14, 1), true, false))
+                .setLiquid(Liquid.LAVA)
+                .setSolid(false);
+        BLOCKS[ID_FLOWING_LAVA] = lava;
+        BLOCKS[ID_STILL_LAVA] = lava;
+
         BLOCKS[ID_LOG] = new Block(CubeShape.column(new AtlasSprite(5, 1), new AtlasSprite(4, 1)));
         BLOCKS[ID_LEAVES] = new Block(CubeShape.all(new AtlasSprite(6, 1)).setTransparencyType(CubeShape.TransparencyType.TRANSPARENT))
                 .setLightBlocking(false)

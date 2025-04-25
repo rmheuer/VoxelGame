@@ -14,7 +14,7 @@ Player physics:
 [x] Block textures
 [x] Particle textures
 Add all classic blocks
-Animated block textures
+[x] Animated block textures
 Fog:
   Land fog
   Underwater fog
@@ -23,10 +23,3 @@ Fake terrain outside world
 Pause menu:
   Text rendering
   Buttons
-Multiplayer:
-  Connect to server
-    Possibly a UI to input server address?
-  Connection progress screen
-  Chat
-  Handle gameplay
-  Render other players

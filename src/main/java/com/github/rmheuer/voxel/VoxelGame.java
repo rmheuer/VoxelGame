@@ -12,17 +12,19 @@ import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.WindowSettings;
 import com.github.rmheuer.azalea.render.camera.Camera;
 import com.github.rmheuer.azalea.render.camera.PerspectiveProjection;
+import com.github.rmheuer.azalea.render.texture.Bitmap;
 import com.github.rmheuer.azalea.render.texture.Texture2D;
 import com.github.rmheuer.azalea.render.utils.DebugLineRenderer;
 import com.github.rmheuer.azalea.runtime.BaseGame;
 import com.github.rmheuer.azalea.runtime.FixedRateExecutor;
+import com.github.rmheuer.voxel.anim.LavaAnimationGenerator;
+import com.github.rmheuer.voxel.anim.WaterAnimationGenerator;
 import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.level.MapSection;
 import com.github.rmheuer.voxel.particle.ParticleSystem;
 import com.github.rmheuer.voxel.physics.Raycast;
-import com.github.rmheuer.voxel.render.AtlasSprite;
 import com.github.rmheuer.voxel.render.LevelRenderData;
 import com.github.rmheuer.voxel.render.LevelRenderer;
 import org.joml.*;
@@ -38,7 +40,7 @@ public final class VoxelGame extends BaseGame {
     private static final byte[] HOTKEY_BLOCKS = {
             Blocks.ID_STONE, Blocks.ID_GRASS, Blocks.ID_DIRT,
             Blocks.ID_COBBLESTONE, Blocks.ID_PLANKS, Blocks.ID_SAPLING,
-            Blocks.ID_LOG, Blocks.ID_LEAVES, Blocks.ID_GLASS
+            Blocks.ID_LOG, Blocks.ID_STILL_WATER, Blocks.ID_STILL_LAVA
     };
 
     private final FixedRateExecutor ticker;
@@ -47,6 +49,9 @@ public final class VoxelGame extends BaseGame {
     private final LevelRenderer levelRenderer;
     private final DebugLineRenderer lineRenderer;
     private final ParticleSystem particleSystem;
+
+    private final WaterAnimationGenerator waterAnimationGenerator;
+    private final LavaAnimationGenerator lavaAnimationGenerator;
 
     private final Camera camera;
     private final BlockMap blockMap;
@@ -60,6 +65,8 @@ public final class VoxelGame extends BaseGame {
     private boolean drawSectionBoundaries;
     private boolean drawLightHeights;
 
+    private boolean ticked;
+
     public VoxelGame() throws IOException {
         super(WINDOW_SETTINGS);
 
@@ -70,6 +77,9 @@ public final class VoxelGame extends BaseGame {
         levelRenderer = new LevelRenderer(getRenderer(), atlasTexture);
         lineRenderer = new DebugLineRenderer(getRenderer());
         particleSystem = new ParticleSystem(getRenderer(), atlasTexture);
+
+        waterAnimationGenerator = new WaterAnimationGenerator();
+        lavaAnimationGenerator = new LavaAnimationGenerator();
 
         camera = new Camera(new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f));
 
@@ -223,11 +233,26 @@ public final class VoxelGame extends BaseGame {
     }
 
     private void fixedTick(float dt) {
+        ticked = true;
+
+        waterAnimationGenerator.tick();
+        lavaAnimationGenerator.tick();
+
         particleSystem.tickParticles(blockMap);
     }
 
     @Override
     protected void render(Renderer renderer) {
+        if (ticked) {
+            try (Bitmap img = waterAnimationGenerator.getImage()) {
+                atlasTexture.setSubData(img, 14 * 16, 0);
+            }
+            try (Bitmap img = lavaAnimationGenerator.getImage()) {
+                atlasTexture.setSubData(img, 14 * 16, 16);
+            }
+            ticked = false;
+        }
+
         Vector2i windowSize = getWindow().getFramebufferSize();
         Matrix4f proj = camera.getProjectionMatrix(windowSize.x, windowSize.y);
         Matrix4f view = camera.getViewMatrix();
