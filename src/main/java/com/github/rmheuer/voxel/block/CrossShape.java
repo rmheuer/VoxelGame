@@ -1,5 +1,6 @@
 package com.github.rmheuer.voxel.block;
 
+import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.voxel.level.OcclusionType;
 import com.github.rmheuer.voxel.render.*;
@@ -37,6 +38,11 @@ public final class CrossShape implements BlockShape {
     @Override
     public OcclusionType getOcclusion(CubeFace face) {
         return OcclusionType.NONE;
+    }
+
+    @Override
+    public AABB getDefaultBoundingBox() {
+        return new AABB(0, 0, 0, 1, 1, 1);
     }
 
     @Override

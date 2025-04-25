@@ -2,7 +2,8 @@ package com.github.rmheuer.voxel.physics;
 
 import com.github.rmheuer.azalea.math.Axis;
 import com.github.rmheuer.azalea.math.CubeFace;
-import com.github.rmheuer.voxel.level.Blocks;
+import com.github.rmheuer.voxel.block.Block;
+import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.level.BlockMap;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
@@ -54,7 +55,9 @@ public final class Raycast {
         float t = 0.0f;
         while (t < maxDistance) {
             byte blockId = map.getBlockId(blockX, blockY, blockZ);
-            if (blockId != Blocks.ID_AIR) {
+            Block block = Blocks.getBlock(blockId);
+
+            if (block.isInteractable()) {
                 Vector3f hitPos = new Vector3f(pos).fma(t, dir);
 
                 CubeFace hitFace = null;

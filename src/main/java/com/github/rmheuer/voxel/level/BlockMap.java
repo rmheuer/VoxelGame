@@ -1,6 +1,8 @@
 package com.github.rmheuer.voxel.level;
 
 import com.github.rmheuer.azalea.math.AABB;
+import com.github.rmheuer.voxel.block.Block;
+import com.github.rmheuer.voxel.block.Blocks;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -84,9 +86,10 @@ public final class BlockMap {
                     boolean xInBounds = x >= 0 && x < blocksX;
 
                     if (xInBounds && zInBounds) {
-                        byte block = getBlockId(x, y, z);
-                        if (block == Blocks.ID_SOLID) {
-                            colliders.add(new AABB(x, y, z, x + 1, y + 1, z + 1));
+                        Block block = Blocks.getBlock(getBlockId(x, y, z));
+
+                        if (block.isSolid()) {
+                            colliders.add(block.getBoundingBox().translate(x, y, z));
                         }
                     } else {
                         // Make horizontal border of world solid

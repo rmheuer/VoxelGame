@@ -16,7 +16,7 @@ import com.github.rmheuer.azalea.render.texture.Texture2D;
 import com.github.rmheuer.azalea.render.utils.DebugLineRenderer;
 import com.github.rmheuer.azalea.runtime.BaseGame;
 import com.github.rmheuer.azalea.runtime.FixedRateExecutor;
-import com.github.rmheuer.voxel.level.Blocks;
+import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.level.MapSection;
@@ -34,6 +34,12 @@ public final class VoxelGame extends BaseGame {
     private static final WindowSettings WINDOW_SETTINGS =
             new WindowSettings(640, 480, "Voxel")
                 .setVSync(false);
+
+    private static final byte[] HOTKEY_BLOCKS = {
+            Blocks.ID_STONE, Blocks.ID_GRASS, Blocks.ID_DIRT,
+            Blocks.ID_COBBLESTONE, Blocks.ID_PLANKS, Blocks.ID_SAPLING,
+            Blocks.ID_LOG, Blocks.ID_LEAVES, Blocks.ID_GLASS
+    };
 
     private final FixedRateExecutor ticker;
 
@@ -73,23 +79,9 @@ public final class VoxelGame extends BaseGame {
 
         for (int z = 0; z < 64; z++) {
             for (int x = 0; x < 64; x++) {
-                blockMap.setBlockId(x, 0, z, Blocks.ID_SOLID);
-                blockMap.setBlockId(x, 1, z, Blocks.ID_WATER);
-                blockMap.setBlockId(x, 2, z, Blocks.ID_WATER);
+                blockMap.setBlockId(x, 0, z, Blocks.ID_STONE);
             }
         }
-        for (int z = 8; z < 56; z++) {
-            for (int x = 8; x < 56; x++) {
-                for (int y = 1; y < 3; y++) {
-                    blockMap.setBlockId(x, y, z, Blocks.ID_SOLID);
-                }
-            }
-        }
-        blockMap.setBlockId(10, 4, 10, Blocks.ID_SOLID);
-        blockMap.setBlockId(12, 4, 10, Blocks.ID_WATER);
-        blockMap.setBlockId(14, 4, 10, Blocks.ID_LAVA);
-        blockMap.setBlockId(16, 4, 10, Blocks.ID_CROSS);
-        blockMap.setBlockId(18, 4, 10, Blocks.ID_SLAB);
 
         lightMap.recalculateAll(blockMap);
 
@@ -98,7 +90,7 @@ public final class VoxelGame extends BaseGame {
         getEventBus().addHandler(MouseMoveEvent.class, this::mouseMoved);
         getEventBus().addHandler(MouseButtonPressEvent.class, this::mousePressed);
 
-        blockIdToPlace = Blocks.ID_SOLID;
+        blockIdToPlace = Blocks.ID_STONE;
 
         drawSectionBoundaries = false;
         drawLightHeights = false;
@@ -112,7 +104,8 @@ public final class VoxelGame extends BaseGame {
     }
 
     private void keyPressed(KeyPressEvent event) {
-        switch (event.getKey()) {
+        Key key = event.getKey();
+        switch (key) {
             case ESCAPE:
                 setMouseCaptured(!mouseCaptured);
                 break;
@@ -124,20 +117,10 @@ public final class VoxelGame extends BaseGame {
                 drawLightHeights = !drawLightHeights;
                 break;
 
-            case ONE:
-                blockIdToPlace = Blocks.ID_SOLID;
-                break;
-            case TWO:
-                blockIdToPlace = Blocks.ID_WATER;
-                break;
-            case THREE:
-                blockIdToPlace = Blocks.ID_LAVA;
-                break;
-            case FOUR:
-                blockIdToPlace = Blocks.ID_CROSS;
-                break;
-            case FIVE:
-                blockIdToPlace = Blocks.ID_SLAB;
+            default:
+                if (key.isNumberKey() && key.getNumber() > 0) {
+                    blockIdToPlace = HOTKEY_BLOCKS[key.getNumber() - 1];
+                }
                 break;
         }
     }
@@ -178,8 +161,7 @@ public final class VoxelGame extends BaseGame {
                 if (brokenBlock != Blocks.ID_AIR) {
                     setBlock(pos, Blocks.ID_AIR);
 
-                    AtlasSprite sprite = Blocks.getBlock(brokenBlock).getShape().getParticleSprite();
-                    particleSystem.spawnBreakParticles(pos.x, pos.y, pos.z, sprite);
+                    particleSystem.spawnBreakParticles(pos.x, pos.y, pos.z, Blocks.getBlock(brokenBlock));
                 }
             }
         } else if (event.getButton() == MouseButton.RIGHT) {

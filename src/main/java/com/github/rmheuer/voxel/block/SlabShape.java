@@ -1,5 +1,6 @@
 package com.github.rmheuer.voxel.block;
 
+import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.azalea.math.Axis;
 import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.voxel.level.OcclusionType;
@@ -60,6 +61,11 @@ public final class SlabShape implements BlockShape {
             case NEG_Y: return OcclusionType.FULL;
             default: return OcclusionType.HALF;
         }
+    }
+
+    @Override
+    public AABB getDefaultBoundingBox() {
+        return new AABB(0, 0, 0, 1, 0.5f, 1);
     }
 
     @Override

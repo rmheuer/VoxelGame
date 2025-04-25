@@ -2,7 +2,7 @@ package com.github.rmheuer.voxel.render;
 
 import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.level.BlockMap;
-import com.github.rmheuer.voxel.level.Blocks;
+import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.level.MapSection;
 

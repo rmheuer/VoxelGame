@@ -1,7 +1,7 @@
 package com.github.rmheuer.voxel.block;
 
+import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.azalea.math.CubeFace;
-import com.github.rmheuer.voxel.level.Blocks;
 import com.github.rmheuer.voxel.level.OcclusionType;
 import com.github.rmheuer.voxel.render.AtlasSprite;
 import com.github.rmheuer.voxel.render.LightingConstants;
@@ -9,6 +9,12 @@ import com.github.rmheuer.voxel.render.SectionContext;
 import com.github.rmheuer.voxel.render.SectionGeometry;
 
 public final class CubeShape implements BlockShape {
+    public enum TransparencyType {
+        OPAQUE,
+        TRANSPARENT,
+        TRANSPARENT_OCCLUDE_SELF
+    }
+
     private static final CubeFaceTemplate[] CUBE_TEMPLATES = {
             new CubeFaceTemplate(CubeFace.POS_X, 1, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 0, LightingConstants.SHADE_LEFT_RIGHT),
             new CubeFaceTemplate(CubeFace.NEG_X, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, LightingConstants.SHADE_LEFT_RIGHT),
@@ -18,10 +24,27 @@ public final class CubeShape implements BlockShape {
             new CubeFaceTemplate(CubeFace.NEG_Z, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, LightingConstants.SHADE_FRONT_BACK)
     };
 
-    private final AtlasSprite sprite;
+    public static CubeShape all(AtlasSprite sprite) {
+        return new CubeShape(sprite, sprite, sprite);
+    }
 
-    public CubeShape(AtlasSprite sprite) {
-        this.sprite = sprite;
+    public static CubeShape column(AtlasSprite face, AtlasSprite side) {
+        return new CubeShape(face, side, face);
+    }
+
+    private final AtlasSprite topSprite, sideSprite, bottomSprite;
+    private TransparencyType transparencyType;
+
+    public CubeShape(AtlasSprite topSprite, AtlasSprite sideSprite, AtlasSprite bottomSprite) {
+        this.topSprite = topSprite;
+        this.sideSprite = sideSprite;
+        this.bottomSprite = bottomSprite;
+        transparencyType = TransparencyType.OPAQUE;
+    }
+
+    public CubeShape setTransparencyType(TransparencyType transparencyType) {
+        this.transparencyType = transparencyType;
+        return this;
     }
 
     @Override
@@ -36,9 +59,17 @@ public final class CubeShape implements BlockShape {
                 continue;
             if (neighbor != null && neighbor.getOcclusion(faceTemplate.face.getReverse()) == OcclusionType.FULL)
                 continue;
+            if (neighbor == block && transparencyType == TransparencyType.TRANSPARENT_OCCLUDE_SELF)
+                continue;
 
             boolean lit = ctx.isLit(nx, ny, nz);
             float lightShade = lit ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
+
+            AtlasSprite sprite = sideSprite;
+            if (faceTemplate.face == CubeFace.POS_Y)
+                sprite = topSprite;
+            else if (faceTemplate.face == CubeFace.NEG_Y)
+                sprite = bottomSprite;
 
             geom.addFace(true, faceTemplate.makeFace(x, y, z, sprite, lightShade));
         }
@@ -46,11 +77,18 @@ public final class CubeShape implements BlockShape {
 
     @Override
     public OcclusionType getOcclusion(CubeFace face) {
-        return OcclusionType.FULL;
+        return transparencyType == TransparencyType.OPAQUE
+                ? OcclusionType.FULL
+                : OcclusionType.NONE;
+    }
+
+    @Override
+    public AABB getDefaultBoundingBox() {
+        return new AABB(0, 0, 0, 1, 1, 1);
     }
 
     @Override
     public AtlasSprite getParticleSprite() {
-        return sprite;
+        return sideSprite;
     }
 }

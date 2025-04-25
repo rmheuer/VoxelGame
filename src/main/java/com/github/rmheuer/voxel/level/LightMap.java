@@ -1,5 +1,7 @@
 package com.github.rmheuer.voxel.level;
 
+import com.github.rmheuer.voxel.block.Blocks;
+
 import java.util.Arrays;
 
 public final class LightMap {

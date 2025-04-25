@@ -13,6 +13,7 @@ import com.github.rmheuer.azalea.render.shader.ShaderProgram;
 import com.github.rmheuer.azalea.render.texture.Texture2D;
 import com.github.rmheuer.azalea.render.utils.SharedIndexBuffer;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
+import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.render.AtlasSprite;
@@ -47,24 +48,27 @@ public final class ParticleSystem implements SafeCloseable {
         public final Vector3f position;
         public final Vector3f prevPosition;
         private final Vector3f velocity;
+        private final float gravityScale;
 
         private int ticksLeft;
 
-        public Particle(float size, Vector2f uv1, Vector2f uv2, Vector3f position, Vector3f velocity, int lifeTime) {
+        public Particle(float size, Vector2f uv1, Vector2f uv2, Vector3f position, Vector3f velocity, float gravityScale, int lifeTime) {
             this.size = size;
             this.uv1 = uv1;
             this.uv2 = uv2;
             this.position = position;
             this.velocity = velocity;
+            this.gravityScale = gravityScale;
 
             prevPosition = new Vector3f(position);
             ticksLeft = lifeTime;
+
         }
 
         public void tick(BlockMap map) {
             prevPosition.set(position);
 
-            velocity.y -= GRAVITY;
+            velocity.y -= GRAVITY * gravityScale;
 
             AABB box = AABB.fromCenterSize(position.x, position.y, position.z, 0.2f, 0.2f, 0.2f);
             AABB extended = box.expandTowards(velocity.x, velocity.y, velocity.z);
@@ -150,7 +154,10 @@ public final class ParticleSystem implements SafeCloseable {
         return (random.nextFloat() * 2 - 1) * 0.4f;
     }
 
-    public void spawnBreakParticles(int blockX, int blockY, int blockZ, AtlasSprite sprite) {
+    public void spawnBreakParticles(int blockX, int blockY, int blockZ, Block brokenBlock) {
+        AtlasSprite sprite = brokenBlock.getShape().getParticleSprite();
+        float gravityScale = brokenBlock.getParticleGravityScale();
+
         for (int i = 0; i < BREAK_PARTICLES_PER_AXIS; i++) {
             for (int j = 0; j < BREAK_PARTICLES_PER_AXIS; j++) {
                 for (int k = 0; k < BREAK_PARTICLES_PER_AXIS; k++) {
@@ -175,7 +182,7 @@ public final class ParticleSystem implements SafeCloseable {
                     Vector2f uv1 = new Vector2f(part.u1, part.v1);
                     Vector2f uv2 = new Vector2f(part.u2, part.v2);
 
-                    particles.add(new Particle(size, uv1, uv2, pos, vel, lifeTime));
+                    particles.add(new Particle(size, uv1, uv2, pos, vel, gravityScale, lifeTime));
                 }
             }
         }
