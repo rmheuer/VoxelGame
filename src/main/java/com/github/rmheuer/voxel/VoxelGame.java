@@ -98,6 +98,12 @@ public final class VoxelGame extends BaseGame {
             }
         }
 
+        for (byte block = 0; block < Blocks.BLOCK_COUNT; block++) {
+            int x = 2 + (block % 10) * 2;
+            int z = 2 + (block / 10) * 2;
+            blockMap.setBlockId(x, 2, z, block);
+        }
+
         lightMap.recalculateAll(blockMap);
 
         setMouseCaptured(false);

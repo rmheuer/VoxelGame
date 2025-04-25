@@ -13,10 +13,10 @@ Player physics:
   Swimming
 [x] Block textures
 [x] Particle textures
-Add all classic blocks
+[x] Add all classic blocks
 [x] Animated block textures
 Block picker UI:
-  Hotbar
+  [x] Hotbar
   Menu
 Fog:
   Land fog
