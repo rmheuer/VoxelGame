@@ -15,6 +15,9 @@ Player physics:
 [x] Particle textures
 Add all classic blocks
 [x] Animated block textures
+Block picker UI:
+  Hotbar
+  Menu
 Fog:
   Land fog
   Underwater fog
