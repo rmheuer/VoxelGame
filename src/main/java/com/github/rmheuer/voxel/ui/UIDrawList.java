@@ -9,11 +9,13 @@ public final class UIDrawList {
     private final int width, height;
     private final DrawList2D draw;
     private final Texture2D blockAtlas;
+    private final TextRenderer textRenderer;
 
-    public UIDrawList(int width, int height, Texture2D blockAtlas) {
+    public UIDrawList(int width, int height, Texture2D blockAtlas, TextRenderer textRenderer) {
         this.width = width;
         this.height = height;
         this.blockAtlas = blockAtlas;
+        this.textRenderer = textRenderer;
 
         draw = new DrawList2D();
     }
@@ -30,6 +32,10 @@ public final class UIDrawList {
                 blockAtlas,
                 sprite.u1, sprite.v1, sprite.u2, sprite.v2
         );
+    }
+
+    public void drawText(int x, int y, String text) {
+        textRenderer.drawText(draw, x, y, text);
     }
 
     public int getWidth() {

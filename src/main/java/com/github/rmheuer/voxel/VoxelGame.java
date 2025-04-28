@@ -6,7 +6,9 @@ import com.github.rmheuer.azalea.input.keyboard.Keyboard;
 import com.github.rmheuer.azalea.input.mouse.MouseButton;
 import com.github.rmheuer.azalea.input.mouse.MouseButtonPressEvent;
 import com.github.rmheuer.azalea.input.mouse.MouseMoveEvent;
+import com.github.rmheuer.azalea.input.mouse.MouseScrollEvent;
 import com.github.rmheuer.azalea.io.ResourceUtil;
+import com.github.rmheuer.azalea.math.MathUtil;
 import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.WindowSettings;
@@ -28,6 +30,7 @@ import com.github.rmheuer.voxel.particle.ParticleSystem;
 import com.github.rmheuer.voxel.physics.Raycast;
 import com.github.rmheuer.voxel.render.LevelRenderData;
 import com.github.rmheuer.voxel.render.LevelRenderer;
+import com.github.rmheuer.voxel.ui.TextRenderer;
 import com.github.rmheuer.voxel.ui.UIDrawList;
 import com.github.rmheuer.voxel.ui.UISprite;
 import com.github.rmheuer.voxel.ui.UISprites;
@@ -46,6 +49,7 @@ public final class VoxelGame extends BaseGame {
 
     private final Texture2D atlasTexture;
     private final UISprites uiSprites;
+    private final TextRenderer textRenderer;
 
     private final LevelRenderer levelRenderer;
     private final DebugLineRenderer lineRenderer;
@@ -61,6 +65,7 @@ public final class VoxelGame extends BaseGame {
 
     private boolean mouseCaptured;
     private Raycast.Result raycastResult;
+    private double partialScroll;
 
     private final byte[] hotbar;
     private int selectedSlot;
@@ -78,6 +83,7 @@ public final class VoxelGame extends BaseGame {
 
         atlasTexture = getRenderer().createTexture2D(ResourceUtil.readAsStream("terrain.png"));
         uiSprites = new UISprites(getRenderer());
+        textRenderer = new TextRenderer(getRenderer());
 
         levelRenderer = new LevelRenderer(getRenderer(), atlasTexture);
         lineRenderer = new DebugLineRenderer(getRenderer());
@@ -108,8 +114,10 @@ public final class VoxelGame extends BaseGame {
 
         setMouseCaptured(false);
         getEventBus().addHandler(KeyPressEvent.class, this::keyPressed);
+        getEventBus().addHandler(MouseScrollEvent.class, this::mouseScrolled);
         getEventBus().addHandler(MouseMoveEvent.class, this::mouseMoved);
         getEventBus().addHandler(MouseButtonPressEvent.class, this::mousePressed);
+        partialScroll = 0;
 
         hotbar = new byte[] {
                 Blocks.ID_STONE, Blocks.ID_GRASS, Blocks.ID_DIRT,
@@ -149,6 +157,16 @@ public final class VoxelGame extends BaseGame {
                 }
                 break;
         }
+    }
+
+    private void mouseScrolled(MouseScrollEvent event) {
+        partialScroll -= event.getScrollY();
+
+        int steps = (int) partialScroll;
+        partialScroll %= 1.0;
+
+        selectedSlot += steps;
+        selectedSlot = Math.floorMod(selectedSlot, hotbar.length);
     }
 
     private void mouseMoved(MouseMoveEvent event) {
@@ -361,8 +379,11 @@ public final class VoxelGame extends BaseGame {
         lineRenderer.flush(renderer, viewProj);
 
         int guiScale = 2;
-        UIDrawList uiDraw = new UIDrawList(windowSize.x / guiScale, windowSize.y / guiScale, atlasTexture);
+        UIDrawList uiDraw = new UIDrawList(windowSize.x / guiScale, windowSize.y / guiScale, atlasTexture, textRenderer);
         drawHotbar(uiDraw);
+
+        uiDraw.drawText(10, 20, "Hello, text! This is a test of the text renderer.");
+
         renderer2D.draw(uiDraw.getDrawList(), new Matrix4f().ortho(0, (float) windowSize.x / guiScale, (float) windowSize.y / guiScale, 0, -1, 1));
     }
 
@@ -386,6 +407,7 @@ public final class VoxelGame extends BaseGame {
         levelRenderData.close();
         levelRenderer.close();
         particleSystem.close();
+        textRenderer.close();
         uiSprites.close();
         atlasTexture.close();
         renderer2D.close();
