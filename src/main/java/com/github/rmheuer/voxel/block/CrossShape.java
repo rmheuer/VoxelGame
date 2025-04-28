@@ -7,6 +7,10 @@ import com.github.rmheuer.voxel.render.*;
 import org.joml.Vector3f;
 
 public final class CrossShape implements BlockShape {
+    private static final float SIZE = (float) Math.sqrt(2) / 4;
+    private static final float MIN_POS = 0.5f - SIZE;
+    private static final float MAX_POS = 0.5f + SIZE;
+
     private final AtlasSprite sprite;
 
     public CrossShape(AtlasSprite sprite) {
@@ -18,18 +22,18 @@ public final class CrossShape implements BlockShape {
         float lightShade = ctx.isLit(x, y, z) ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
 
         geom.addDoubleSidedFace(true, new BlockFace(
-                new Vector3f(x, y + 1, z),
-                new Vector3f(x, y, z),
-                new Vector3f(x + 1, y, z + 1),
-                new Vector3f(x + 1, y + 1, z + 1),
+                new Vector3f(x + MIN_POS, y + 1, z + MIN_POS),
+                new Vector3f(x + MIN_POS, y, z + MIN_POS),
+                new Vector3f(x + MAX_POS, y, z + MAX_POS),
+                new Vector3f(x + MAX_POS, y + 1, z + MAX_POS),
                 sprite,
                 lightShade
         ));
         geom.addDoubleSidedFace(true, new BlockFace(
-                new Vector3f(x + 1, y + 1, z),
-                new Vector3f(x + 1, y, z),
-                new Vector3f(x, y, z + 1),
-                new Vector3f(x, y + 1, z + 1),
+                new Vector3f(x + MAX_POS, y + 1, z + MIN_POS),
+                new Vector3f(x + MAX_POS, y, z + MIN_POS),
+                new Vector3f(x + MIN_POS, y, z + MAX_POS),
+                new Vector3f(x + MIN_POS, y + 1, z + MAX_POS),
                 sprite,
                 lightShade
         ));

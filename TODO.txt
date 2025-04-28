@@ -7,6 +7,7 @@ To Do:
     [x] Make faces double-sided again
   [x] Slab
   [x] Cross
+    [x] Cross sprites are not stretched in this version apparently
 Player physics:
   Basic land movement
   Stair stepping
@@ -15,9 +16,15 @@ Player physics:
 [x] Particle textures
 [x] Add all classic blocks
 [x] Animated block textures
-Block picker UI:
+[x] Block picker UI:
   [x] Hotbar
-  Menu
+  [x] Menu
+Make pick block on double slab give single slab
+Block behaviors:
+  Liquid spreading (water, lava)
+  Grass growing/dying
+  Sand/gravel falling
+  Saplings growing into trees
 Fog:
   Land fog
   Underwater fog
