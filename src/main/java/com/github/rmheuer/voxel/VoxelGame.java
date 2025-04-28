@@ -8,6 +8,7 @@ import com.github.rmheuer.azalea.input.mouse.MouseButtonPressEvent;
 import com.github.rmheuer.azalea.input.mouse.MouseMoveEvent;
 import com.github.rmheuer.azalea.input.mouse.MouseScrollEvent;
 import com.github.rmheuer.azalea.io.ResourceUtil;
+import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.azalea.math.MathUtil;
 import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.Renderer;
@@ -30,10 +31,7 @@ import com.github.rmheuer.voxel.particle.ParticleSystem;
 import com.github.rmheuer.voxel.physics.Raycast;
 import com.github.rmheuer.voxel.render.LevelRenderData;
 import com.github.rmheuer.voxel.render.LevelRenderer;
-import com.github.rmheuer.voxel.ui.TextRenderer;
-import com.github.rmheuer.voxel.ui.UIDrawList;
-import com.github.rmheuer.voxel.ui.UISprite;
-import com.github.rmheuer.voxel.ui.UISprites;
+import com.github.rmheuer.voxel.ui.*;
 import org.joml.*;
 
 import java.io.IOException;
@@ -43,6 +41,9 @@ public final class VoxelGame extends BaseGame {
     private static final WindowSettings WINDOW_SETTINGS =
             new WindowSettings(640, 480, "Voxel")
                 .setVSync(false);
+
+    private static final int GUI_WIDTH = 320;
+    private static final int GUI_HEIGHT = 240;
 
     private final FixedRateExecutor ticker;
     private final Renderer2D renderer2D;
@@ -67,8 +68,13 @@ public final class VoxelGame extends BaseGame {
     private Raycast.Result raycastResult;
     private double partialScroll;
 
+    private int guiScale;
+
     private final byte[] hotbar;
     private int selectedSlot;
+
+    private final BlockPickerUI blockPickerUI;
+    private boolean showingBlockPicker;
 
     private boolean drawSectionBoundaries;
     private boolean drawLightHeights;
@@ -119,12 +125,17 @@ public final class VoxelGame extends BaseGame {
         getEventBus().addHandler(MouseButtonPressEvent.class, this::mousePressed);
         partialScroll = 0;
 
+        guiScale = 2;
+
         hotbar = new byte[] {
                 Blocks.ID_STONE, Blocks.ID_GRASS, Blocks.ID_DIRT,
                 Blocks.ID_COBBLESTONE, Blocks.ID_PLANKS, Blocks.ID_SAPLING,
                 Blocks.ID_LOG, Blocks.ID_STILL_WATER, Blocks.ID_STILL_LAVA
         };
         selectedSlot = 0;
+
+        blockPickerUI = new BlockPickerUI(this::blockPicked);
+        showingBlockPicker = false;
 
         drawSectionBoundaries = false;
         drawLightHeights = false;
@@ -133,15 +144,32 @@ public final class VoxelGame extends BaseGame {
     }
 
     private void setMouseCaptured(boolean mouseCaptured) {
+        if (this.mouseCaptured == mouseCaptured)
+            return;
+
         this.mouseCaptured = mouseCaptured;
         getWindow().getMouse().setCursorCaptured(mouseCaptured);
+    }
+
+    private void setShowingBlockPicker(boolean showingBlockPicker) {
+        setMouseCaptured(!showingBlockPicker);
+        this.showingBlockPicker = showingBlockPicker;
+    }
+
+    private void blockPicked(byte blockId) {
+        hotbar[selectedSlot] = blockId;
+        setShowingBlockPicker(false);
     }
 
     private void keyPressed(KeyPressEvent event) {
         Key key = event.getKey();
         switch (key) {
             case ESCAPE:
-                setMouseCaptured(!mouseCaptured);
+                if (showingBlockPicker) {
+                    setShowingBlockPicker(false);
+                } else {
+                    setMouseCaptured(!mouseCaptured);
+                }
                 break;
 
             case F1:
@@ -149,6 +177,10 @@ public final class VoxelGame extends BaseGame {
                 break;
             case F2:
                 drawLightHeights = !drawLightHeights;
+                break;
+
+            case B:
+                setShowingBlockPicker(!showingBlockPicker);
                 break;
 
             default:
@@ -195,6 +227,14 @@ public final class VoxelGame extends BaseGame {
     }
 
     private void mousePressed(MouseButtonPressEvent event) {
+        if (showingBlockPicker) {
+            Vector2d pos = event.getCursorPos();
+            Vector2i uiMousePos = new Vector2i((int) (pos.x / guiScale), (int) (pos.y / guiScale));
+
+            blockPickerUI.mouseClicked(uiMousePos);
+            return;
+        }
+
         if (!mouseCaptured)
             return;
 
@@ -210,14 +250,21 @@ public final class VoxelGame extends BaseGame {
             }
         } else if (event.getButton() == MouseButton.RIGHT) {
             if (raycastResult != null && raycastResult.hitFace != null) {
-                Vector3i pos = new Vector3i(raycastResult.blockPos)
-                        .add(raycastResult.hitFace.getDirection());
+                byte held = hotbar[selectedSlot];
+                byte placedOn = blockMap.getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z);
 
-                setBlock(pos, hotbar[selectedSlot]);
+                if (held == Blocks.ID_SLAB && placedOn == Blocks.ID_SLAB && raycastResult.hitFace == CubeFace.POS_Y) {
+                    setBlock(raycastResult.blockPos, Blocks.ID_DOUBLE_SLAB);
+                } else {
+                    Vector3i pos = new Vector3i(raycastResult.blockPos)
+                            .add(raycastResult.hitFace.getDirection());
+
+                    setBlock(pos, hotbar[selectedSlot]);
+                }
             }
         } else if (event.getButton() == MouseButton.MIDDLE) {
             if (raycastResult != null) {
-                hotbar[selectedSlot] = blockMap.getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z);
+                blockPicked(blockMap.getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z));
             }
         }
     }
@@ -291,6 +338,12 @@ public final class VoxelGame extends BaseGame {
         Matrix4f proj = camera.getProjectionMatrix(windowSize.x, windowSize.y);
         Matrix4f view = camera.getViewMatrix();
         Matrix4f viewProj = new Matrix4f(proj).mul(view);
+
+        int guiScaleX = windowSize.x / GUI_WIDTH;
+        int guiScaleY = windowSize.y / GUI_HEIGHT;
+        guiScale = Math.min(guiScaleX, guiScaleY);
+        if (guiScale < 1)
+            guiScale = 1;
 
         boolean wireframe = getWindow().getKeyboard().isKeyPressed(Key.TAB);
         LevelRenderer.PreparedRender levelRender = levelRenderer.prepareRender(
@@ -378,11 +431,13 @@ public final class VoxelGame extends BaseGame {
 
         lineRenderer.flush(renderer, viewProj);
 
-        int guiScale = 2;
+        Vector2d mousePos = getWindow().getMouse().getCursorPos();
+        Vector2i uiMousePos = new Vector2i((int) (mousePos.x / guiScale), (int) (mousePos.y / guiScale));
+
         UIDrawList uiDraw = new UIDrawList(windowSize.x / guiScale, windowSize.y / guiScale, atlasTexture, textRenderer);
         drawHotbar(uiDraw);
-
-        uiDraw.drawText(10, 20, "Hello, text! This is a test of the text renderer.");
+        if (showingBlockPicker)
+            blockPickerUI.draw(uiDraw, uiMousePos);
 
         renderer2D.draw(uiDraw.getDrawList(), new Matrix4f().ortho(0, (float) windowSize.x / guiScale, (float) windowSize.y / guiScale, 0, -1, 1));
     }
@@ -396,7 +451,7 @@ public final class VoxelGame extends BaseGame {
         draw.drawSprite(x, y, hotbarSprite);
 
         for (int slot = 0; slot < 9; slot++) {
-            draw.drawBlockAsItem(x + 3 + slot * 20, y + 3, Blocks.getBlock(hotbar[slot]));
+            draw.drawBlockAsItem(x + 3 + slot * 20, y + 3, 16, 16, Blocks.getBlock(hotbar[slot]));
         }
 
         draw.drawSprite(x - 1 + selectedSlot * 20, y - 1, highlightSprite);

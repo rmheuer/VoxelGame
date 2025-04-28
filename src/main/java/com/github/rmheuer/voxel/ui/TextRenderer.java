@@ -77,14 +77,14 @@ public final class TextRenderer implements SafeCloseable {
     }
 
     // x, y is left baseline position
-    public void drawText(DrawList2D draw, int x, int y, String text) {
+    public void drawText(DrawList2D draw, int x, int y, String text, int color) {
         char[] chars = text.toCharArray();
         for (char c : chars) {
             Glyph glyph = glyphs.get(c);
             if (glyph == null)
                 continue;
 
-            draw.drawImage(x, y - 7, glyph.width, 8, glyph.region);
+            draw.drawImage(x, y - 7, glyph.width, 8, glyph.region, color);
             x += glyph.width + 1;
         }
     }
