@@ -5,7 +5,10 @@ import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.voxel.level.OcclusionType;
 
 public final class Block {
+    private final byte id;
     private final BlockShape shape;
+
+    private byte itemId;
     private AABB boundingBox;
     private boolean solid;
     private boolean interactable;
@@ -13,14 +16,22 @@ public final class Block {
     private Liquid liquid;
     private float particleGravityScale;
 
-    public Block(BlockShape shape) {
+    public Block(byte id, BlockShape shape) {
+        this.id = id;
         this.shape = shape;
+
+        itemId = id;
         boundingBox = shape.getDefaultBoundingBox();
         solid = true;
         interactable = true;
         lightBlocking = true;
         liquid = null;
         particleGravityScale = 1;
+    }
+
+    public Block setItemId(byte item) {
+        this.itemId = item;
+        return this;
     }
 
     public Block setBoundingBox(AABB boundingBox) {
@@ -53,8 +64,16 @@ public final class Block {
         return this;
     }
 
+    public byte getId() {
+        return id;
+    }
+
     public BlockShape getShape() {
         return shape;
+    }
+
+    public byte getItemId() {
+        return itemId;
     }
 
     public AABB getBoundingBox() {
