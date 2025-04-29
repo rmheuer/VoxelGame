@@ -1,5 +1,6 @@
 package com.github.rmheuer.voxel.physics;
 
+import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.azalea.math.Axis;
 import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.voxel.block.Block;
@@ -58,28 +59,18 @@ public final class Raycast {
             Block block = Blocks.getBlock(blockId);
 
             if (block.isInteractable()) {
-                Vector3f hitPos = new Vector3f(pos).fma(t, dir);
+                AABB bb = block.getBoundingBox().translate(blockX, blockY, blockZ);
+                AABB.RayIntersection bbResult = bb.intersectRay(pos, dir);
+                if (bbResult != null) {
+                    if (bbResult.hitDist > maxDistance)
+                        return null;
 
-                CubeFace hitFace = null;
-                if (axis != null) {
-                    switch (axis) {
-                        case X:
-                            hitFace = stepX > 0 ? CubeFace.NEG_X : CubeFace.POS_X;
-                            break;
-                        case Y:
-                            hitFace = stepY > 0 ? CubeFace.NEG_Y : CubeFace.POS_Y;
-                            break;
-                        case Z:
-                            hitFace = stepZ > 0 ? CubeFace.NEG_Z : CubeFace.POS_Z;
-                            break;
-                    }
+                    return new Result(
+                            new Vector3i(blockX, blockY, blockZ),
+                            bbResult.hitPos,
+                            bbResult.hitFace
+                    );
                 }
-
-                return new Result(
-                        new Vector3i(blockX, blockY, blockZ),
-                        hitPos,
-                        hitFace
-                );
             }
 
             if (tMaxX < tMaxY && tMaxX < tMaxZ) {

@@ -8,6 +8,7 @@ import com.github.rmheuer.azalea.input.mouse.MouseButtonPressEvent;
 import com.github.rmheuer.azalea.input.mouse.MouseMoveEvent;
 import com.github.rmheuer.azalea.input.mouse.MouseScrollEvent;
 import com.github.rmheuer.azalea.io.ResourceUtil;
+import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.azalea.math.MathUtil;
 import com.github.rmheuer.azalea.render.Colors;
@@ -23,6 +24,7 @@ import com.github.rmheuer.azalea.runtime.BaseGame;
 import com.github.rmheuer.azalea.runtime.FixedRateExecutor;
 import com.github.rmheuer.voxel.anim.LavaAnimationGenerator;
 import com.github.rmheuer.voxel.anim.WaterAnimationGenerator;
+import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
@@ -259,12 +261,18 @@ public final class VoxelGame extends BaseGame {
                     Vector3i pos = new Vector3i(raycastResult.blockPos)
                             .add(raycastResult.hitFace.getDirection());
 
-                    setBlock(pos, hotbar[selectedSlot]);
+                    byte toPlace = hotbar[selectedSlot];
+                    byte existing = blockMap.getBlockId(pos.x, pos.y, pos.z);
+                    if (toPlace == Blocks.ID_SLAB && existing == Blocks.ID_SLAB)
+                        toPlace = Blocks.ID_DOUBLE_SLAB;
+
+                    setBlock(pos, toPlace);
                 }
             }
         } else if (event.getButton() == MouseButton.MIDDLE) {
             if (raycastResult != null) {
-                blockPicked(blockMap.getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z));
+                byte clicked = blockMap.getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z);
+                blockPicked(Blocks.getBlock(clicked).getItemId());
             }
         }
     }
@@ -368,18 +376,21 @@ public final class VoxelGame extends BaseGame {
                 int x = raycastResult.blockPos.x;
                 int y = raycastResult.blockPos.y;
                 int z = raycastResult.blockPos.z;
-                lineRenderer.addLine(x, y, z, x + 1, y, z, col);
-                lineRenderer.addLine(x, y, z, x, y + 1, z, col);
-                lineRenderer.addLine(x, y, z, x, y, z + 1, col);
-                lineRenderer.addLine(x + 1, y, z, x + 1, y + 1, z, col);
-                lineRenderer.addLine(x + 1, y, z, x + 1, y, z + 1, col);
-                lineRenderer.addLine(x, y + 1, z, x + 1, y + 1, z, col);
-                lineRenderer.addLine(x, y + 1, z, x, y + 1, z + 1, col);
-                lineRenderer.addLine(x, y, z + 1, x + 1, y, z + 1, col);
-                lineRenderer.addLine(x, y, z + 1, x, y + 1, z + 1, col);
-                lineRenderer.addLine(x + 1, y + 1, z + 1, x, y + 1, z + 1, col);
-                lineRenderer.addLine(x + 1, y + 1, z + 1, x + 1, y, z + 1, col);
-                lineRenderer.addLine(x + 1, y + 1, z + 1, x + 1, y + 1, z, col);
+
+                AABB bb = Blocks.getBlock(blockMap.getBlockId(x, y, z)).getBoundingBox();
+
+                lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.minZ, x + bb.maxX, y + bb.minY, z + bb.minZ, col);
+                lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.minZ, x + bb.minX, y + bb.maxY, z + bb.minZ, col);
+                lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.minZ, x + bb.minX, y + bb.minY, z + bb.maxZ, col);
+                lineRenderer.addLine(x + bb.maxX, y + bb.minY, z + bb.minZ, x + bb.maxX, y + bb.maxY, z + bb.minZ, col);
+                lineRenderer.addLine(x + bb.maxX, y + bb.minY, z + bb.minZ, x + bb.maxX, y + bb.minY, z + bb.maxZ, col);
+                lineRenderer.addLine(x + bb.minX, y + bb.maxY, z + bb.minZ, x + bb.maxX, y + bb.maxY, z + bb.minZ, col);
+                lineRenderer.addLine(x + bb.minX, y + bb.maxY, z + bb.minZ, x + bb.minX, y + bb.maxY, z + bb.maxZ, col);
+                lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.maxZ, x + bb.maxX, y + bb.minY, z + bb.maxZ, col);
+                lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.maxZ, x + bb.minX, y + bb.maxY, z + bb.maxZ, col);
+                lineRenderer.addLine(x + bb.maxX, y + bb.maxY, z + bb.maxZ, x + bb.minX, y + bb.maxY, z + bb.maxZ, col);
+                lineRenderer.addLine(x + bb.maxX, y + bb.maxY, z + bb.maxZ, x + bb.maxX, y + bb.minY, z + bb.maxZ, col);
+                lineRenderer.addLine(x + bb.maxX, y + bb.maxY, z + bb.maxZ, x + bb.maxX, y + bb.maxY, z + bb.minZ, col);
             }
             {
                 int col = Colors.RGBA.RED;

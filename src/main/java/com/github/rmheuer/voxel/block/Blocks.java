@@ -48,69 +48,73 @@ public final class Blocks {
                 .setSolid(false)
                 .setInteractable(false));
 
-        register(new Block(ID_STONE, CubeShape.all(new AtlasSprite(1, 0)));
-        register(new Block(ID_GRASS, new CubeShape(new AtlasSprite(0, 0), new AtlasSprite(3, 0), new AtlasSprite(2, 0)));
-        register(new Block(ID_DIRT, CubeShape.all(new AtlasSprite(2, 0)));
-        register(new Block(ID_COBBLESTONE, CubeShape.all(new AtlasSprite(0, 1)));
-        register(new Block(ID_PLANKS, CubeShape.all(new AtlasSprite(4, 0)));
+        register(new Block(ID_STONE, CubeShape.all(new AtlasSprite(1, 0))));
+        register(new Block(ID_GRASS, new CubeShape(new AtlasSprite(0, 0), new AtlasSprite(3, 0), new AtlasSprite(2, 0))));
+        register(new Block(ID_DIRT, CubeShape.all(new AtlasSprite(2, 0))));
+        register(new Block(ID_COBBLESTONE, CubeShape.all(new AtlasSprite(0, 1))));
+        register(new Block(ID_PLANKS, CubeShape.all(new AtlasSprite(4, 0))));
         register(new Block(ID_SAPLING, new CrossShape(new AtlasSprite(15, 0)))
                 .setLightBlocking(false)
-                .setSolid(false);
-        register(new Block(ID_BEDROCK, CubeShape.all(new AtlasSprite(1, 1)));
+                .setSolid(false));
+        register(new Block(ID_BEDROCK, CubeShape.all(new AtlasSprite(1, 1))));
         register(new Block(ID_FLOWING_WATER, new LiquidShape(new AtlasSprite(14, 0), false, true))
                 .setLiquid(Liquid.WATER)
                 .setLightBlocking(false)
-                .setSolid(false);
+                .setSolid(false)
+                .setInteractable(false));
         register(new Block(ID_STILL_WATER, new LiquidShape(new AtlasSprite(14, 0), false, true))
                 .setLiquid(Liquid.WATER)
                 .setLightBlocking(false)
-                .setSolid(false);
+                .setSolid(false)
+                .setInteractable(false));
         register(new Block(ID_FLOWING_LAVA, new LiquidShape(new AtlasSprite(14, 1), true, false))
                 .setLiquid(Liquid.LAVA)
-                .setSolid(false);
-        register(new Block(ID_FLOWING_LAVA, new LiquidShape(new AtlasSprite(14, 1), true, false))
+                .setSolid(false)
+                .setInteractable(false));
+        register(new Block(ID_STILL_LAVA, new LiquidShape(new AtlasSprite(14, 1), true, false))
                 .setLiquid(Liquid.LAVA)
-                .setSolid(false);
-        register(new Block(ID_SAND, CubeShape.all(new AtlasSprite(2, 1)));
-        register(new Block(ID_GRAVEL, CubeShape.all(new AtlasSprite(3, 1)));
-        register(new Block(ID_GOLD_ORE, CubeShape.all(new AtlasSprite(0, 2)));
-        register(new Block(ID_IRON_ORE, CubeShape.all(new AtlasSprite(1, 2)));
-        register(new Block(ID_COAL_ORE, CubeShape.all(new AtlasSprite(2, 2)));
-        register(new Block(ID_LOG, CubeShape.column(new AtlasSprite(5, 1), new AtlasSprite(4, 1)));
+                .setSolid(false)
+                .setInteractable(false));
+        register(new Block(ID_SAND, CubeShape.all(new AtlasSprite(2, 1))));
+        register(new Block(ID_GRAVEL, CubeShape.all(new AtlasSprite(3, 1))));
+        register(new Block(ID_GOLD_ORE, CubeShape.all(new AtlasSprite(0, 2))));
+        register(new Block(ID_IRON_ORE, CubeShape.all(new AtlasSprite(1, 2))));
+        register(new Block(ID_COAL_ORE, CubeShape.all(new AtlasSprite(2, 2))));
+        register(new Block(ID_LOG, CubeShape.column(new AtlasSprite(5, 1), new AtlasSprite(4, 1))));
         register(new Block(ID_LEAVES, CubeShape.all(new AtlasSprite(6, 1)).setTransparencyType(CubeShape.TransparencyType.TRANSPARENT))
                 .setLightBlocking(false)
-                .setParticleGravityScale(0.4f);
+                .setParticleGravityScale(0.4f));
         register(new Block(ID_SPONGE, CubeShape.all(new AtlasSprite(0, 3)))
-                .setParticleGravityScale(0.9f);
+                .setParticleGravityScale(0.9f));
         register(new Block(ID_GLASS, CubeShape.all(new AtlasSprite(1, 3)).setTransparencyType(CubeShape.TransparencyType.TRANSPARENT_OCCLUDE_SELF))
-                .setLightBlocking(false);
+                .setLightBlocking(false));
 
         for (int color = 0; color < 16; color++) {
-            register(new Block((byte) (ID_CLOTH + color), CubeShape.all(new AtlasSprite(color, 4)));
+            register(new Block((byte) (ID_CLOTH + color), CubeShape.all(new AtlasSprite(color, 4))));
         }
 
         register(new Block(ID_YELLOW_FLOWER, new CrossShape(new AtlasSprite(13, 0)))
                 .setLightBlocking(false)
-                .setSolid(false);
+                .setSolid(false));
         register(new Block(ID_RED_FLOWER, new CrossShape(new AtlasSprite(12, 0)))
                 .setLightBlocking(false)
-                .setSolid(false);
+                .setSolid(false));
         register(new Block(ID_BROWN_MUSHROOM, new CrossShape(new AtlasSprite(13, 1)))
                 .setLightBlocking(false)
-                .setSolid(false);
+                .setSolid(false));
         register(new Block(ID_RED_MUSHROOM, new CrossShape(new AtlasSprite(12, 1)))
                 .setLightBlocking(false)
-                .setSolid(false);
-        register(new Block(ID_GOLD_BLOCK, new CubeShape(new AtlasSprite(8, 1), new AtlasSprite(8, 2), new AtlasSprite(8, 3)));
-        BLOCKS[ID_IRON_BLOCK] = new Block(ID_IRON_BLOCK, new CubeShape(new AtlasSprite(7, 1), new AtlasSprite(7, 2), new AtlasSprite(7, 3)));
-        BLOCKS[ID_DOUBLE_SLAB] = new Block(ID_DOUBLE_SLAB, CubeShape.column(new AtlasSprite(6, 0), new AtlasSprite(5, 0)))
-                .setItemId(ID_SLAB);
-        BLOCKS[ID_SLAB] = new Block(ID_SLAB, new SlabShape(new AtlasSprite(6, 0), new AtlasSprite(5, 0)));
-        BLOCKS[ID_BRICKS] = new Block(ID_BRICKS, CubeShape.all(new AtlasSprite(7, 0)));
-        BLOCKS[ID_TNT] = new Block(ID_TNT, new CubeShape(new AtlasSprite(9, 0), new AtlasSprite(8, 0), new AtlasSprite(10, 0)));
-        BLOCKS[ID_BOOKSHELF] = new Block(ID_BOOKSHELF, CubeShape.column(new AtlasSprite(4, 0), new AtlasSprite(3, 2)));
-        BLOCKS[ID_MOSSY_STONE] = new Block(ID_MOSSY_STONE, CubeShape.all(new AtlasSprite(4, 2)));
-        BLOCKS[ID_OBSIDIAN] = new Block(ID_OBSIDIAN, CubeShape.all(new AtlasSprite(5, 2)));
+                .setSolid(false));
+        register(new Block(ID_GOLD_BLOCK, new CubeShape(new AtlasSprite(8, 1), new AtlasSprite(8, 2), new AtlasSprite(8, 3))));
+        register(new Block(ID_IRON_BLOCK, new CubeShape(new AtlasSprite(7, 1), new AtlasSprite(7, 2), new AtlasSprite(7, 3))));
+        register(new Block(ID_DOUBLE_SLAB, CubeShape.column(new AtlasSprite(6, 0), new AtlasSprite(5, 0)))
+                .setItemId(ID_SLAB));
+        register(new Block(ID_SLAB, new SlabShape(new AtlasSprite(6, 0), new AtlasSprite(5, 0))));
+        register(new Block(ID_BRICKS, CubeShape.all(new AtlasSprite(7, 0))));
+        register(new Block(ID_TNT, new CubeShape(new AtlasSprite(9, 0), new AtlasSprite(8, 0), new AtlasSprite(10, 0))));
+        register(new Block(ID_BOOKSHELF, CubeShape.column(new AtlasSprite(4, 0), new AtlasSprite(3, 2))));
+        register(new Block(ID_MOSSY_STONE, CubeShape.all(new AtlasSprite(4, 2))));
+        register(new Block(ID_OBSIDIAN, CubeShape.all(new AtlasSprite(5, 2))));
     }
 
     private static void register(Block block) {
