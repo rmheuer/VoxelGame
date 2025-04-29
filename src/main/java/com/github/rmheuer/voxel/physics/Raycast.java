@@ -1,7 +1,6 @@
 package com.github.rmheuer.voxel.physics;
 
 import com.github.rmheuer.azalea.math.AABB;
-import com.github.rmheuer.azalea.math.Axis;
 import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.block.Blocks;
@@ -52,7 +51,6 @@ public final class Raycast {
         int escapeY = stepY > 0 ? map.getBlocksY() : -1;
         int escapeZ = stepZ > 0 ? map.getBlocksZ() : -1;
 
-        Axis axis = null;
         float t = 0.0f;
         while (t < maxDistance) {
             byte blockId = map.getBlockId(blockX, blockY, blockZ);
@@ -79,21 +77,18 @@ public final class Raycast {
                     return null;
                 t = tMaxX;
                 tMaxX += tDeltaX;
-                axis = Axis.X;
             } else if (tMaxY < tMaxX && tMaxY < tMaxZ) {
                 blockY += stepY;
                 if (blockY == escapeY)
                     return null;
                 t = tMaxY;
                 tMaxY += tDeltaY;
-                axis = Axis.Y;
             } else {
                 blockZ += stepZ;
                 if (blockZ == escapeZ)
                     return null;
                 t = tMaxZ;
                 tMaxZ += tDeltaZ;
-                axis = Axis.Z;
             }
         }
 

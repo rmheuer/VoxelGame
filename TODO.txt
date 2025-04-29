@@ -19,14 +19,14 @@ Player physics:
 [x] Block picker UI:
   [x] Hotbar
   [x] Menu
-Make pick block on double slab give single slab
+[x] Make pick block on double slab give single slab
 Block behaviors:
   Liquid spreading (water, lava)
   Grass growing/dying
   Sand/gravel falling
   Saplings growing into trees
 Fog:
-  Land fog
+  [x] Land fog
   Underwater fog
   Under-lava fog
 Fake terrain outside world

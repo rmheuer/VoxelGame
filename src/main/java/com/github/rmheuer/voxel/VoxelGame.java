@@ -182,6 +182,7 @@ public final class VoxelGame extends BaseGame {
                 break;
 
             case B:
+            case E:
                 setShowingBlockPicker(!showingBlockPicker);
                 break;
 
@@ -279,7 +280,8 @@ public final class VoxelGame extends BaseGame {
 
     @Override
     protected void tick(float dt) {
-        moveCamera(getWindow().getKeyboard(), dt);
+        if (!showingBlockPicker)
+            moveCamera(getWindow().getKeyboard(), dt);
 
         Vector3f pos = camera.getTransform().position;
         Vector3f dir = camera.getTransform().getForward();
@@ -363,12 +365,12 @@ public final class VoxelGame extends BaseGame {
                 wireframe
         );
 
-        levelRender.renderOpaqueLayer(renderer, viewProj);
+        levelRender.renderOpaqueLayer(renderer, view, proj);
 
         float subtick = ticker.getSubtickPercent();
         particleSystem.renderParticles(renderer, view, proj, subtick, lightMap);
 
-        levelRender.renderTranslucentLayer(renderer, viewProj);
+        levelRender.renderTranslucentLayer(renderer, view, proj);
 
         if (raycastResult != null) {
             {

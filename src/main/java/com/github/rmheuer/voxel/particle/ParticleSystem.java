@@ -236,10 +236,10 @@ public final class ParticleSystem implements SafeCloseable {
         }
         indexBuffer.ensureCapacity(particles.size());
 
-        Matrix4f viewProj = new Matrix4f(proj).mul(view);
         try (ActivePipeline pipe = renderer.bindPipeline(pipeline)) {
             pipe.bindTexture(0, atlasTexture);
-            pipe.getUniform("u_ViewProj").setMat4(viewProj);
+            pipe.getUniform("u_View").setMat4(view);
+            pipe.getUniform("u_Proj").setMat4(proj);
             pipe.draw(vertexBuffer, indexBuffer.getIndexBuffer(), 0, particles.size() * 6);
         }
     }

@@ -78,18 +78,19 @@ public final class LevelRenderer implements SafeCloseable {
             this.translucentToRender = translucentToRender;
         }
 
-        public void renderOpaqueLayer(Renderer renderer, Matrix4f viewProj) {
-            renderLayer(renderer, viewProj, opaqueToRender);
+        public void renderOpaqueLayer(Renderer renderer, Matrix4f view, Matrix4f proj) {
+            renderLayer(renderer, view, proj, opaqueToRender);
         }
 
-        public void renderTranslucentLayer(Renderer renderer, Matrix4f viewProj) {
-            renderLayer(renderer, viewProj, translucentToRender);
+        public void renderTranslucentLayer(Renderer renderer, Matrix4f view, Matrix4f proj) {
+            renderLayer(renderer, view, proj, translucentToRender);
         }
 
-        private void renderLayer(Renderer renderer, Matrix4f viewProj, List<RenderSection> sectionsToRender) {
+        private void renderLayer(Renderer renderer, Matrix4f view, Matrix4f proj, List<RenderSection> sectionsToRender) {
             try (ActivePipeline pipe = renderer.bindPipeline(pipeline)) {
                 pipe.bindTexture(0, atlasTexture);
-                pipe.getUniform("u_ViewProj").setMat4(viewProj);
+                pipe.getUniform("u_View").setMat4(view);
+                pipe.getUniform("u_Proj").setMat4(proj);
 
                 ShaderUniform offsetUniform = pipe.getUniform("u_SectionOffset");
                 for (RenderSection section : sectionsToRender) {
