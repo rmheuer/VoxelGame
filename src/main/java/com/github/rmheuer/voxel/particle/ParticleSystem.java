@@ -17,6 +17,7 @@ import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.render.AtlasSprite;
+import com.github.rmheuer.voxel.render.FogInfo;
 import com.github.rmheuer.voxel.render.LightingConstants;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
@@ -199,7 +200,7 @@ public final class ParticleSystem implements SafeCloseable {
         }
     }
 
-    public void renderParticles(Renderer renderer, Matrix4f view, Matrix4f proj, float subtick, LightMap lightMap) {
+    public void renderParticles(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo, float subtick, LightMap lightMap) {
         if (particles.isEmpty())
             return;
 
@@ -240,6 +241,10 @@ public final class ParticleSystem implements SafeCloseable {
             pipe.bindTexture(0, atlasTexture);
             pipe.getUniform("u_View").setMat4(view);
             pipe.getUniform("u_Proj").setMat4(proj);
+            pipe.getUniform("u_FogStart").setFloat(fogInfo.minDistance);
+            pipe.getUniform("u_FogEnd").setFloat(fogInfo.maxDistance);
+            pipe.getUniform("u_FogColor").setVec4(fogInfo.color);
+
             pipe.draw(vertexBuffer, indexBuffer.getIndexBuffer(), 0, particles.size() * 6);
         }
     }

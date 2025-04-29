@@ -1,9 +1,10 @@
 #version 330 core
 
-#define FOG_START 32.0
-#define FOG_END 64.0
-
 uniform sampler2D u_TextureAtlas;
+
+uniform float u_FogStart;
+uniform float u_FogEnd;
+uniform vec4 u_FogColor;
 
 in vec2 v_UV;
 in float v_Shade;
@@ -20,8 +21,6 @@ void main(void) {
     color.xyz *= v_Shade;
 
     float fogDistance = length(v_ViewPos);
-    float fogAmount = clamp((fogDistance - FOG_START) / (FOG_END - FOG_START), 0.0, 1.0);
-
-    vec4 fogColor = vec4(0.5, 0.8, 1.0, 1.0);
-    o_Color = mix(color, fogColor, fogAmount);
+    float fogAmount = clamp((fogDistance - u_FogStart) / (u_FogEnd - u_FogStart), 0.0, 1.0);
+    o_Color = mix(color, u_FogColor, fogAmount);
 }

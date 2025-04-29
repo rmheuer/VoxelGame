@@ -31,6 +31,7 @@ import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.level.MapSection;
 import com.github.rmheuer.voxel.particle.ParticleSystem;
 import com.github.rmheuer.voxel.physics.Raycast;
+import com.github.rmheuer.voxel.render.FogInfo;
 import com.github.rmheuer.voxel.render.LevelRenderData;
 import com.github.rmheuer.voxel.render.LevelRenderer;
 import com.github.rmheuer.voxel.ui.*;
@@ -365,12 +366,14 @@ public final class VoxelGame extends BaseGame {
                 wireframe
         );
 
-        levelRender.renderOpaqueLayer(renderer, view, proj);
+        FogInfo fogInfo = new FogInfo(32, 64, new Vector4f(0.5f, 0.8f, 1.0f, 1.0f));
+
+        levelRender.renderOpaqueLayer(renderer, view, proj, fogInfo);
 
         float subtick = ticker.getSubtickPercent();
-        particleSystem.renderParticles(renderer, view, proj, subtick, lightMap);
+        particleSystem.renderParticles(renderer, view, proj, fogInfo, subtick, lightMap);
 
-        levelRender.renderTranslucentLayer(renderer, view, proj);
+        levelRender.renderTranslucentLayer(renderer, view, proj, fogInfo);
 
         if (raycastResult != null) {
             {

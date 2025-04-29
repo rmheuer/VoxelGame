@@ -78,19 +78,22 @@ public final class LevelRenderer implements SafeCloseable {
             this.translucentToRender = translucentToRender;
         }
 
-        public void renderOpaqueLayer(Renderer renderer, Matrix4f view, Matrix4f proj) {
-            renderLayer(renderer, view, proj, opaqueToRender);
+        public void renderOpaqueLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
+            renderLayer(renderer, view, proj, fogInfo, opaqueToRender);
         }
 
-        public void renderTranslucentLayer(Renderer renderer, Matrix4f view, Matrix4f proj) {
-            renderLayer(renderer, view, proj, translucentToRender);
+        public void renderTranslucentLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
+            renderLayer(renderer, view, proj, fogInfo, translucentToRender);
         }
 
-        private void renderLayer(Renderer renderer, Matrix4f view, Matrix4f proj, List<RenderSection> sectionsToRender) {
+        private void renderLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo, List<RenderSection> sectionsToRender) {
             try (ActivePipeline pipe = renderer.bindPipeline(pipeline)) {
                 pipe.bindTexture(0, atlasTexture);
                 pipe.getUniform("u_View").setMat4(view);
                 pipe.getUniform("u_Proj").setMat4(proj);
+                pipe.getUniform("u_FogStart").setFloat(fogInfo.minDistance);
+                pipe.getUniform("u_FogEnd").setFloat(fogInfo.maxDistance);
+                pipe.getUniform("u_FogColor").setVec4(fogInfo.color);
 
                 ShaderUniform offsetUniform = pipe.getUniform("u_SectionOffset");
                 for (RenderSection section : sectionsToRender) {
