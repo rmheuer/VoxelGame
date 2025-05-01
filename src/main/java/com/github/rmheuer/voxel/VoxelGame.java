@@ -374,37 +374,25 @@ public final class VoxelGame extends BaseGame {
         levelRender.renderTranslucentLayer(renderer, view, proj, fogInfo);
 
         if (raycastResult != null) {
-            {
-                int col = Colors.RGBA.BLUE;
-                int x = raycastResult.blockPos.x;
-                int y = raycastResult.blockPos.y;
-                int z = raycastResult.blockPos.z;
+            int col = Colors.RGBA.BLUE;
+            int x = raycastResult.blockPos.x;
+            int y = raycastResult.blockPos.y;
+            int z = raycastResult.blockPos.z;
 
-                AABB bb = Blocks.getBlock(blockMap.getBlockId(x, y, z)).getBoundingBox();
+            AABB bb = Blocks.getBlock(blockMap.getBlockId(x, y, z)).getBoundingBox();
 
-                lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.minZ, x + bb.maxX, y + bb.minY, z + bb.minZ, col);
-                lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.minZ, x + bb.minX, y + bb.maxY, z + bb.minZ, col);
-                lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.minZ, x + bb.minX, y + bb.minY, z + bb.maxZ, col);
-                lineRenderer.addLine(x + bb.maxX, y + bb.minY, z + bb.minZ, x + bb.maxX, y + bb.maxY, z + bb.minZ, col);
-                lineRenderer.addLine(x + bb.maxX, y + bb.minY, z + bb.minZ, x + bb.maxX, y + bb.minY, z + bb.maxZ, col);
-                lineRenderer.addLine(x + bb.minX, y + bb.maxY, z + bb.minZ, x + bb.maxX, y + bb.maxY, z + bb.minZ, col);
-                lineRenderer.addLine(x + bb.minX, y + bb.maxY, z + bb.minZ, x + bb.minX, y + bb.maxY, z + bb.maxZ, col);
-                lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.maxZ, x + bb.maxX, y + bb.minY, z + bb.maxZ, col);
-                lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.maxZ, x + bb.minX, y + bb.maxY, z + bb.maxZ, col);
-                lineRenderer.addLine(x + bb.maxX, y + bb.maxY, z + bb.maxZ, x + bb.minX, y + bb.maxY, z + bb.maxZ, col);
-                lineRenderer.addLine(x + bb.maxX, y + bb.maxY, z + bb.maxZ, x + bb.maxX, y + bb.minY, z + bb.maxZ, col);
-                lineRenderer.addLine(x + bb.maxX, y + bb.maxY, z + bb.maxZ, x + bb.maxX, y + bb.maxY, z + bb.minZ, col);
-            }
-            {
-                int col = Colors.RGBA.RED;
-                float x = raycastResult.hitPos.x;
-                float y = raycastResult.hitPos.y;
-                float z = raycastResult.hitPos.z;
-                float s = 0.2f;
-                lineRenderer.addLine(x - s, y, z, x + s, y, z, col);
-                lineRenderer.addLine(x, y - s, z, x, y + s, z, col);
-                lineRenderer.addLine(x, y, z - s, x, y, z + s, col);
-            }
+            lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.minZ, x + bb.maxX, y + bb.minY, z + bb.minZ, col);
+            lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.minZ, x + bb.minX, y + bb.maxY, z + bb.minZ, col);
+            lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.minZ, x + bb.minX, y + bb.minY, z + bb.maxZ, col);
+            lineRenderer.addLine(x + bb.maxX, y + bb.minY, z + bb.minZ, x + bb.maxX, y + bb.maxY, z + bb.minZ, col);
+            lineRenderer.addLine(x + bb.maxX, y + bb.minY, z + bb.minZ, x + bb.maxX, y + bb.minY, z + bb.maxZ, col);
+            lineRenderer.addLine(x + bb.minX, y + bb.maxY, z + bb.minZ, x + bb.maxX, y + bb.maxY, z + bb.minZ, col);
+            lineRenderer.addLine(x + bb.minX, y + bb.maxY, z + bb.minZ, x + bb.minX, y + bb.maxY, z + bb.maxZ, col);
+            lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.maxZ, x + bb.maxX, y + bb.minY, z + bb.maxZ, col);
+            lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.maxZ, x + bb.minX, y + bb.maxY, z + bb.maxZ, col);
+            lineRenderer.addLine(x + bb.maxX, y + bb.maxY, z + bb.maxZ, x + bb.minX, y + bb.maxY, z + bb.maxZ, col);
+            lineRenderer.addLine(x + bb.maxX, y + bb.maxY, z + bb.maxZ, x + bb.maxX, y + bb.minY, z + bb.maxZ, col);
+            lineRenderer.addLine(x + bb.maxX, y + bb.maxY, z + bb.maxZ, x + bb.maxX, y + bb.maxY, z + bb.minZ, col);
         }
 
         if (drawSectionBoundaries) {
@@ -449,6 +437,7 @@ public final class VoxelGame extends BaseGame {
         Vector2i uiMousePos = new Vector2i((int) (mousePos.x / guiScale), (int) (mousePos.y / guiScale));
 
         try (UIDrawList uiDraw = new UIDrawList(windowSize.x / guiScale, windowSize.y / guiScale, atlasTexture, textRenderer)) {
+            uiDraw.drawSprite(uiDraw.getWidth() / 2 - 8, uiDraw.getHeight() / 2 - 8, uiSprites.getCrosshair());
             drawHotbar(uiDraw);
             if (showingBlockPicker)
                 blockPickerUI.draw(uiDraw, uiMousePos);
