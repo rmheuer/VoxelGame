@@ -3,10 +3,11 @@ package com.github.rmheuer.voxel.ui;
 import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.texture.Texture2D;
 import com.github.rmheuer.azalea.render2d.DrawList2D;
+import com.github.rmheuer.azalea.utils.SafeCloseable;
 import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.render.AtlasSprite;
 
-public final class UIDrawList {
+public final class UIDrawList implements SafeCloseable {
     private static final int TEXT_SHADOW_COLOR = Colors.RGBA.fromInts(64, 64, 64);
 
     private final int width, height;
@@ -24,7 +25,7 @@ public final class UIDrawList {
     }
 
     public void drawRect(int x, int y, int w, int h, int color) {
-        draw.fillQuad(x, y, w, h, color);
+        draw.fillRect(x, y, w, h, color);
     }
 
     public void drawSprite(int x, int y, UISprite sprite) {
@@ -61,5 +62,10 @@ public final class UIDrawList {
 
     public DrawList2D getDrawList() {
         return draw;
+    }
+
+    @Override
+    public void close() {
+        draw.close();
     }
 }

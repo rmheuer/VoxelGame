@@ -10,7 +10,6 @@ import com.github.rmheuer.azalea.input.mouse.MouseScrollEvent;
 import com.github.rmheuer.azalea.io.ResourceUtil;
 import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.azalea.math.CubeFace;
-import com.github.rmheuer.azalea.math.MathUtil;
 import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.WindowSettings;
@@ -24,7 +23,6 @@ import com.github.rmheuer.azalea.runtime.BaseGame;
 import com.github.rmheuer.azalea.runtime.FixedRateExecutor;
 import com.github.rmheuer.voxel.anim.LavaAnimationGenerator;
 import com.github.rmheuer.voxel.anim.WaterAnimationGenerator;
-import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
@@ -450,12 +448,13 @@ public final class VoxelGame extends BaseGame {
         Vector2d mousePos = getWindow().getMouse().getCursorPos();
         Vector2i uiMousePos = new Vector2i((int) (mousePos.x / guiScale), (int) (mousePos.y / guiScale));
 
-        UIDrawList uiDraw = new UIDrawList(windowSize.x / guiScale, windowSize.y / guiScale, atlasTexture, textRenderer);
-        drawHotbar(uiDraw);
-        if (showingBlockPicker)
-            blockPickerUI.draw(uiDraw, uiMousePos);
+        try (UIDrawList uiDraw = new UIDrawList(windowSize.x / guiScale, windowSize.y / guiScale, atlasTexture, textRenderer)) {
+            drawHotbar(uiDraw);
+            if (showingBlockPicker)
+                blockPickerUI.draw(uiDraw, uiMousePos);
 
-        renderer2D.draw(uiDraw.getDrawList(), new Matrix4f().ortho(0, (float) windowSize.x / guiScale, (float) windowSize.y / guiScale, 0, -1, 1));
+            renderer2D.draw(uiDraw.getDrawList(), new Matrix4f().ortho(0, (float) windowSize.x / guiScale, (float) windowSize.y / guiScale, 0, -1, 1));
+        }
     }
 
     private void drawHotbar(UIDrawList draw) {
