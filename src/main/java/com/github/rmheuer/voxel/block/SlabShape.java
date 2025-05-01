@@ -34,6 +34,7 @@ public final class SlabShape implements BlockShape {
             int ny = y + faceTemplate.face.y;
             int nz = z + faceTemplate.face.z;
 
+            boolean lit;
             if (faceTemplate.face != CubeFace.POS_Y) {
                 Block neighbor = ctx.getSurroundingBlock(nx, ny, nz);
                 if (neighbor == null)
@@ -44,9 +45,12 @@ public final class SlabShape implements BlockShape {
                     continue;
                 if (faceTemplate.face != CubeFace.NEG_Y && occlusion != OcclusionType.NONE)
                     continue;
+
+                lit = ctx.isLit(nx, ny, nz);
+            } else {
+                lit = ctx.isLit(x, y, z);
             }
 
-            boolean lit = ctx.isLit(nx, ny, nz);
             float lightShade = lit ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
 
             AtlasSprite sprite = faceTemplate.face.axis == Axis.Y ? topSprite : sideSprite;

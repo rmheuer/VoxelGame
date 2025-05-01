@@ -60,7 +60,7 @@ public final class LiquidShape implements BlockShape {
         Block above = ctx.getSurroundingBlock(x, y + 1, z);
         boolean tall = above != null && above.getLiquid() == thisLiquid;
 
-        float lightShade = ctx.isLit(x, y + 1, z) ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
+        float lightShade = ctx.isLit(x, y, z) ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
 
         if (!tall) {
             boolean surface = false;

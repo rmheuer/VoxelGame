@@ -40,8 +40,8 @@ public final class LightMap {
 
     private int findTopSurface(BlockMap map, int blockX, int blockZ, int startHeight) {
         int height;
-        for (height = startHeight; height > 0; height--) {
-            if (Blocks.getBlock(map.getBlockId(blockX, height - 1, blockZ)).isLightBlocking()) {
+        for (height = startHeight; height >= 0; height--) {
+            if (Blocks.getBlock(map.getBlockId(blockX, height, blockZ)).isLightBlocking()) {
                 break;
             }
         }
@@ -52,7 +52,7 @@ public final class LightMap {
         int blocksY = map.getBlocksY();
         for (int z = 0; z < blocksZ; z++) {
             for (int x = 0; x < blocksX; x++) {
-                int height = findTopSurface(map, x, z, blocksY);
+                int height = findTopSurface(map, x, z, blocksY - 1);
                 lightHeights[index(x, z)] = height;
             }
         }
@@ -61,7 +61,7 @@ public final class LightMap {
     public Change blockChanged(BlockMap map, int blockX, int blockY, int blockZ, byte prevId, byte newId) {
         int index = index(blockX, blockZ);
         int currentHeight = lightHeights[index];
-        if (blockY < currentHeight - 1)
+        if (blockY < currentHeight)
             return null;
 
         boolean prevOpaque = Blocks.getBlock(prevId).isLightBlocking();
@@ -71,11 +71,11 @@ public final class LightMap {
 
         int newHeight;
         if (newOpaque) {
-            // Light stops above this block now
-            newHeight = blockY + 1;
+            // Light stops at this block now
+            newHeight = blockY;
         } else {
             // Light travels down to next opaque block below
-            newHeight = findTopSurface(map, blockX, blockZ, blockY);
+            newHeight = findTopSurface(map, blockX, blockZ, blockY - 1);
         }
         lightHeights[index] = newHeight;
 
