@@ -29,7 +29,8 @@ Fog:
   [x] Land fog
   Underwater fog
   Under-lava fog
-Fake terrain outside world
+[x] Fake terrain outside world
+Water appears to cast shadow on blocks but possibly not itself
 Pause menu:
   Text rendering
   Buttons

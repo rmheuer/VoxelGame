@@ -7,7 +7,7 @@ import com.github.rmheuer.voxel.render.*;
 import org.joml.Vector3f;
 
 public final class LiquidShape implements BlockShape {
-    private static final float LIQUID_SURFACE_HEIGHT = 0.9f;
+    public static final float LIQUID_SURFACE_HEIGHT = 0.9f;
     private static final float LIQUID_INSET = 0.0015f; // To prevent Z-fighting on touching faces
 
     private static final class LiquidSideTemplate {

@@ -102,6 +102,7 @@ public final class VoxelGame extends BaseGame {
         lavaAnimationGenerator = new LavaAnimationGenerator();
 
         camera = new Camera(new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f));
+        camera.getTransform().position.set(32, 40, 32);
 
         blockMap = new BlockMap(4, 4, 4);
         lightMap = new LightMap(blockMap.getBlocksX(), blockMap.getBlocksZ());
@@ -111,14 +112,16 @@ public final class VoxelGame extends BaseGame {
 
         for (int z = 0; z < 64; z++) {
             for (int x = 0; x < 64; x++) {
-                blockMap.setBlockId(x, 0, z, Blocks.ID_STONE);
+                for (int y = 0; y < 32; y++) {
+                    blockMap.setBlockId(x, y, z, Blocks.ID_STONE);
+                }
             }
         }
 
         for (byte block = 0; block < Blocks.BLOCK_COUNT; block++) {
             int x = 2 + (block % 10) * 2;
             int z = 2 + (block / 10) * 2;
-            blockMap.setBlockId(x, 2, z, block);
+            blockMap.setBlockId(x, 33, z, block);
         }
 
         lightMap.recalculateAll(blockMap);
@@ -371,12 +374,13 @@ public final class VoxelGame extends BaseGame {
         FogInfo fogInfo = new FogInfo(64, 100, new Vector4f(0.5f, 0.8f, 1.0f, 1.0f));
 
         levelRender.renderOpaqueLayer(renderer, view, proj, fogInfo);
+        outsideRenderer.renderOpaqueLayer(renderer, view, proj, fogInfo);
 
         float subtick = ticker.getSubtickPercent();
         particleSystem.renderParticles(renderer, view, proj, fogInfo, subtick, lightMap);
 
+        outsideRenderer.renderTranslucentLayer(renderer, view, proj, fogInfo);
         levelRender.renderTranslucentLayer(renderer, view, proj, fogInfo);
-        outsideRenderer.render(renderer, view, proj, fogInfo);
 
         if (raycastResult != null) {
             int col = Colors.RGBA.BLUE;

@@ -8,6 +8,7 @@ import com.github.rmheuer.azalea.render.pipeline.PipelineInfo;
 import com.github.rmheuer.azalea.render.shader.ShaderProgram;
 import com.github.rmheuer.azalea.render.texture.Texture2D;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
+import com.github.rmheuer.voxel.block.LiquidShape;
 import org.joml.Matrix4f;
 
 import java.io.IOException;
@@ -26,7 +27,7 @@ public final class OutsideLevelRenderer implements SafeCloseable {
     private final ShaderProgram shader;
     private final PipelineInfo pipeline;
     private final Texture2D bedrockTex, waterTex;
-    private final Mesh bedrockMesh;
+    private final Mesh bedrockMesh, waterMesh;
 
     public OutsideLevelRenderer(Renderer renderer, int blocksX, int blocksZ) throws IOException {
         shader = renderer.createShaderProgram(
@@ -45,70 +46,66 @@ public final class OutsideLevelRenderer implements SafeCloseable {
         try (MeshData data = createBedrockMesh(blocksX, blocksZ)) {
             bedrockMesh.setData(data, DataUsage.STATIC);
         }
+        waterMesh = renderer.createMesh();
+        try (MeshData data = createWaterMesh(blocksX, blocksZ)) {
+            waterMesh.setData(data, DataUsage.STATIC);
+        }
     }
 
-    private void createTopSurface(MeshData data, int blocksX, int blocksZ, int y) {
-        // +X side
+    private void putQuad(MeshData data, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, float x4, float y4, float z4, int width, int height, float shade) {
         data.putIndices(0, 1, 2, 0, 2, 3);
-        data.putVec3(blocksX, y, -DISTANCE); data.putVec2(0, 0); data.putFloat(LightingConstants.SHADE_UP);
-        data.putVec3(blocksX + DISTANCE, y, -DISTANCE); data.putVec2(DISTANCE, 0); data.putFloat(LightingConstants.SHADE_UP);
-        data.putVec3(blocksX + DISTANCE, y, blocksZ); data.putVec2(DISTANCE, blocksZ + DISTANCE); data.putFloat(LightingConstants.SHADE_UP);
-        data.putVec3(blocksX, y, blocksZ); data.putVec2(0, blocksZ + DISTANCE); data.putFloat(LightingConstants.SHADE_UP);
-
-        // -X side
-        data.putIndices(0, 1, 2, 0, 2, 3);
-        data.putVec3(-DISTANCE, y, 0); data.putVec2(0, 0); data.putFloat(LightingConstants.SHADE_UP);
-        data.putVec3(0, y, 0); data.putVec2(DISTANCE, 0); data.putFloat(LightingConstants.SHADE_UP);
-        data.putVec3(0, y, blocksZ + DISTANCE); data.putVec2(DISTANCE, blocksZ + DISTANCE); data.putFloat(LightingConstants.SHADE_UP);
-        data.putVec3(-DISTANCE, y, blocksZ + DISTANCE); data.putVec2(0, blocksZ + DISTANCE); data.putFloat(LightingConstants.SHADE_UP);
+        data.putVec3(x1, y1, z1); data.putVec2(0, 0); data.putFloat(shade);
+        data.putVec3(x2, y2, z2); data.putVec2(width, 0); data.putFloat(shade);
+        data.putVec3(x3, y3, z3); data.putVec2(width, height); data.putFloat(shade);
+        data.putVec3(x4, y4, z4); data.putVec2(0, height); data.putFloat(shade);
     }
 
-    private MeshData createBedrockMesh(int blocksX, int blocksZ) {
+    // Variable names here are short so that the code isn't significantly long
+
+    // w: blocksX, d: blocksZ
+    private void createTopSurface(MeshData data, int w, int d, float y) {
+        int s = DISTANCE;
+
+        putQuad(data, w, y, -s, w + s, y, -s, w + s, y, d, w, y, d, s, d + s, LightingConstants.SHADE_UP);
+        putQuad(data, -s, y, 0, 0, y, 0, 0, y, d + s, -s, y, d + s, s, d + s, LightingConstants.SHADE_UP);
+        putQuad(data, 0, y, d, w + s, y, d, w + s, y, d + s, 0, y, d + s, w + s, s, LightingConstants.SHADE_UP);
+        putQuad(data, -s, y, -s, w, y, -s, w, y, 0, -s, y, 0, w + s, s, LightingConstants.SHADE_UP);
+    }
+
+    private MeshData createBedrockMesh(int w, int d) {
         MeshData data = new MeshData(VERTEX_LAYOUT, PrimitiveType.TRIANGLES);
 
         // Bottom
-        data.putIndices(0, 1, 2, 0, 2, 3);
-        data.putVec3(0, 0, 0); data.putVec2(0, 0); data.putFloat(LightingConstants.SHADE_UP);
-        data.putVec3(blocksX, 0, 0); data.putVec2(blocksX, 0); data.putFloat(LightingConstants.SHADE_UP);
-        data.putVec3(blocksX, 0, blocksZ); data.putVec2(blocksX, blocksZ); data.putFloat(LightingConstants.SHADE_UP);
-        data.putVec3(0, 0, blocksZ); data.putVec2(0, blocksZ); data.putFloat(LightingConstants.SHADE_UP);
+        putQuad(data, 0, 0, 0, w, 0, 0, w, 0, d, 0, 0, d, w, d, LightingConstants.SHADE_UP);
 
-        int height = WATER_LEVEL - WATER_DEPTH;
+        int h = WATER_LEVEL - WATER_DEPTH;
 
-        // +X
-        data.putIndices(0, 1, 2, 0, 2, 3);
-        data.putVec3(blocksX, height, 0); data.putVec2(0, 0); data.putFloat(LightingConstants.SHADE_LEFT_RIGHT);
-        data.putVec3(blocksX, height, blocksZ); data.putVec2(blocksZ, 0); data.putFloat(LightingConstants.SHADE_LEFT_RIGHT);
-        data.putVec3(blocksX, 0, blocksZ); data.putVec2(blocksZ, height); data.putFloat(LightingConstants.SHADE_LEFT_RIGHT);
-        data.putVec3(blocksX, 0, 0); data.putVec2(0, height); data.putFloat(LightingConstants.SHADE_LEFT_RIGHT);
+        // Sides
+        putQuad(data, w, h, 0, w, h, d, w, 0, d, w, 0, 0, d, h, LightingConstants.SHADE_LEFT_RIGHT);
+        putQuad(data, 0, h, d, 0, h, 0, 0, 0, 0, 0, 0, d, d, h, LightingConstants.SHADE_LEFT_RIGHT);
+        putQuad(data, w, h, d, 0, h, d, 0, 0, d, w, 0, d, w, h, LightingConstants.SHADE_FRONT_BACK);
+        putQuad(data, 0, h, 0, w, h, 0, w, 0, 0, 0, 0, 0, w, h, LightingConstants.SHADE_FRONT_BACK);
 
-        // -X
-        data.putIndices(0, 1, 2, 0, 2, 3);
-        data.putVec3(0, height, blocksZ); data.putVec2(0, 0); data.putFloat(LightingConstants.SHADE_LEFT_RIGHT);
-        data.putVec3(0, height, 0); data.putVec2(blocksZ, 0); data.putFloat(LightingConstants.SHADE_LEFT_RIGHT);
-        data.putVec3(0, 0, 0); data.putVec2(blocksZ, height); data.putFloat(LightingConstants.SHADE_LEFT_RIGHT);
-        data.putVec3(0, 0, blocksZ); data.putVec2(0, height); data.putFloat(LightingConstants.SHADE_LEFT_RIGHT);
-
-        // +Z
-        data.putIndices(0, 1, 2, 0, 2, 3);
-        data.putVec3(blocksX, height, blocksZ); data.putVec2(0, 0); data.putFloat(LightingConstants.SHADE_FRONT_BACK);
-        data.putVec3(0, height, blocksZ); data.putVec2(blocksZ, 0); data.putFloat(LightingConstants.SHADE_FRONT_BACK);
-        data.putVec3(0, 0, blocksZ); data.putVec2(blocksZ, height); data.putFloat(LightingConstants.SHADE_FRONT_BACK);
-        data.putVec3(blocksX, 0, blocksZ); data.putVec2(0, height); data.putFloat(LightingConstants.SHADE_FRONT_BACK);
-
-        // -Z
-        data.putIndices(0, 1, 2, 0, 2, 3);
-        data.putVec3(0, height, 0); data.putVec2(0, 0); data.putFloat(LightingConstants.SHADE_FRONT_BACK);
-        data.putVec3(blocksX, height, 0); data.putVec2(blocksZ, 0); data.putFloat(LightingConstants.SHADE_FRONT_BACK);
-        data.putVec3(blocksX, 0, 0); data.putVec2(blocksZ, height); data.putFloat(LightingConstants.SHADE_FRONT_BACK);
-        data.putVec3(0, 0, 0); data.putVec2(0, height); data.putFloat(LightingConstants.SHADE_FRONT_BACK);
-
-        createTopSurface(data, blocksX, blocksZ, height);
+        createTopSurface(data, w, d, h);
 
         return data;
     }
 
-    public void render(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
+    private MeshData createWaterMesh(int blocksX, int blocksZ) {
+        MeshData data = new MeshData(VERTEX_LAYOUT, PrimitiveType.TRIANGLES);
+        createTopSurface(data, blocksX, blocksZ, WATER_LEVEL - 1 + LiquidShape.LIQUID_SURFACE_HEIGHT);
+        return data;
+    }
+
+    public void renderOpaqueLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
+        renderLayer(bedrockTex, bedrockMesh, renderer, view, proj, fogInfo);
+    }
+
+    public void renderTranslucentLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
+        renderLayer(waterTex, waterMesh, renderer, view, proj, fogInfo);
+    }
+
+    private void renderLayer(Texture2D tex, Mesh mesh, Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
         try (ActivePipeline pipe = renderer.bindPipeline(pipeline)) {
             pipe.getUniform("u_View").setMat4(view);
             pipe.getUniform("u_Proj").setMat4(proj);
@@ -116,14 +113,15 @@ public final class OutsideLevelRenderer implements SafeCloseable {
             pipe.getUniform("u_FogEnd").setFloat(fogInfo.maxDistance);
             pipe.getUniform("u_FogColor").setVec4(fogInfo.color);
 
-            pipe.bindTexture(0, bedrockTex);
-            pipe.draw(bedrockMesh);
+            pipe.bindTexture(0, tex);
+            pipe.draw(mesh);
         }
     }
 
     @Override
     public void close() {
         bedrockMesh.close();
+        waterMesh.close();
         bedrockTex.close();
         waterTex.close();
         shader.close();
