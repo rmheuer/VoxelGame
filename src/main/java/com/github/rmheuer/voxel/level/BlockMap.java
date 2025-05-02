@@ -3,6 +3,7 @@ package com.github.rmheuer.voxel.level;
 import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.block.Blocks;
+import com.github.rmheuer.voxel.block.Liquid;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -100,6 +101,27 @@ public final class BlockMap {
         }
 
         return colliders;
+    }
+
+    public boolean containsLiquid(AABB region, Liquid liquid) {
+        int minX = (int) Math.max(Math.floor(region.minX), 0);
+        int minY = (int) Math.max(Math.floor(region.minY), 0);
+        int minZ = (int) Math.max(Math.floor(region.minZ), 0);
+        int maxX = (int) Math.min(Math.ceil(region.maxX), blocksX);
+        int maxY = (int) Math.min(Math.ceil(region.maxY), blocksY);
+        int maxZ = (int) Math.min(Math.ceil(region.maxZ), blocksZ);
+
+        for (int y = minY; y < maxY; y++) {
+            for (int z = minZ; z < maxZ; z++) {
+                for (int x = minX; x < maxX; x++) {
+                    Block block = Blocks.getBlock(getBlockId(x, y, z));
+                    if (block.getLiquid() == liquid)
+                        return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public int getSectionsX() {

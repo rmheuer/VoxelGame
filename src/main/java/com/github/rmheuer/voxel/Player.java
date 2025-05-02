@@ -3,6 +3,7 @@ package com.github.rmheuer.voxel;
 import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.azalea.math.Axis;
 import com.github.rmheuer.azalea.math.MathUtil;
+import com.github.rmheuer.voxel.block.Liquid;
 import com.github.rmheuer.voxel.level.BlockMap;
 import org.joml.Vector3f;
 
@@ -40,22 +41,31 @@ public final class Player {
     public void tickMovement(BlockMap map, float inputForward, float inputRight, boolean jump) {
         prevPosition.set(position);
 
-        if (onGround && jump)
-           velocity.y = JUMP_VELOCITY;
-
         inputForward *= 0.98f;
         inputRight *= 0.98f;
 
+        AABB box = getBoundingBox();
+        boolean inWater = map.containsLiquid(box, Liquid.WATER);
+        boolean inLava = map.containsLiquid(box, Liquid.LAVA);
+
+        if (jump) {
+            if (inWater || inLava) {
+                velocity.y += 0.04f;
+            } else if (onGround) {
+                velocity.y = JUMP_VELOCITY;
+            }
+        }
+
         float magnitude = Math.min(1.0f, (float) Math.hypot(inputForward, inputRight));
         if (magnitude > 0) {
-            float friction = onGround ? TRACTION_ON_GROUND : TRACTION_IN_AIR;
+            float friction = onGround && !(inWater || inLava)
+                    ? TRACTION_ON_GROUND : TRACTION_IN_AIR;
             float scalar = friction / magnitude;
             inputForward *= scalar;
             inputRight *= scalar;
             velocity.add(new Vector3f(inputRight, 0, -inputForward).rotateY(yaw));
         }
 
-        AABB box = getBoundingBox();
         AABB extended = box.expandTowards(velocity.x, velocity.y, velocity.z);
         List<AABB> colliders = map.getCollidersWithin(extended);
 
@@ -87,8 +97,18 @@ public final class Player {
         }
 
         position.add(moveX, moveY, moveZ);
-        velocity.mul(AIR_FRICTION_XZ, AIR_FRICTION_Y, AIR_FRICTION_XZ);
-        velocity.y -= GRAVITY;
+
+        if (inWater || inLava) {
+            float friction = inWater ? 0.8f : 0.5f;
+            velocity.mul(friction);
+            velocity.y -= 0.02f;
+
+            // TODO: Jump out if at top
+        } else {
+            velocity.mul(AIR_FRICTION_XZ, AIR_FRICTION_Y, AIR_FRICTION_XZ);
+            velocity.y -= GRAVITY;
+        }
+
         if (onGround) {
             velocity.mul(GROUND_FRICTION, 1.0f, GROUND_FRICTION);
         }

@@ -284,11 +284,13 @@ public final class VoxelGame extends BaseGame {
                 }
 
                 Block toPlaceBlock = Blocks.getBlock(toPlace);
-                AABB blockAABB = toPlaceBlock.getBoundingBox().translate(placePos.x, placePos.y, placePos.z);
-                AABB playerAABB = player.getBoundingBox();
-                if (!blockAABB.intersects(playerAABB)) {
-                    setBlock(placePos, toPlace);
+                if (toPlaceBlock.getBoundingBox() != null) {
+                    AABB blockAABB = toPlaceBlock.getBoundingBox().translate(placePos.x, placePos.y, placePos.z);
+                    AABB playerAABB = player.getBoundingBox();
+                    if (blockAABB.intersects(playerAABB))
+                        return;
                 }
+                setBlock(placePos, toPlace);
             }
         } else if (event.getButton() == MouseButton.MIDDLE) {
             if (raycastResult != null) {
