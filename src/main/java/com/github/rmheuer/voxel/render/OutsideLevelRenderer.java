@@ -63,13 +63,14 @@ public final class OutsideLevelRenderer implements SafeCloseable {
     // Variable names here are short so that the code isn't significantly long
 
     // w: blocksX, d: blocksZ
-    private void createTopSurface(MeshData data, int w, int d, float y) {
+    private void createTopSurface(MeshData data, int w, int d, float y, float lightShade) {
         int s = DISTANCE;
 
-        putQuad(data, w, y, -s, w + s, y, -s, w + s, y, d, w, y, d, s, d + s, LightingConstants.SHADE_UP);
-        putQuad(data, -s, y, 0, 0, y, 0, 0, y, d + s, -s, y, d + s, s, d + s, LightingConstants.SHADE_UP);
-        putQuad(data, 0, y, d, w + s, y, d, w + s, y, d + s, 0, y, d + s, w + s, s, LightingConstants.SHADE_UP);
-        putQuad(data, -s, y, -s, w, y, -s, w, y, 0, -s, y, 0, w + s, s, LightingConstants.SHADE_UP);
+        float shade = lightShade * LightingConstants.SHADE_UP;
+        putQuad(data, w, y, -s, w + s, y, -s, w + s, y, d, w, y, d, s, d + s, shade);
+        putQuad(data, -s, y, 0, 0, y, 0, 0, y, d + s, -s, y, d + s, s, d + s, shade);
+        putQuad(data, 0, y, d, w + s, y, d, w + s, y, d + s, 0, y, d + s, w + s, s, shade);
+        putQuad(data, -s, y, -s, w, y, -s, w, y, 0, -s, y, 0, w + s, s, shade);
     }
 
     private MeshData createBedrockMesh(int w, int d) {
@@ -86,14 +87,14 @@ public final class OutsideLevelRenderer implements SafeCloseable {
         putQuad(data, w, h, d, 0, h, d, 0, 0, d, w, 0, d, w, h, LightingConstants.SHADE_FRONT_BACK);
         putQuad(data, 0, h, 0, w, h, 0, w, 0, 0, 0, 0, 0, w, h, LightingConstants.SHADE_FRONT_BACK);
 
-        createTopSurface(data, w, d, h);
+        createTopSurface(data, w, d, h, LightingConstants.SHADE_SHADOW);
 
         return data;
     }
 
     private MeshData createWaterMesh(int blocksX, int blocksZ) {
         MeshData data = new MeshData(VERTEX_LAYOUT, PrimitiveType.TRIANGLES);
-        createTopSurface(data, blocksX, blocksZ, WATER_LEVEL - 1 + LiquidShape.LIQUID_SURFACE_HEIGHT);
+        createTopSurface(data, blocksX, blocksZ, WATER_LEVEL - 1 + LiquidShape.LIQUID_SURFACE_HEIGHT, LightingConstants.SHADE_LIT);
         return data;
     }
 

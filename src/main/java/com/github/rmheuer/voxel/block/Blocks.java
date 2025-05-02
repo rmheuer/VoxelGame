@@ -59,12 +59,10 @@ public final class Blocks {
         register(new Block(ID_BEDROCK, CubeShape.all(new AtlasSprite(1, 1))));
         register(new Block(ID_FLOWING_WATER, new LiquidShape(new AtlasSprite(14, 0), false, true))
                 .setLiquid(Liquid.WATER)
-                .setLightBlocking(false)
                 .setSolid(false)
                 .setInteractable(false));
         register(new Block(ID_STILL_WATER, new LiquidShape(new AtlasSprite(14, 0), false, true))
                 .setLiquid(Liquid.WATER)
-                .setLightBlocking(false)
                 .setSolid(false)
                 .setInteractable(false));
         register(new Block(ID_FLOWING_LAVA, new LiquidShape(new AtlasSprite(14, 1), true, false))

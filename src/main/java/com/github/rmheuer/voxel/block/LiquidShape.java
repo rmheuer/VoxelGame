@@ -60,8 +60,6 @@ public final class LiquidShape implements BlockShape {
         Block above = ctx.getSurroundingBlock(x, y + 1, z);
         boolean tall = above != null && above.getLiquid() == thisLiquid;
 
-        float lightShade = ctx.isLit(x, y, z) ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
-
         if (!tall) {
             boolean surface = false;
             for (int j = -1; j <= 1; j++) {
@@ -76,6 +74,8 @@ public final class LiquidShape implements BlockShape {
 
             if (surface) {
                 float h = LIQUID_SURFACE_HEIGHT;
+                float lightShade = ctx.isLit(x, y, z) ? LightingConstants.SHADE_LIT : LightingConstants.SHADE_SHADOW;
+
                 geom.addDoubleSidedFace(opaque, new BlockFace(
                         new Vector3f(x, y + h, z),
                         new Vector3f(x, y + h, z + 1),
@@ -97,13 +97,13 @@ public final class LiquidShape implements BlockShape {
 
             if (neighbor.getLiquid() != thisLiquid && neighbor.getOcclusion(sideTemplate.face.getReverse()) != OcclusionType.FULL) {
                 float h = tall ? 1 : LIQUID_SURFACE_HEIGHT;
-                geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, sprite, lightShade, applyShade, 0, h));
+                geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, sprite, LightingConstants.SHADE_LIT, applyShade, 0, h));
             } else if (tall && neighbor.getLiquid() == thisLiquid) {
                 Block aboveNeighbor = ctx.getSurroundingBlock(nx, y + 1, nz);
                 boolean neighborTall = aboveNeighbor != null && aboveNeighbor.getLiquid() == thisLiquid;
 
                 if (!neighborTall)
-                    geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, sprite, lightShade, applyShade, LIQUID_SURFACE_HEIGHT - LIQUID_INSET, 1));
+                    geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, sprite, LightingConstants.SHADE_LIT, applyShade, LIQUID_SURFACE_HEIGHT - LIQUID_INSET, 1));
             }
         }
 
@@ -115,7 +115,7 @@ public final class LiquidShape implements BlockShape {
                     new Vector3f(x, y + LIQUID_INSET, z + 1),
                     new Vector3f(x, y + LIQUID_INSET, z),
                     sprite,
-                    applyShade ? lightShade * LightingConstants.SHADE_DOWN : 1.0f
+                    applyShade ? LightingConstants.SHADE_LIT * LightingConstants.SHADE_DOWN : 1.0f
             ));
         }
     }
