@@ -23,6 +23,7 @@ import com.github.rmheuer.azalea.runtime.BaseGame;
 import com.github.rmheuer.azalea.runtime.FixedRateExecutor;
 import com.github.rmheuer.voxel.anim.LavaAnimationGenerator;
 import com.github.rmheuer.voxel.anim.WaterAnimationGenerator;
+import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
@@ -46,6 +47,8 @@ public final class VoxelGame extends BaseGame {
 
     private static final int GUI_WIDTH = 320;
     private static final int GUI_HEIGHT = 240;
+
+    private static final float CAMERA_HEIGHT = 1.6f;
 
     private final FixedRateExecutor ticker;
     private final Renderer2D renderer2D;
@@ -264,18 +267,27 @@ public final class VoxelGame extends BaseGame {
                 byte held = hotbar[selectedSlot];
                 byte placedOn = blockMap.getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z);
 
+                Vector3i placePos;
+                byte toPlace;
                 if (held == Blocks.ID_SLAB && placedOn == Blocks.ID_SLAB && raycastResult.hitFace == CubeFace.POS_Y) {
+                    placePos = raycastResult.blockPos;
+                    toPlace = Blocks.ID_DOUBLE_SLAB;
                     setBlock(raycastResult.blockPos, Blocks.ID_DOUBLE_SLAB);
                 } else {
-                    Vector3i pos = new Vector3i(raycastResult.blockPos)
+                    placePos = new Vector3i(raycastResult.blockPos)
                             .add(raycastResult.hitFace.getDirection());
 
-                    byte toPlace = hotbar[selectedSlot];
-                    byte existing = blockMap.getBlockId(pos.x, pos.y, pos.z);
+                    toPlace = hotbar[selectedSlot];
+                    byte existing = blockMap.getBlockId(placePos.x, placePos.y, placePos.z);
                     if (toPlace == Blocks.ID_SLAB && existing == Blocks.ID_SLAB)
                         toPlace = Blocks.ID_DOUBLE_SLAB;
+                }
 
-                    setBlock(pos, toPlace);
+                Block toPlaceBlock = Blocks.getBlock(toPlace);
+                AABB blockAABB = toPlaceBlock.getBoundingBox().translate(placePos.x, placePos.y, placePos.z);
+                AABB playerAABB = player.getBoundingBox();
+                if (!blockAABB.intersects(playerAABB)) {
+                    setBlock(placePos, toPlace);
                 }
             }
         } else if (event.getButton() == MouseButton.MIDDLE) {
@@ -304,7 +316,8 @@ public final class VoxelGame extends BaseGame {
         particleSystem.tickParticles(blockMap);
 
         Keyboard kb = getWindow().getKeyboard();
-        float inputForward = 0, inputRight = 0, inputUp = 0;
+        float inputForward = 0, inputRight = 0;
+        boolean jump = false;
         if (!showingBlockPicker) {
             if (kb.isKeyPressed(Key.W))
                 inputForward += 1;
@@ -314,12 +327,9 @@ public final class VoxelGame extends BaseGame {
                 inputRight += 1;
             if (kb.isKeyPressed(Key.A))
                 inputRight -= 1;
-            if (kb.isKeyPressed(Key.SPACE))
-                inputUp += 1;
-            if (kb.isKeyPressed(Key.LEFT_SHIFT))
-                inputUp -= 1;
+            jump = kb.isKeyPressed(Key.SPACE);
         }
-        player.tickMovement(inputForward, inputRight, inputUp);
+        player.tickMovement(blockMap, inputForward, inputRight, jump);
     }
 
     @Override
@@ -336,6 +346,7 @@ public final class VoxelGame extends BaseGame {
 
         float subtick = ticker.getSubtickPercent();
         camera.getTransform().setPosition(player.getPosition(subtick));
+        camera.getTransform().position.y += CAMERA_HEIGHT;
         camera.getTransform().rotation.set(
                 player.getPitch(),
                 player.getYaw(),

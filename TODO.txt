@@ -8,8 +8,8 @@ To Do:
   [x] Slab
   [x] Cross
     [x] Cross sprites are not stretched in this version apparently
-Player physics:
-  Basic land movement
+[x] Player physics:
+  [x] Basic land movement
   Stair stepping
   Swimming
 [x] Block textures
