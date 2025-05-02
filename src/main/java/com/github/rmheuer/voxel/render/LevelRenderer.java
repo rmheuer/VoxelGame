@@ -1,21 +1,17 @@
 package com.github.rmheuer.voxel.render;
 
 import com.github.rmheuer.azalea.io.ResourceUtil;
-import com.github.rmheuer.azalea.math.Axis;
-import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.mesh.*;
 import com.github.rmheuer.azalea.render.pipeline.*;
 import com.github.rmheuer.azalea.render.shader.ShaderProgram;
 import com.github.rmheuer.azalea.render.shader.ShaderUniform;
 import com.github.rmheuer.azalea.render.texture.Texture2D;
-import com.github.rmheuer.azalea.render.texture.Texture2DRegion;
 import com.github.rmheuer.azalea.render.utils.SharedIndexBuffer;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
 import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.level.*;
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 import org.joml.Vector3fc;
 
 import java.io.IOException;
@@ -34,8 +30,8 @@ public final class LevelRenderer implements SafeCloseable {
         this.atlasTexture = atlasTexture;
 
         shader = renderer.createShaderProgram(
-                ResourceUtil.readAsStream("shaders/block-vert.glsl"),
-                ResourceUtil.readAsStream("shaders/block-frag.glsl")
+                ResourceUtil.readAsStream("shaders/block_vertex.glsl"),
+                ResourceUtil.readAsStream("shaders/fragment.glsl")
         );
         pipeline = new PipelineInfo(shader)
                 .setDepthTest(true)

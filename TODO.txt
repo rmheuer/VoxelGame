@@ -20,11 +20,11 @@ Player physics:
   [x] Hotbar
   [x] Menu
 [x] Make pick block on double slab give single slab
-Block behaviors:
-  Liquid spreading (water, lava)
-  Grass growing/dying
-  Sand/gravel falling
-  Saplings growing into trees
+[/ Skipped, this is server responsibility /] Block behaviors:
+  [/] Liquid spreading (water, lava)
+  [/] Grass growing/dying
+  [/] Sand/gravel falling
+  [/] Saplings growing into trees
 Fog:
   [x] Land fog
   Underwater fog

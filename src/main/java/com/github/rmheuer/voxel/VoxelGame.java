@@ -32,6 +32,7 @@ import com.github.rmheuer.voxel.physics.Raycast;
 import com.github.rmheuer.voxel.render.FogInfo;
 import com.github.rmheuer.voxel.render.LevelRenderData;
 import com.github.rmheuer.voxel.render.LevelRenderer;
+import com.github.rmheuer.voxel.render.OutsideLevelRenderer;
 import com.github.rmheuer.voxel.ui.*;
 import org.joml.*;
 
@@ -56,6 +57,7 @@ public final class VoxelGame extends BaseGame {
     private final LevelRenderer levelRenderer;
     private final DebugLineRenderer lineRenderer;
     private final ParticleSystem particleSystem;
+    private final OutsideLevelRenderer outsideRenderer;
 
     private final WaterAnimationGenerator waterAnimationGenerator;
     private final LavaAnimationGenerator lavaAnimationGenerator;
@@ -104,6 +106,8 @@ public final class VoxelGame extends BaseGame {
         blockMap = new BlockMap(4, 4, 4);
         lightMap = new LightMap(blockMap.getBlocksX(), blockMap.getBlocksZ());
         levelRenderData = new LevelRenderData(4, 4, 4);
+
+        outsideRenderer = new OutsideLevelRenderer(getRenderer(), blockMap.getBlocksX(), blockMap.getBlocksZ());
 
         for (int z = 0; z < 64; z++) {
             for (int x = 0; x < 64; x++) {
@@ -364,7 +368,7 @@ public final class VoxelGame extends BaseGame {
                 wireframe
         );
 
-        FogInfo fogInfo = new FogInfo(32, 64, new Vector4f(0.5f, 0.8f, 1.0f, 1.0f));
+        FogInfo fogInfo = new FogInfo(64, 100, new Vector4f(0.5f, 0.8f, 1.0f, 1.0f));
 
         levelRender.renderOpaqueLayer(renderer, view, proj, fogInfo);
 
@@ -372,6 +376,7 @@ public final class VoxelGame extends BaseGame {
         particleSystem.renderParticles(renderer, view, proj, fogInfo, subtick, lightMap);
 
         levelRender.renderTranslucentLayer(renderer, view, proj, fogInfo);
+        outsideRenderer.render(renderer, view, proj, fogInfo);
 
         if (raycastResult != null) {
             int col = Colors.RGBA.BLUE;
@@ -463,6 +468,7 @@ public final class VoxelGame extends BaseGame {
 
     @Override
     protected void cleanUp() {
+        outsideRenderer.close();
         levelRenderData.close();
         levelRenderer.close();
         particleSystem.close();

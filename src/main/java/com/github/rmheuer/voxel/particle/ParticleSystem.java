@@ -131,8 +131,8 @@ public final class ParticleSystem implements SafeCloseable {
         this.atlasTexture = atlasTexture;
 
         shader = renderer.createShaderProgram(
-                ResourceUtil.readAsStream("shaders/particle-vert.glsl"),
-                ResourceUtil.readAsStream("shaders/particle-frag.glsl")
+                ResourceUtil.readAsStream("shaders/particle_vertex.glsl"),
+                ResourceUtil.readAsStream("shaders/fragment.glsl")
         );
         pipeline = new PipelineInfo(shader)
                 .setWinding(FaceWinding.CCW_FRONT)
