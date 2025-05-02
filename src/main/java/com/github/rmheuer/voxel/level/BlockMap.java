@@ -73,20 +73,20 @@ public final class BlockMap {
         List<AABB> colliders = new ArrayList<>();
 
         int minX = (int) Math.floor(region.minX);
+        int minY = (int) Math.floor(region.minY);
         int minZ = (int) Math.floor(region.minZ);
         int maxX = (int) Math.ceil(region.maxX);
+        int maxY = (int) Math.min(Math.ceil(region.maxY), blocksY);
         int maxZ = (int) Math.ceil(region.maxZ);
 
-        int minY = (int) Math.max(Math.floor(region.minY), 0);
-        int maxY = (int) Math.min(Math.ceil(region.maxY), blocksY);
-
         for (int y = minY; y < maxY; y++) {
+            boolean yInBounds = y >= 0;
             for (int z = minZ; z < maxZ; z++) {
                 boolean zInBounds = z >= 0 && z < blocksZ;
                 for (int x = minX; x < maxX; x++) {
                     boolean xInBounds = x >= 0 && x < blocksX;
 
-                    if (xInBounds && zInBounds) {
+                    if (xInBounds && yInBounds && zInBounds) {
                         Block block = Blocks.getBlock(getBlockId(x, y, z));
 
                         if (block.isSolid()) {
