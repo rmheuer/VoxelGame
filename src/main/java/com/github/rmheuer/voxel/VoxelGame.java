@@ -63,6 +63,8 @@ public final class VoxelGame extends BaseGame {
     private final LavaAnimationGenerator lavaAnimationGenerator;
 
     private final Camera camera;
+    private final Player player;
+
     private final BlockMap blockMap;
     private final LightMap lightMap;
     private final LevelRenderData levelRenderData;
@@ -102,7 +104,7 @@ public final class VoxelGame extends BaseGame {
         lavaAnimationGenerator = new LavaAnimationGenerator();
 
         camera = new Camera(new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f));
-        camera.getTransform().position.set(32, 40, 32);
+        player = new Player(32, 40, 32);
 
         blockMap = new BlockMap(4, 4, 4);
         lightMap = new LightMap(blockMap.getBlocksX(), blockMap.getBlocksZ());
@@ -220,7 +222,7 @@ public final class VoxelGame extends BaseGame {
         float deltaPitch = (float) -delta.y * sensitivity;
         float deltaYaw = (float) -delta.x * sensitivity;
 
-        camera.getTransform().rotation.add(deltaPitch, deltaYaw, 0);
+        player.turn(deltaPitch, deltaYaw);
     }
 
     private void setBlock(Vector3i pos, byte blockId) {
@@ -286,47 +288,11 @@ public final class VoxelGame extends BaseGame {
 
     @Override
     protected void tick(float dt) {
-        if (!showingBlockPicker)
-            moveCamera(getWindow().getKeyboard(), dt);
-
         Vector3f pos = camera.getTransform().position;
         Vector3f dir = camera.getTransform().getForward();
         raycastResult = Raycast.raycast(blockMap, pos, dir, 32);
 
         ticker.update(dt);
-    }
-
-    private void moveCamera(Keyboard kb, float dt) {
-        Vector3f pos = camera.getTransform().position;
-        Vector3f rot = camera.getTransform().rotation;
-
-        float move = dt * 20;
-        Vector3f forward = new Vector3f(0, 0, -move).rotateY(rot.y);
-        Vector3f right = new Vector3f(move, 0, 0).rotateY(rot.y);
-        Vector3f up = new Vector3f(0, move, 0);
-
-        if (kb.isKeyPressed(Key.W))
-            pos.add(forward);
-        if (kb.isKeyPressed(Key.S))
-            pos.sub(forward);
-        if (kb.isKeyPressed(Key.D))
-            pos.add(right);
-        if (kb.isKeyPressed(Key.A))
-            pos.sub(right);
-        if (kb.isKeyPressed(Key.SPACE))
-            pos.add(up);
-        if (kb.isKeyPressed(Key.LEFT_SHIFT))
-            pos.sub(up);
-
-        float turn = (float) (dt * Math.PI);
-        if (kb.isKeyPressed(Key.LEFT))
-            rot.y += turn;
-        if (kb.isKeyPressed(Key.RIGHT))
-            rot.y -= turn;
-        if (kb.isKeyPressed(Key.UP))
-            rot.x += turn;
-        if (kb.isKeyPressed(Key.DOWN))
-            rot.x -= turn;
     }
 
     private void fixedTick(float dt) {
@@ -336,6 +302,24 @@ public final class VoxelGame extends BaseGame {
         lavaAnimationGenerator.tick();
 
         particleSystem.tickParticles(blockMap);
+
+        Keyboard kb = getWindow().getKeyboard();
+        float inputForward = 0, inputRight = 0, inputUp = 0;
+        if (!showingBlockPicker) {
+            if (kb.isKeyPressed(Key.W))
+                inputForward += 1;
+            if (kb.isKeyPressed(Key.S))
+                inputForward -= 1;
+            if (kb.isKeyPressed(Key.D))
+                inputRight += 1;
+            if (kb.isKeyPressed(Key.A))
+                inputRight -= 1;
+            if (kb.isKeyPressed(Key.SPACE))
+                inputUp += 1;
+            if (kb.isKeyPressed(Key.LEFT_SHIFT))
+                inputUp -= 1;
+        }
+        player.tickMovement(inputForward, inputRight, inputUp);
     }
 
     @Override
@@ -349,6 +333,14 @@ public final class VoxelGame extends BaseGame {
             }
             ticked = false;
         }
+
+        float subtick = ticker.getSubtickPercent();
+        camera.getTransform().setPosition(player.getPosition(subtick));
+        camera.getTransform().rotation.set(
+                player.getPitch(),
+                player.getYaw(),
+                0
+        );
 
         Vector2i windowSize = getWindow().getFramebufferSize();
         Matrix4f proj = camera.getProjectionMatrix(windowSize.x, windowSize.y);
@@ -376,7 +368,6 @@ public final class VoxelGame extends BaseGame {
         levelRender.renderOpaqueLayer(renderer, view, proj, fogInfo);
         outsideRenderer.renderOpaqueLayer(renderer, view, proj, fogInfo);
 
-        float subtick = ticker.getSubtickPercent();
         particleSystem.renderParticles(renderer, view, proj, fogInfo, subtick, lightMap);
 
         outsideRenderer.renderTranslucentLayer(renderer, view, proj, fogInfo);
