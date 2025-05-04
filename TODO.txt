@@ -31,6 +31,7 @@ Fog:
   Under-lava fog
 [x] Fake terrain outside world
 [x] Water appears to cast shadow on blocks but possibly not itself
+BUG: Particles fall through the floor at y=32 specifically
 Pause menu:
   Text rendering
   Buttons
