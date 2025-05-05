@@ -5,6 +5,7 @@ uniform sampler2D u_TextureAtlas;
 uniform float u_FogStart;
 uniform float u_FogEnd;
 uniform vec4 u_FogColor;
+uniform vec4 u_TintColor;
 
 in vec2 v_UV;
 in float v_Shade;
@@ -19,6 +20,7 @@ void main(void) {
     }
 
     color.xyz *= v_Shade;
+    color *= u_TintColor;
 
     float fogDistance = length(v_ViewPos);
     float fogAmount = clamp((fogDistance - u_FogStart) / (u_FogEnd - u_FogStart), 0.0, 1.0);

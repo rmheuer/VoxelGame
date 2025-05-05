@@ -380,7 +380,8 @@ public final class VoxelGame extends BaseGame {
                 wireframe
         );
 
-        FogInfo fogInfo = new FogInfo(0, 512, Colors.RGBA.toFloats(FOG_COLOR));
+        //FogInfo fogInfo = new FogInfo(0, 512, Colors.RGBA.toFloats(FOG_COLOR));
+        FogInfo fogInfo = new FogInfo(0, 20, Colors.RGBA.fromFloats(0.02f, 0.02f, 0.2f), new Vector4f(0.4f, 0.4f, 0.9f, 1.0f));
 
         levelRender.renderOpaqueLayer(renderer, view, proj, fogInfo);
         outsideRenderer.renderOpaqueLayer(renderer, view, proj, fogInfo, subtick);

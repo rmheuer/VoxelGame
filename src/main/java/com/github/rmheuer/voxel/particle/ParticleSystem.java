@@ -244,6 +244,7 @@ public final class ParticleSystem implements SafeCloseable {
             pipe.getUniform("u_FogStart").setFloat(fogInfo.minDistance);
             pipe.getUniform("u_FogEnd").setFloat(fogInfo.maxDistance);
             pipe.getUniform("u_FogColor").setVec4(fogInfo.color);
+            pipe.getUniform("u_TintColor").setVec4(fogInfo.tintColor);
 
             pipe.draw(vertexBuffer, indexBuffer.getIndexBuffer(), 0, particles.size() * 6);
         }

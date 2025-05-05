@@ -75,11 +75,11 @@ public final class LevelRenderer implements SafeCloseable {
         }
 
         public void renderOpaqueLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
-            renderLayer(renderer, view, proj, fogInfo, opaqueToRender);
+            renderLayer(renderer, view, proj, fogInfo, tintColor, opaqueToRender);
         }
 
         public void renderTranslucentLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
-            renderLayer(renderer, view, proj, fogInfo, translucentToRender);
+            renderLayer(renderer, view, proj, fogInfo, tintColor, translucentToRender);
         }
 
         private void renderLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo, List<RenderSection> sectionsToRender) {
@@ -90,6 +90,7 @@ public final class LevelRenderer implements SafeCloseable {
                 pipe.getUniform("u_FogStart").setFloat(fogInfo.minDistance);
                 pipe.getUniform("u_FogEnd").setFloat(fogInfo.maxDistance);
                 pipe.getUniform("u_FogColor").setVec4(fogInfo.color);
+                pipe.getUniform("u_TintColor").setVec4(fogInfo.tintColor);
 
                 ShaderUniform offsetUniform = pipe.getUniform("u_SectionOffset");
                 for (RenderSection section : sectionsToRender) {

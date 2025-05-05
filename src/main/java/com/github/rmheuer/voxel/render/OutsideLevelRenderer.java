@@ -173,6 +173,7 @@ public final class OutsideLevelRenderer implements SafeCloseable {
             pipe.getUniform("u_FogStart").setFloat(fogInfo.minDistance);
             pipe.getUniform("u_FogEnd").setFloat(fogInfo.maxDistance);
             pipe.getUniform("u_FogColor").setVec4(fogInfo.color);
+            pipe.getUniform("u_TintColor").setVec4(fogInfo.tintColor);
 
             pipe.bindTexture(0, tex);
             pipe.draw(mesh);
