@@ -50,6 +50,8 @@ public final class VoxelGame extends BaseGame {
 
     private static final float CAMERA_HEIGHT = 1.6f;
 
+    private static final int FOG_COLOR = Colors.RGBA.fromInts(225, 240, 255);
+
     private final FixedRateExecutor ticker;
     private final Renderer2D renderer2D;
 
@@ -153,7 +155,7 @@ public final class VoxelGame extends BaseGame {
         drawSectionBoundaries = false;
         drawLightHeights = false;
 
-        setBackgroundColor(Colors.RGBA.fromFloats(0.5f, 0.8f, 1.0f));
+        setBackgroundColor(FOG_COLOR);
     }
 
     private void setMouseCaptured(boolean mouseCaptured) {
@@ -315,6 +317,8 @@ public final class VoxelGame extends BaseGame {
         waterAnimationGenerator.tick();
         lavaAnimationGenerator.tick();
 
+        outsideRenderer.tick();
+
         particleSystem.tickParticles(blockMap);
 
         Keyboard kb = getWindow().getKeyboard();
@@ -376,10 +380,10 @@ public final class VoxelGame extends BaseGame {
                 wireframe
         );
 
-        FogInfo fogInfo = new FogInfo(64, 100, new Vector4f(0.5f, 0.8f, 1.0f, 1.0f));
+        FogInfo fogInfo = new FogInfo(0, 512, Colors.RGBA.toFloats(FOG_COLOR));
 
         levelRender.renderOpaqueLayer(renderer, view, proj, fogInfo);
-        outsideRenderer.renderOpaqueLayer(renderer, view, proj, fogInfo);
+        outsideRenderer.renderOpaqueLayer(renderer, view, proj, fogInfo, subtick);
 
         particleSystem.renderParticles(renderer, view, proj, fogInfo, subtick, lightMap);
 

@@ -1,11 +1,14 @@
 package com.github.rmheuer.voxel.render;
 
 import com.github.rmheuer.azalea.io.ResourceUtil;
+import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.mesh.*;
 import com.github.rmheuer.azalea.render.pipeline.ActivePipeline;
 import com.github.rmheuer.azalea.render.pipeline.PipelineInfo;
 import com.github.rmheuer.azalea.render.shader.ShaderProgram;
+import com.github.rmheuer.azalea.render.texture.Bitmap;
+import com.github.rmheuer.azalea.render.texture.ColorFormat;
 import com.github.rmheuer.azalea.render.texture.Texture2D;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
 import com.github.rmheuer.voxel.block.LiquidShape;
@@ -16,7 +19,9 @@ import java.io.IOException;
 public final class OutsideLevelRenderer implements SafeCloseable {
     private static final int WATER_LEVEL = 32;
     private static final int WATER_DEPTH = 3;
-    private static final int DISTANCE = 100;
+    private static final int DISTANCE = 2048;
+
+    private static final int SKY_COLOR = Colors.RGBA.fromFloats(0.5f, 0.8f, 1.0f);
 
     public static final VertexLayout VERTEX_LAYOUT = new VertexLayout(
             AttribType.VEC3, // Position
@@ -27,7 +32,11 @@ public final class OutsideLevelRenderer implements SafeCloseable {
     private final ShaderProgram shader;
     private final PipelineInfo pipeline;
     private final Texture2D bedrockTex, waterTex;
+    private final Texture2D skyTex, cloudsTex;
     private final Mesh bedrockMesh, waterMesh;
+    private final Mesh skyMesh, cloudsMesh;
+
+    private int tickCount;
 
     public OutsideLevelRenderer(Renderer renderer, int blocksX, int blocksZ) throws IOException {
         shader = renderer.createShaderProgram(
@@ -41,6 +50,11 @@ public final class OutsideLevelRenderer implements SafeCloseable {
         waterTex = renderer.createTexture2D(ResourceUtil.readAsStream("water.png"));
         bedrockTex.setWrappingModes(Texture2D.WrappingMode.REPEAT);
         waterTex.setWrappingModes(Texture2D.WrappingMode.REPEAT);
+        try (Bitmap img = new Bitmap(1, 1, ColorFormat.RGBA, SKY_COLOR)) {
+            skyTex = renderer.createTexture2D(img);
+        }
+        cloudsTex = renderer.createTexture2D(ResourceUtil.readAsStream("clouds.png"));
+        cloudsTex.setWrappingModes(Texture2D.WrappingMode.REPEAT);
 
         bedrockMesh = renderer.createMesh();
         try (MeshData data = createBedrockMesh(blocksX, blocksZ)) {
@@ -50,6 +64,13 @@ public final class OutsideLevelRenderer implements SafeCloseable {
         try (MeshData data = createWaterMesh(blocksX, blocksZ)) {
             waterMesh.setData(data, DataUsage.STATIC);
         }
+        skyMesh = renderer.createMesh();
+        try (MeshData data = createSkyMesh()) {
+            skyMesh.setData(data, DataUsage.STATIC);
+        }
+        cloudsMesh = renderer.createMesh();
+
+        tickCount = 0;
     }
 
     private void putQuad(MeshData data, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, float x4, float y4, float z4, int width, int height, float shade) {
@@ -98,8 +119,47 @@ public final class OutsideLevelRenderer implements SafeCloseable {
         return data;
     }
 
-    public void renderOpaqueLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
+    private MeshData createSkyMesh() {
+        MeshData data = new MeshData(VERTEX_LAYOUT, PrimitiveType.TRIANGLES);
+
+        int y = 74;
+        data.putIndices(0, 1, 2, 0, 2, 3);
+        data.putVec3(-2048, y, -2048); data.putVec2(0, 0); data.putFloat(1);
+        data.putVec3(-2048, y, +2048); data.putVec2(0, 0); data.putFloat(1);
+        data.putVec3(+2048, y, +2048); data.putVec2(0, 0); data.putFloat(1);
+        data.putVec3(+2048, y, -2048); data.putVec2(0, 0); data.putFloat(1);
+
+        return data;
+    }
+
+    private MeshData createCloudsMesh(float subtick) {
+        MeshData data = new MeshData(VERTEX_LAYOUT, PrimitiveType.TRIANGLES);
+
+        int y = 66;
+        float scroll = (tickCount + subtick) * 0.025f;
+
+        data.putIndices(0, 1, 2, 0, 2, 3);
+        // move westward -> -x
+        data.putVec3(-2048 - scroll, y, -2048); data.putVec2(0, 0); data.putFloat(1);
+        data.putVec3(-2048 - scroll, y, +2048); data.putVec2(0, 1); data.putFloat(1);
+        data.putVec3(+4096 - scroll, y, +2048); data.putVec2(2, 1); data.putFloat(1);
+        data.putVec3(+4096 - scroll, y, -2048); data.putVec2(2, 0); data.putFloat(1);
+
+        return data;
+    }
+
+    public void tick() {
+        tickCount++;
+    }
+
+    public void renderOpaqueLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo, float subtick) {
         renderLayer(bedrockTex, bedrockMesh, renderer, view, proj, fogInfo);
+        renderLayer(skyTex, skyMesh, renderer, view, proj, fogInfo);
+
+        try (MeshData cloudsData = createCloudsMesh(subtick)) {
+            cloudsMesh.setData(cloudsData, DataUsage.STREAM);
+        }
+        renderLayer(cloudsTex, cloudsMesh, renderer, view, proj, fogInfo);
     }
 
     public void renderTranslucentLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
@@ -123,8 +183,12 @@ public final class OutsideLevelRenderer implements SafeCloseable {
     public void close() {
         bedrockMesh.close();
         waterMesh.close();
+        skyMesh.close();
+        cloudsMesh.close();
         bedrockTex.close();
         waterTex.close();
+        cloudsTex.close();
+        skyTex.close();
         shader.close();
     }
 }
