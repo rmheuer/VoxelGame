@@ -19,7 +19,8 @@ public final class BlockPickerUI {
             {ID_GOLD_ORE, ID_IRON_BLOCK, ID_GOLD_BLOCK, ID_BOOKSHELF, ID_TNT, ID_OBSIDIAN}
     };
 
-    private static final int BG_COLOR = Colors.RGBA.fromInts(64, 64, 72, 192);
+    private static final int BG_COLOR_1 = Colors.RGBA.fromInts(5, 5, 0, 96);
+    private static final int BG_COLOR_2 = Colors.RGBA.fromInts(48, 48, 96, 160);
     private static final int HIGHLIGHT_COLOR = Colors.RGBA.fromInts(192, 192, 192);
     private static final int ITEM_SPACING = 28;
 
@@ -37,7 +38,7 @@ public final class BlockPickerUI {
         int cornerX = draw.getWidth() / 2 - WIDTH / 2;
         int cornerY = (int) ((draw.getHeight() - HEIGHT) * 0.3);
 
-        draw.drawRect(cornerX, cornerY, WIDTH, HEIGHT, BG_COLOR);
+        draw.drawRectVGradient(cornerX, cornerY, WIDTH, HEIGHT, BG_COLOR_1, BG_COLOR_2);
         draw.drawTextCentered(draw.getWidth() / 2, cornerY + 16, TITLE);
 
         blocksOriginX = cornerX + 8;

@@ -28,6 +28,10 @@ public final class UIDrawList implements SafeCloseable {
         draw.fillRect(x, y, w, h, color);
     }
 
+    public void drawRectVGradient(int x, int y, int w, int h, int topColor, int bottomColor) {
+        draw.fillRectVGradient(x, y, w, h, topColor, bottomColor);
+    }
+
     public void drawSprite(int x, int y, UISprite sprite) {
         draw.drawImage(x, y, sprite.getWidth(), sprite.getHeight(), sprite.getTexture());
     }

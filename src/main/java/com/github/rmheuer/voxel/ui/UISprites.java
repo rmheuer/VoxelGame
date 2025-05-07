@@ -16,6 +16,9 @@ public final class UISprites implements SafeCloseable {
     private final UISprite crosshair;
     private final UISprite hotbar;
     private final UISprite hotbarHighlight;
+    private final UISprite button;
+    private final UISprite buttonGray;
+    private final UISprite buttonHighlight;
 
     public UISprites(Renderer renderer) throws IOException {
         atlasTexture = renderer.createTexture2D(ResourceUtil.readAsStream("gui.png"));
@@ -23,6 +26,9 @@ public final class UISprites implements SafeCloseable {
         crosshair = getSprite(ATLAS_SIZE - 16, 0, 16, 16);
         hotbar = getSprite(0, 0, 182, 22);
         hotbarHighlight = getSprite(0, 22, 24, 24);
+        button = getSprite(0, 66, 200, 20);
+        buttonGray = getSprite(0, 46, 200, 20);
+        buttonHighlight = getSprite(0, 86, 200, 20);
     }
 
     private UISprite getSprite(int x, int y, int w, int h) {
@@ -46,6 +52,18 @@ public final class UISprites implements SafeCloseable {
 
     public UISprite getHotbarHighlight() {
         return hotbarHighlight;
+    }
+
+    public UISprite getButton() {
+        return button;
+    }
+
+    public UISprite getButtonGray() {
+        return buttonGray;
+    }
+
+    public UISprite getButtonHighlight() {
+        return buttonHighlight;
     }
 
     @Override
