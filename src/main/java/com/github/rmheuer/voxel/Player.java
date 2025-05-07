@@ -84,6 +84,42 @@ public final class Player {
             moveZ = box.collideAlongAxis(collider, Axis.Z, moveZ);
         }
 
+        if (onGround && (moveX != velocity.x || moveZ != velocity.z)) {
+            AABB stepUp = getBoundingBox().translate(0, 0.6f, 0);
+            AABB stepExtended = extended.expandTowards(0, 0.6f, 0).expandTowards(0, -0.6f, 0);
+            colliders = map.getCollidersWithin(stepExtended);
+
+            float stepMoveX = velocity.x;
+            for (AABB collider : colliders) {
+                stepMoveX = stepUp.collideAlongAxis(collider, Axis.X, stepMoveX);
+            }
+            stepUp = stepUp.translate(stepMoveX, 0, 0);
+            float stepMoveZ = velocity.z;
+            for (AABB collider : colliders) {
+                stepMoveZ = stepUp.collideAlongAxis(collider, Axis.Z, stepMoveZ);
+            }
+            stepUp = stepUp.translate(0, 0, stepMoveZ);
+
+            // Move down back onto floor
+            float floorMoveY = -0.6f;
+            for (AABB collider : colliders) {
+                floorMoveY = stepUp.collideAlongAxis(collider, Axis.Y, floorMoveY);
+            }
+            stepUp = stepUp.translate(0, floorMoveY, 0);
+
+            float stepMoveY = velocity.y;
+            for (AABB collider : colliders) {
+                stepMoveY = stepUp.collideAlongAxis(collider, Axis.Y, stepMoveY);
+            }
+            stepUp = stepUp.translate(0, stepMoveY, 0);
+
+            if (stepMoveX * stepMoveX + stepMoveZ * stepMoveZ > moveX * moveX + moveZ * moveZ) {
+                moveX = stepMoveX;
+                moveY = 0.6f + floorMoveY + stepMoveY;
+                moveZ = stepMoveZ;
+            }
+        }
+
         if (moveX != velocity.x)
             velocity.x = 0;
         if (moveZ != velocity.z)

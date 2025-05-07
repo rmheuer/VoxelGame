@@ -10,7 +10,7 @@ To Do:
     [x] Cross sprites are not stretched in this version apparently
 [x] Player physics:
   [x] Basic land movement
-  Stair stepping
+  [x] Stair stepping
   Swimming
 [x] Block textures
 [x] Particle textures
