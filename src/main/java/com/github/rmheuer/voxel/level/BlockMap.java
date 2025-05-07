@@ -7,6 +7,7 @@ import com.github.rmheuer.voxel.block.Liquid;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 public final class BlockMap {
     private final int sectionsX, sectionsY, sectionsZ;
@@ -103,7 +104,7 @@ public final class BlockMap {
         return colliders;
     }
 
-    public boolean containsLiquid(AABB region, Liquid liquid) {
+    private boolean anyInRegionMatches(AABB region, Predicate<Block> condition) {
         int minX = (int) Math.max(Math.floor(region.minX), 0);
         int minY = (int) Math.max(Math.floor(region.minY), 0);
         int minZ = (int) Math.max(Math.floor(region.minZ), 0);
@@ -115,13 +116,30 @@ public final class BlockMap {
             for (int z = minZ; z < maxZ; z++) {
                 for (int x = minX; x < maxX; x++) {
                     Block block = Blocks.getBlock(getBlockId(x, y, z));
-                    if (block.getLiquid() == liquid)
+                    if (condition.test(block))
                         return true;
                 }
             }
         }
 
         return false;
+    }
+
+    public boolean containsLiquid(AABB region, Liquid liquid) {
+        return anyInRegionMatches(region, (block) -> block.getLiquid() == liquid);
+    }
+
+    public boolean containsAnyLiquid(AABB region) {
+        return anyInRegionMatches(region, (block) -> block.getLiquid() != null);
+    }
+
+    public boolean isFree(AABB region) {
+        for (AABB collider : getCollidersWithin(region)) {
+            if (collider.intersects(region))
+                return false;
+        }
+
+        return !containsAnyLiquid(region);
     }
 
     public int getSectionsX() {

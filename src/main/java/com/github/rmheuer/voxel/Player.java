@@ -45,11 +45,12 @@ public final class Player {
         inputRight *= 0.98f;
 
         AABB box = getBoundingBox();
+        boolean inLiquid = map.containsAnyLiquid(box);
         boolean inWater = map.containsLiquid(box, Liquid.WATER);
         boolean inLava = map.containsLiquid(box, Liquid.LAVA);
 
         if (jump) {
-            if (inWater || inLava) {
+            if (inLiquid) {
                 velocity.y += 0.04f;
             } else if (onGround) {
                 velocity.y = JUMP_VELOCITY;
@@ -84,7 +85,8 @@ public final class Player {
             moveZ = box.collideAlongAxis(collider, Axis.Z, moveZ);
         }
 
-        if (onGround && (moveX != velocity.x || moveZ != velocity.z)) {
+        boolean horizontalCollision = moveX != velocity.x || moveZ != velocity.z;
+        if (onGround && horizontalCollision) {
             AABB stepUp = getBoundingBox().translate(0, 0.6f, 0);
             AABB stepExtended = extended.expandTowards(0, 0.6f, 0).expandTowards(0, -0.6f, 0);
             colliders = map.getCollidersWithin(stepExtended);
@@ -134,12 +136,16 @@ public final class Player {
 
         position.add(moveX, moveY, moveZ);
 
-        if (inWater || inLava) {
+        if (inLiquid) {
             float friction = inWater ? 0.8f : 0.5f;
             velocity.mul(friction);
             velocity.y -= 0.02f;
 
-            // TODO: Jump out if at top
+            if (horizontalCollision) {
+                AABB jumpOut = getBoundingBox().translate(velocity.x, velocity.y + 0.6f - moveY, velocity.z);
+                if (map.isFree(jumpOut))
+                    velocity.y = 0.3f;
+            }
         } else {
             velocity.mul(AIR_FRICTION_XZ, AIR_FRICTION_Y, AIR_FRICTION_XZ);
             velocity.y -= GRAVITY;

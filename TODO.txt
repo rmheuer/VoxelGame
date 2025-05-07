@@ -11,7 +11,7 @@ To Do:
 [x] Player physics:
   [x] Basic land movement
   [x] Stair stepping
-  Swimming
+  [x] Swimming
 [x] Block textures
 [x] Particle textures
 [x] Add all classic blocks
