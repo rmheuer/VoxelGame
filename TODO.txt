@@ -25,10 +25,10 @@ To Do:
   [/] Grass growing/dying
   [/] Sand/gravel falling
   [/] Saplings growing into trees
-Fog:
+[x] Fog:
   [x] Land fog
-  Underwater fog
-  Under-lava fog
+  [x] Underwater fog
+  [x] Under-lava fog
 [x] Fake terrain outside world
 [x] Water appears to cast shadow on blocks but possibly not itself
 [x] BUG: Particles fall through the floor at y=32 specifically

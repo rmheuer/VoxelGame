@@ -75,11 +75,11 @@ public final class LevelRenderer implements SafeCloseable {
         }
 
         public void renderOpaqueLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
-            renderLayer(renderer, view, proj, fogInfo, tintColor, opaqueToRender);
+            renderLayer(renderer, view, proj, fogInfo, opaqueToRender);
         }
 
         public void renderTranslucentLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
-            renderLayer(renderer, view, proj, fogInfo, tintColor, translucentToRender);
+            renderLayer(renderer, view, proj, fogInfo, translucentToRender);
         }
 
         private void renderLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo, List<RenderSection> sectionsToRender) {

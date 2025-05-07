@@ -10,6 +10,7 @@ import com.github.rmheuer.azalea.input.mouse.MouseScrollEvent;
 import com.github.rmheuer.azalea.io.ResourceUtil;
 import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.azalea.math.CubeFace;
+import com.github.rmheuer.azalea.render.BufferType;
 import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.WindowSettings;
@@ -25,6 +26,8 @@ import com.github.rmheuer.voxel.anim.LavaAnimationGenerator;
 import com.github.rmheuer.voxel.anim.WaterAnimationGenerator;
 import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.block.Blocks;
+import com.github.rmheuer.voxel.block.Liquid;
+import com.github.rmheuer.voxel.block.LiquidShape;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.level.MapSection;
@@ -50,7 +53,9 @@ public final class VoxelGame extends BaseGame {
 
     private static final float CAMERA_HEIGHT = 1.6f;
 
-    private static final int FOG_COLOR = Colors.RGBA.fromInts(225, 240, 255);
+    private static final FogInfo AIR_FOG = new FogInfo(0, 512, new Vector4f(225 / 255.0f, 240 / 255.0f, 255 / 255.0f, 1.0f), new Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
+    private static final FogInfo WATER_FOG = new FogInfo(0, 20, new Vector4f(0.02f, 0.02f, 0.2f, 1.0f), new Vector4f(0.4f, 0.4f, 0.9f, 1.0f));
+    private static final FogInfo LAVA_FOG = new FogInfo(-0.3f, 1.6f, new Vector4f(0.6f, 0.1f, 0.0f, 1.0f), new Vector4f(0.4f, 0.3f, 0.3f, 1.0f));
 
     private final FixedRateExecutor ticker;
     private final Renderer2D renderer2D;
@@ -154,8 +159,6 @@ public final class VoxelGame extends BaseGame {
 
         drawSectionBoundaries = false;
         drawLightHeights = false;
-
-        setBackgroundColor(FOG_COLOR);
     }
 
     private void setMouseCaptured(boolean mouseCaptured) {
@@ -338,6 +341,28 @@ public final class VoxelGame extends BaseGame {
         player.tickMovement(blockMap, inputForward, inputRight, jump);
     }
 
+    private boolean isCameraInLiquid(Liquid liquid) {
+        Vector3f pos = new Vector3f(camera.getTransform().position)
+            .add(camera.getTransform().getForward().mul(0.01f));
+        int blockX = (int) pos.x;
+        int blockY = (int) pos.y;
+        int blockZ = (int) pos.z;
+
+        if (!blockMap.isBlockInBounds(blockX, blockY, blockZ))
+            return false;
+        
+        Liquid in = Blocks.getBlock(blockMap.getBlockId(blockX, blockY, blockZ)).getLiquid();
+        if (in != liquid)
+            return false;
+
+        Liquid above = blockMap.isBlockInBounds(blockX, blockY + 1, blockZ)
+            ? Blocks.getBlock(blockMap.getBlockId(blockX, blockY + 1, blockZ)).getLiquid()
+            : null;
+
+        float surfaceY = above == liquid ? 1.0f : LiquidShape.LIQUID_SURFACE_HEIGHT;
+        return (pos.y % 1.0f) <= surfaceY;
+    }
+
     @Override
     protected void render(Renderer renderer) {
         if (ticked) {
@@ -380,8 +405,13 @@ public final class VoxelGame extends BaseGame {
                 wireframe
         );
 
-        //FogInfo fogInfo = new FogInfo(0, 512, Colors.RGBA.toFloats(FOG_COLOR));
-        FogInfo fogInfo = new FogInfo(0, 20, Colors.RGBA.fromFloats(0.02f, 0.02f, 0.2f), new Vector4f(0.4f, 0.4f, 0.9f, 1.0f));
+        FogInfo fogInfo = AIR_FOG;
+        if (isCameraInLiquid(Liquid.WATER))
+            fogInfo = WATER_FOG;
+        else if (isCameraInLiquid(Liquid.LAVA))
+            fogInfo = LAVA_FOG;
+        renderer.setClearColor(Colors.RGBA.fromFloats(fogInfo.color));
+        renderer.clear(BufferType.COLOR);
 
         levelRender.renderOpaqueLayer(renderer, view, proj, fogInfo);
         outsideRenderer.renderOpaqueLayer(renderer, view, proj, fogInfo, subtick);
