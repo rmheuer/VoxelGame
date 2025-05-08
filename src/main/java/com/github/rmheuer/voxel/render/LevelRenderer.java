@@ -15,9 +15,7 @@ import org.joml.Matrix4f;
 import org.joml.Vector3fc;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 public final class LevelRenderer implements SafeCloseable {
     private final Texture2D atlasTexture;
@@ -199,6 +197,82 @@ public final class LevelRenderer implements SafeCloseable {
         }
 
         return geom;
+    }
+
+    // All block positions at the outside surface of the section
+    private static final List<Vector3i> STARTING_POINTS = new ArrayList<>();
+    static {
+        int size = MapSection.SIZE;
+        
+        for (int z = 0; z < size; z++) {
+            for (int x = 0; x < size; x++) {
+                STARTING_POINTS.add(new Vector3i(x, 0, z));
+                STARTING_POINTS.add(new Vector3i(x, size - 1, z));
+            }
+        }
+
+        for (int y = 1; y < size - 1; y++) {
+            for (int x = 0; x < size; x++) {
+                STARTING_POINTS.add(new Vector3i(x, y, 0));
+                STARTING_POINTS.add(new Vector3i(x, y, size - 1));
+            }
+        }
+
+        for (int y = 1; y < size - 1; y++) {
+            for (int z = 1; z < size - 1; z++) {
+                STARTING_POINTS.add(new Vector3i(0, y, z));
+                STARTING_POINTS.add(new Vector3i(size - 1, y, z));
+            }
+        }
+    }
+
+    private static final class FaceSet {
+        private static final byte BITS_ALL = (byte) 0b111111;
+
+        private final byte bits;
+
+        public FaceSet() {
+            bits = 0;
+        }
+
+        public void clear() {
+            bits = 0;
+        }
+
+        public void addFace(CubeFace face) {
+            bits |= 1 << face.ordinal();
+        }
+
+        public boolean containsFace(CubeFace face) {
+            return (bits & (1 << face.ordinal())) != 0;
+        }
+
+        public boolean containsAll() {
+            return bits == BITS_ALL;
+        }
+    }
+
+    private SectionVisibility calcSectionVisibility(MapSection section) {
+        if (section.isEmpty())
+            return SectionVisibility.all();
+
+        BitSet visited = new BitSet(MapSection.SIZE_CUBED);
+        Queue<Vector3i> frontier = new ArrayDeque<>();
+        SectionVisibility visibility = SectionVisibility.none();
+        FaceSet touchedFaces = new FaceSet();
+
+        for (Vector3i start : STARTING_POINTS) {
+            touchedFaces.clear();
+            frontier.clear();
+            frontier.add(start);
+
+            Vector3i pos;
+            while ((pos = frontier.poll()) != null) {
+                
+            }
+        }
+        
+        return visibility;
     }
 
     @Override
