@@ -44,12 +44,6 @@ import java.io.IOException;
 import java.lang.Math;
 
 public final class VoxelGame extends BaseGame {
-    private enum UIState {
-        NONE,
-        BLOCK_PICKER,
-        PAUSE_MENU
-    }
-    
     private static final WindowSettings WINDOW_SETTINGS =
             new WindowSettings(640, 480, "Voxel")
                 .setVSync(false);
@@ -162,7 +156,7 @@ public final class VoxelGame extends BaseGame {
         selectedSlot = 0;
 
         blockPickerUI = new BlockPickerUI(this::blockPicked);
-        pauseMenuUI = new PauseMenuUI();
+        pauseMenuUI = new PauseMenuUI(this);
         uiState = UIState.NONE;
 
         drawSectionBoundaries = false;
@@ -177,7 +171,7 @@ public final class VoxelGame extends BaseGame {
         getWindow().getMouse().setCursorCaptured(mouseCaptured);
     }
 
-    private void setUIState(UIState state) {
+    public void setUIState(UIState state) {
         setMouseCaptured(state == UIState.NONE);
         this.uiState = state;
     }
@@ -263,6 +257,8 @@ public final class VoxelGame extends BaseGame {
 
             if (uiState == UIState.BLOCK_PICKER)
                 blockPickerUI.mouseClicked(uiMousePos);
+            if (uiState == UIState.PAUSE_MENU)
+                pauseMenuUI.mouseClicked(uiMousePos);
             return;
         }
 

@@ -32,6 +32,6 @@ To Do:
 [x] Fake terrain outside world
 [x] Water appears to cast shadow on blocks but possibly not itself
 [x] BUG: Particles fall through the floor at y=32 specifically
-Pause menu:
-  Text rendering
-  Buttons
+[x] Pause menu:
+  [x] Text rendering
+  [x] Buttons
