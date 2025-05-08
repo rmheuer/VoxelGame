@@ -1,6 +1,7 @@
 package com.github.rmheuer.voxel.render;
 
 import com.github.rmheuer.azalea.io.ResourceUtil;
+import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.mesh.*;
 import com.github.rmheuer.azalea.render.pipeline.*;
@@ -13,6 +14,7 @@ import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.level.*;
 import org.joml.Matrix4f;
 import org.joml.Vector3fc;
+import org.joml.Vector3i;
 
 import java.io.IOException;
 import java.util.*;
@@ -229,7 +231,7 @@ public final class LevelRenderer implements SafeCloseable {
     private static final class FaceSet {
         private static final byte BITS_ALL = (byte) 0b111111;
 
-        private final byte bits;
+        private byte bits;
 
         public FaceSet() {
             bits = 0;
