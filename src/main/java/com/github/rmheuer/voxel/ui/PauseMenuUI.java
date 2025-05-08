@@ -45,15 +45,22 @@ public final class PauseMenuUI {
         }
     }
 
+    private static final String TITLE = "Game Paused";
+
     private static final int BG_COLOR_1 = Colors.RGBA.fromInts(5, 5, 0, 96);
     private static final int BG_COLOR_2 = Colors.RGBA.fromInts(48, 48, 96, 160);
 
     private final Button backToGameButton;
+    private final Button resetLevelButton;
     private final Button quitGameButton;
 
     public PauseMenuUI(VoxelGame game) {
         backToGameButton = new Button("Back to Game", () -> game.setUIState(UIState.NONE));
-        quitGameButton = new Button("Quit Game", () -> game.stop());
+        resetLevelButton = new Button("Reset Level", () -> {
+                game.resetLevel();
+                game.setUIState(UIState.NONE);
+        });
+        quitGameButton = new Button("Quit Game", game::stop);
     }
     
     public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
@@ -61,18 +68,22 @@ public final class PauseMenuUI {
         int centerY = draw.getHeight() / 2;
         
         int cornerX = centerX - Button.WIDTH / 2;
-        int cornerY = centerY - (2 * Button.HEIGHT + 30) / 2;
+        int cornerY = centerY - (3 * Button.HEIGHT + 32) / 2;
         
         backToGameButton.setPosition(cornerX, cornerY);
-        quitGameButton.setPosition(cornerX, cornerY + Button.HEIGHT + 30);
+        resetLevelButton.setPosition(cornerX, cornerY + Button.HEIGHT + 4);
+        quitGameButton.setPosition(cornerX, cornerY + Button.HEIGHT * 2 + 32);
 
         draw.drawRectVGradient(0, 0, draw.getWidth(), draw.getHeight(), BG_COLOR_1, BG_COLOR_2);
+        draw.drawTextCentered(centerX, cornerY - 24, TITLE);
         backToGameButton.draw(draw, sprites, mousePos);
+        resetLevelButton.draw(draw, sprites, mousePos);
         quitGameButton.draw(draw, sprites, mousePos);
     }
 
     public void mouseClicked(Vector2i mousePos) {
         backToGameButton.mouseClicked(mousePos);
+        resetLevelButton.mouseClicked(mousePos);
         quitGameButton.mouseClicked(mousePos);
     }
 }

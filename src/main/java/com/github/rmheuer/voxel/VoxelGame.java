@@ -51,6 +51,8 @@ public final class VoxelGame extends BaseGame {
     private static final int GUI_WIDTH = 320;
     private static final int GUI_HEIGHT = 240;
 
+    private static final int LEVEL_SIZE_SECTIONS = 256 / MapSection.SIZE;
+    
     private static final float CAMERA_HEIGHT = 1.6f;
 
     private static final FogInfo AIR_FOG = new FogInfo(0, 512, new Vector4f(225 / 255.0f, 240 / 255.0f, 255 / 255.0f, 1.0f), new Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
@@ -73,11 +75,11 @@ public final class VoxelGame extends BaseGame {
     private final LavaAnimationGenerator lavaAnimationGenerator;
 
     private final Camera camera;
-    private final Player player;
+    private Player player;
 
     private final BlockMap blockMap;
     private final LightMap lightMap;
-    private final LevelRenderData levelRenderData;
+    private LevelRenderData levelRenderData;
 
     private boolean mouseCaptured;
     private Raycast.Result raycastResult;
@@ -115,30 +117,14 @@ public final class VoxelGame extends BaseGame {
         lavaAnimationGenerator = new LavaAnimationGenerator();
 
         camera = new Camera(new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f));
-        player = new Player(32, 40, 32);
 
-        blockMap = new BlockMap(4, 4, 4);
+        blockMap = new BlockMap(LEVEL_SIZE_SECTIONS, 4, LEVEL_SIZE_SECTIONS);
         lightMap = new LightMap(blockMap.getBlocksX(), blockMap.getBlocksZ());
-        levelRenderData = new LevelRenderData(4, 4, 4);
 
         outsideRenderer = new OutsideLevelRenderer(getRenderer(), blockMap.getBlocksX(), blockMap.getBlocksZ());
 
-        for (int z = 0; z < 64; z++) {
-            for (int x = 0; x < 64; x++) {
-                for (int y = 0; y < 32; y++) {
-                    blockMap.setBlockId(x, y, z, Blocks.ID_STONE);
-                }
-            }
-        }
-
-        for (byte block = 0; block < Blocks.BLOCK_COUNT; block++) {
-            int x = 2 + (block % 10) * 2;
-            int z = 2 + (block / 10) * 2;
-            blockMap.setBlockId(x, 33, z, block);
-        }
-
-        lightMap.recalculateAll(blockMap);
-
+        resetLevel();
+        
         setMouseCaptured(false);
         getEventBus().addHandler(KeyPressEvent.class, this::keyPressed);
         getEventBus().addHandler(MouseScrollEvent.class, this::mouseScrolled);
@@ -161,6 +147,34 @@ public final class VoxelGame extends BaseGame {
 
         drawSectionBoundaries = false;
         drawLightHeights = false;
+    }
+
+    public void resetLevel() {
+        for (int z = 0; z < blockMap.getBlocksZ(); z++) {
+            for (int x = 0; x < blockMap.getBlocksX(); x++) {
+                for (int y = 0; y < 32; y++) {
+                    blockMap.setBlockId(x, y, z, Blocks.ID_STONE);
+                }
+                for (int y = 32; y < blockMap.getBlocksY(); y++) {
+                    blockMap.setBlockId(x, y, z, Blocks.ID_AIR);
+                }
+            }
+        }
+
+        for (byte block = 0; block < Blocks.BLOCK_COUNT; block++) {
+            int x = 2 + (block % 10) * 2;
+            int z = 2 + (block / 10) * 2;
+            blockMap.setBlockId(x, 33, z, block);
+        }
+
+        lightMap.recalculateAll(blockMap);
+
+        if (levelRenderData != null)
+            levelRenderData.close();
+        levelRenderData = new LevelRenderData(
+            blockMap.getSectionsX(), blockMap.getSectionsY(), blockMap.getSectionsZ());
+
+        player = new Player(32, 40, 32);
     }
 
     private void setMouseCaptured(boolean mouseCaptured) {
@@ -497,6 +511,10 @@ public final class VoxelGame extends BaseGame {
         Vector2i uiMousePos = new Vector2i((int) (mousePos.x / guiScale), (int) (mousePos.y / guiScale));
 
         try (UIDrawList uiDraw = new UIDrawList(windowSize.x / guiScale, windowSize.y / guiScale, atlasTexture, textRenderer)) {
+            int fps = (int) getFpsCounter().getFrameRate();
+            float mspf = getFpsCounter().getFrameTime() * 1000.0f;
+            uiDraw.drawText(1, 8, String.format("%d FPS, %.2f ms/frame", fps, mspf));
+            
             uiDraw.drawSprite(uiDraw.getWidth() / 2 - 8, uiDraw.getHeight() / 2 - 8, uiSprites.getCrosshair());
             drawHotbar(uiDraw);
             if (uiState == UIState.BLOCK_PICKER)
