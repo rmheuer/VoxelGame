@@ -38,7 +38,7 @@ public final class OutsideLevelRenderer implements SafeCloseable {
 
     private int tickCount;
 
-    public OutsideLevelRenderer(Renderer renderer, int blocksX, int blocksZ) throws IOException {
+    public OutsideLevelRenderer(Renderer renderer) throws IOException {
         shader = renderer.createShaderProgram(
                 ResourceUtil.readAsStream("shaders/outside_vertex.glsl"),
                 ResourceUtil.readAsStream("shaders/fragment.glsl")
@@ -57,20 +57,23 @@ public final class OutsideLevelRenderer implements SafeCloseable {
         cloudsTex.setWrappingModes(Texture2D.WrappingMode.REPEAT);
 
         bedrockMesh = renderer.createMesh();
-        try (MeshData data = createBedrockMesh(blocksX, blocksZ)) {
-            bedrockMesh.setData(data, DataUsage.STATIC);
-        }
         waterMesh = renderer.createMesh();
-        try (MeshData data = createWaterMesh(blocksX, blocksZ)) {
-            waterMesh.setData(data, DataUsage.STATIC);
-        }
         skyMesh = renderer.createMesh();
-        try (MeshData data = createSkyMesh()) {
-            skyMesh.setData(data, DataUsage.STATIC);
-        }
         cloudsMesh = renderer.createMesh();
 
         tickCount = 0;
+    }
+
+    public void updateLevelSize(int blocksX, int blocksZ) {
+        try (MeshData data = createBedrockMesh(blocksX, blocksZ)) {
+            bedrockMesh.setData(data, DataUsage.STATIC);
+        }
+        try (MeshData data = createWaterMesh(blocksX, blocksZ)) {
+            waterMesh.setData(data, DataUsage.STATIC);
+        }
+        try (MeshData data = createSkyMesh()) {
+            skyMesh.setData(data, DataUsage.STATIC);
+        }
     }
 
     private void putQuad(MeshData data, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, float x4, float y4, float z4, int width, int height, float shade) {

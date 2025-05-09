@@ -2,6 +2,7 @@ package com.github.rmheuer.voxel.ui;
 
 import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.voxel.VoxelGame;
+import com.github.rmheuer.voxel.level.MapSection;
 
 import org.joml.Vector2i;
 
@@ -24,7 +25,7 @@ public final class CreateLevelUI implements UI {
     }
 
     private void createLevel(VoxelGame game, int size) {
-        game.resetLevel();
+        game.resetLevel(size / MapSection.SIZE);
         game.setUI(null);
     }
 

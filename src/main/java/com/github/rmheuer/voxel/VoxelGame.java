@@ -77,8 +77,8 @@ public final class VoxelGame extends BaseGame {
     private final Camera camera;
     private Player player;
 
-    private final BlockMap blockMap;
-    private final LightMap lightMap;
+    private BlockMap blockMap;
+    private LightMap lightMap;
     private LevelRenderData levelRenderData;
 
     private boolean mouseCaptured;
@@ -115,13 +115,9 @@ public final class VoxelGame extends BaseGame {
         lavaAnimationGenerator = new LavaAnimationGenerator();
 
         camera = new Camera(new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f));
+        outsideRenderer = new OutsideLevelRenderer(getRenderer());
 
-        blockMap = new BlockMap(LEVEL_SIZE_SECTIONS, 4, LEVEL_SIZE_SECTIONS);
-        lightMap = new LightMap(blockMap.getBlocksX(), blockMap.getBlocksZ());
-
-        outsideRenderer = new OutsideLevelRenderer(getRenderer(), blockMap.getBlocksX(), blockMap.getBlocksZ());
-
-        resetLevel();
+        resetLevel(4);
         
         setMouseCaptured(false);
         getEventBus().addHandler(KeyPressEvent.class, this::keyPressed);
@@ -145,7 +141,10 @@ public final class VoxelGame extends BaseGame {
         drawLightHeights = false;
     }
 
-    public void resetLevel() {
+    public void resetLevel(int sizeSections) {
+        blockMap = new BlockMap(sizeSections, 4, sizeSections);
+        lightMap = new LightMap(blockMap.getBlocksX(), blockMap.getBlocksZ());
+        
         for (int z = 0; z < blockMap.getBlocksZ(); z++) {
             for (int x = 0; x < blockMap.getBlocksX(); x++) {
                 for (int y = 0; y < 32; y++) {
@@ -170,6 +169,8 @@ public final class VoxelGame extends BaseGame {
         levelRenderData = new LevelRenderData(
             blockMap.getSectionsX(), blockMap.getSectionsY(), blockMap.getSectionsZ());
 
+        outsideRenderer.updateLevelSize(blockMap.getBlocksX(), blockMap.getBlocksZ());
+        
         player = new Player(32, 40, 32);
     }
 
