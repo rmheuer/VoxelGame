@@ -9,7 +9,7 @@ import java.util.function.Consumer;
 
 import static com.github.rmheuer.voxel.block.Blocks.*;
 
-public final class BlockPickerUI {
+public final class BlockPickerUI implements UI {
     private static final String TITLE = "Select block";
     private static final byte[][] BLOCKS = {
             {ID_STONE, ID_COBBLESTONE, ID_BRICKS, ID_DIRT, ID_PLANKS, ID_LOG, ID_LEAVES, ID_GLASS, ID_SLAB},
@@ -34,7 +34,8 @@ public final class BlockPickerUI {
         this.blockPickedCallback = blockPickedCallback;
     }
 
-    public void draw(UIDrawList draw, Vector2i mousePos) {
+    @Override
+    public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
         int cornerX = draw.getWidth() / 2 - WIDTH / 2;
         int cornerY = (int) ((draw.getHeight() - HEIGHT) * 0.3);
 
@@ -66,6 +67,7 @@ public final class BlockPickerUI {
         }
     }
 
+    @Override
     public void mouseClicked(Vector2i mousePos) {
         for (int row = 0; row < 5; row++) {
             byte[] blocksInRow = BLOCKS[row];

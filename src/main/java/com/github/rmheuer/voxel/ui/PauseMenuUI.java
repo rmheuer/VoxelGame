@@ -1,12 +1,11 @@
 package com.github.rmheuer.voxel.ui;
 
 import com.github.rmheuer.azalea.render.Colors;
-import com.github.rmheuer.voxel.UIState;
 import com.github.rmheuer.voxel.VoxelGame;
 
 import org.joml.Vector2i;
 
-public final class PauseMenuUI {
+public final class PauseMenuUI implements UI {
     private static final class Button {
         public static final int WIDTH = 200;
         public static final int HEIGHT = 20;
@@ -55,14 +54,15 @@ public final class PauseMenuUI {
     private final Button quitGameButton;
 
     public PauseMenuUI(VoxelGame game) {
-        backToGameButton = new Button("Back to Game", () -> game.setUIState(UIState.NONE));
+        backToGameButton = new Button("Back to Game", () -> game.setUI(null));
         resetLevelButton = new Button("Reset Level", () -> {
                 game.resetLevel();
-                game.setUIState(UIState.NONE);
+                game.setUI(null);
         });
         quitGameButton = new Button("Quit Game", game::stop);
     }
-    
+
+    @Override
     public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
         int centerX = draw.getWidth() / 2;
         int centerY = draw.getHeight() / 2;
@@ -81,6 +81,7 @@ public final class PauseMenuUI {
         quitGameButton.draw(draw, sprites, mousePos);
     }
 
+    @Override
     public void mouseClicked(Vector2i mousePos) {
         backToGameButton.mouseClicked(mousePos);
         resetLevelButton.mouseClicked(mousePos);

@@ -136,14 +136,14 @@ public final class OutsideLevelRenderer implements SafeCloseable {
         MeshData data = new MeshData(VERTEX_LAYOUT, PrimitiveType.TRIANGLES);
 
         int y = 66;
-        float scroll = (tickCount + subtick) * 0.025f;
+        float scroll = ((tickCount + subtick) * 0.025f) % 4096;
 
         data.putIndices(0, 1, 2, 0, 2, 3);
         // move westward -> -x
         data.putVec3(-2048 - scroll, y, -2048); data.putVec2(0, 0); data.putFloat(1);
         data.putVec3(-2048 - scroll, y, +2048); data.putVec2(0, 1); data.putFloat(1);
-        data.putVec3(+4096 - scroll, y, +2048); data.putVec2(2, 1); data.putFloat(1);
-        data.putVec3(+4096 - scroll, y, -2048); data.putVec2(2, 0); data.putFloat(1);
+        data.putVec3(+6144 - scroll, y, +2048); data.putVec2(2, 1); data.putFloat(1);
+        data.putVec3(+6144 - scroll, y, -2048); data.putVec2(2, 0); data.putFloat(1);
 
         return data;
     }

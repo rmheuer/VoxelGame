@@ -51,7 +51,7 @@ public final class VoxelGame extends BaseGame {
     private static final int GUI_WIDTH = 320;
     private static final int GUI_HEIGHT = 240;
 
-    private static final int LEVEL_SIZE_SECTIONS = 256 / MapSection.SIZE;
+    private static final int LEVEL_SIZE_SECTIONS = 64 / MapSection.SIZE;
     
     private static final float CAMERA_HEIGHT = 1.6f;
 
@@ -90,9 +90,7 @@ public final class VoxelGame extends BaseGame {
     private final byte[] hotbar;
     private int selectedSlot;
 
-    private final BlockPickerUI blockPickerUI;
-    private final PauseMenuUI pauseMenuUI;
-    private UIState uiState;
+    private UI ui;
 
     private boolean drawSectionBoundaries;
     private boolean drawLightHeights;
@@ -141,9 +139,7 @@ public final class VoxelGame extends BaseGame {
         };
         selectedSlot = 0;
 
-        blockPickerUI = new BlockPickerUI(this::blockPicked);
-        pauseMenuUI = new PauseMenuUI(this);
-        uiState = UIState.NONE;
+        ui = null;
 
         drawSectionBoundaries = false;
         drawLightHeights = false;
@@ -185,24 +181,24 @@ public final class VoxelGame extends BaseGame {
         getWindow().getMouse().setCursorCaptured(mouseCaptured);
     }
 
-    public void setUIState(UIState state) {
-        setMouseCaptured(state == UIState.NONE);
-        this.uiState = state;
+    public void setUI(UI ui) {
+        setMouseCaptured(ui == null);
+        this.ui = ui;
     }
 
     private void blockPicked(byte blockId) {
         hotbar[selectedSlot] = blockId;
-        setUIState(UIState.NONE);
+        setUI(null);
     }
 
     private void keyPressed(KeyPressEvent event) {
         Key key = event.getKey();
         switch (key) {
             case ESCAPE:
-                if (uiState != UIState.NONE) {
-                    setUIState(UIState.NONE);
+                if (ui != null) {
+                    setUI(null);
                 } else {
-                    setUIState(UIState.PAUSE_MENU);
+                    setUI(new PauseMenuUI(this));
                 }
                 break;
 
@@ -215,10 +211,10 @@ public final class VoxelGame extends BaseGame {
 
             case B:
             case E:
-                if (uiState == UIState.NONE)
-                    setUIState(UIState.BLOCK_PICKER);
-                else if (uiState == UIState.BLOCK_PICKER)
-                    setUIState(UIState.NONE);
+                if (ui == null)
+                    setUI(new BlockPickerUI(this::blockPicked));
+                else if (ui instanceof BlockPickerUI)
+                    setUI(null);
                 break;
 
             default:
@@ -265,14 +261,11 @@ public final class VoxelGame extends BaseGame {
     }
 
     private void mousePressed(MouseButtonPressEvent event) {
-        if (uiState != UIState.NONE) {
+        if (ui != null) {
             Vector2d pos = event.getCursorPos();
             Vector2i uiMousePos = new Vector2i((int) (pos.x / guiScale), (int) (pos.y / guiScale));
 
-            if (uiState == UIState.BLOCK_PICKER)
-                blockPickerUI.mouseClicked(uiMousePos);
-            if (uiState == UIState.PAUSE_MENU)
-                pauseMenuUI.mouseClicked(uiMousePos);
+            ui.mouseClicked(uiMousePos);
             return;
         }
 
@@ -330,7 +323,7 @@ public final class VoxelGame extends BaseGame {
     @Override
     protected void tick(float dt) {
         // Don't update game if paused
-        if (uiState == UIState.PAUSE_MENU)
+        if (ui instanceof PauseMenuUI)
             return;
         
         Vector3f pos = camera.getTransform().position;
@@ -353,7 +346,7 @@ public final class VoxelGame extends BaseGame {
         Keyboard kb = getWindow().getKeyboard();
         float inputForward = 0, inputRight = 0;
         boolean jump = false;
-        if (uiState == UIState.NONE) {
+        if (ui == null) {
             if (kb.isKeyPressed(Key.W))
                 inputForward += 1;
             if (kb.isKeyPressed(Key.S))
@@ -517,10 +510,9 @@ public final class VoxelGame extends BaseGame {
             
             uiDraw.drawSprite(uiDraw.getWidth() / 2 - 8, uiDraw.getHeight() / 2 - 8, uiSprites.getCrosshair());
             drawHotbar(uiDraw);
-            if (uiState == UIState.BLOCK_PICKER)
-                blockPickerUI.draw(uiDraw, uiMousePos);
-            else if (uiState == UIState.PAUSE_MENU)
-                pauseMenuUI.draw(uiDraw, uiSprites, uiMousePos);
+
+            if (ui != null)
+                ui.draw(uiDraw, uiSprites, uiMousePos);
 
             renderer2D.draw(uiDraw.getDrawList(), new Matrix4f().ortho(0, (float) windowSize.x / guiScale, (float) windowSize.y / guiScale, 0, -1, 1));
         }
