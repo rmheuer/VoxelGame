@@ -6,44 +6,6 @@ import com.github.rmheuer.voxel.VoxelGame;
 import org.joml.Vector2i;
 
 public final class PauseMenuUI implements UI {
-    private static final class Button {
-        public static final int WIDTH = 200;
-        public static final int HEIGHT = 20;
-
-        private final String label;
-        private final Runnable onClick;
-        private int x, y;
-
-        public Button(String label, Runnable onClick) {
-            this.label = label;
-            this.onClick = onClick;
-        }
-
-        public void setPosition(int x, int y) {
-            this.x = x;
-            this.y = y;
-        }
-
-        private boolean mouseOver(Vector2i mousePos) {
-            return mousePos.x >= x && mousePos.x < x + WIDTH
-                && mousePos.y >= y && mousePos.y < y + HEIGHT;
-        }
-
-        public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
-            boolean hover = mouseOver(mousePos);
-            UISprite sprite = hover ? sprites.getButtonHighlight() : sprites.getButton();
-
-            draw.drawSprite(x, y, sprite);
-            draw.drawTextCentered(x + WIDTH / 2, y + HEIGHT / 2 + 3, label);
-        }
-
-        public void mouseClicked(Vector2i mousePos) {
-            if (mouseOver(mousePos)) {
-                onClick.run();
-            }
-        }
-    }
-
     private static final String TITLE = "Game Paused";
 
     private static final int BG_COLOR_1 = Colors.RGBA.fromInts(5, 5, 0, 96);
@@ -55,10 +17,7 @@ public final class PauseMenuUI implements UI {
 
     public PauseMenuUI(VoxelGame game) {
         backToGameButton = new Button("Back to Game", () -> game.setUI(null));
-        resetLevelButton = new Button("Reset Level", () -> {
-                game.resetLevel();
-                game.setUI(null);
-        });
+        resetLevelButton = new Button("Create New Level...", () -> game.setUI(new CreateLevelUI(game, this)));
         quitGameButton = new Button("Quit Game", game::stop);
     }
 
@@ -86,5 +45,10 @@ public final class PauseMenuUI implements UI {
         backToGameButton.mouseClicked(mousePos);
         resetLevelButton.mouseClicked(mousePos);
         quitGameButton.mouseClicked(mousePos);
+    }
+
+    @Override
+    public boolean shouldPauseGame() {
+        return true;
     }
 }

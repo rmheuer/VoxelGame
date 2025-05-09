@@ -11,6 +11,7 @@ To Do:
 [x] Player physics:
   [x] Basic land movement
   [x] Stair stepping
+    BUG: Can clip into ceilings when stepping onto slab
   [x] Swimming
 [x] Block textures
 [x] Particle textures

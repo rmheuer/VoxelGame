@@ -323,7 +323,7 @@ public final class VoxelGame extends BaseGame {
     @Override
     protected void tick(float dt) {
         // Don't update game if paused
-        if (ui instanceof PauseMenuUI)
+        if (ui != null && ui.shouldPauseGame())
             return;
         
         Vector3f pos = camera.getTransform().position;

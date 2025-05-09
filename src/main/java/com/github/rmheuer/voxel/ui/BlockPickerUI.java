@@ -86,4 +86,9 @@ public final class BlockPickerUI implements UI {
             }
         }
     }
+
+    @Override
+    public boolean shouldPauseGame() {
+        return false;
+    }
 }
