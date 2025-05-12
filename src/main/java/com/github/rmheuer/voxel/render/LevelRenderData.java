@@ -135,4 +135,16 @@ public final class LevelRenderData implements SafeCloseable {
             section.close();
         }
     }
+
+    public int getSectionsX() {
+        return sectionsX;
+    }
+
+    public int getSectionsY() {
+        return sectionsY;
+    }
+
+    public int getSectionsZ() {
+        return sectionsZ;
+    }
 }

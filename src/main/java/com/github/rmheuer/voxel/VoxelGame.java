@@ -117,7 +117,7 @@ public final class VoxelGame extends BaseGame {
         camera = new Camera(new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f));
         outsideRenderer = new OutsideLevelRenderer(getRenderer());
 
-        resetLevel(4);
+        resetLevel(16);
         
         setMouseCaptured(false);
         getEventBus().addHandler(KeyPressEvent.class, this::keyPressed);
@@ -441,6 +441,8 @@ public final class VoxelGame extends BaseGame {
         outsideRenderer.renderTranslucentLayer(renderer, view, proj, fogInfo);
         levelRender.renderTranslucentLayer(renderer, view, proj, fogInfo);
 
+        levelRenderer.renderVisibilityDebug(lineRenderer, levelRenderData);
+        
         if (raycastResult != null) {
             int col = Colors.RGBA.BLUE;
             int x = raycastResult.blockPos.x;

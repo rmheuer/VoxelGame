@@ -2,15 +2,18 @@ package com.github.rmheuer.voxel.render;
 
 import com.github.rmheuer.azalea.io.ResourceUtil;
 import com.github.rmheuer.azalea.math.CubeFace;
+import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.Renderer;
 import com.github.rmheuer.azalea.render.mesh.*;
 import com.github.rmheuer.azalea.render.pipeline.*;
 import com.github.rmheuer.azalea.render.shader.ShaderProgram;
 import com.github.rmheuer.azalea.render.shader.ShaderUniform;
 import com.github.rmheuer.azalea.render.texture.Texture2D;
+import com.github.rmheuer.azalea.render.utils.DebugLineRenderer;
 import com.github.rmheuer.azalea.render.utils.SharedIndexBuffer;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
 import com.github.rmheuer.voxel.block.Block;
+import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.level.*;
 import org.joml.Matrix4f;
 import org.joml.Vector3fc;
@@ -25,6 +28,7 @@ public final class LevelRenderer implements SafeCloseable {
     private final ShaderProgram shader;
     private final PipelineInfo pipeline;
     private final SharedIndexBuffer sharedIndexBuffer;
+    private final VisibilityCalculator visibilityCalc;
 
     public LevelRenderer(Renderer renderer, Texture2D atlasTexture) throws IOException {
         this.atlasTexture = atlasTexture;
@@ -45,6 +49,8 @@ public final class LevelRenderer implements SafeCloseable {
                 4,
                 0, 1, 2, 0, 2, 3
         );
+
+        visibilityCalc = new VisibilityCalculator();
     }
 
     private static final class RenderSection {
@@ -101,6 +107,34 @@ public final class LevelRenderer implements SafeCloseable {
         }
     }
 
+    public void renderVisibilityDebug(DebugLineRenderer r, LevelRenderData renderData) {
+        for (int sectionY = 0; sectionY < renderData.getSectionsY(); sectionY++) {
+            for (int sectionZ = 0; sectionZ < renderData.getSectionsZ(); sectionZ++) {
+                for (int sectionX = 0; sectionX < renderData.getSectionsX(); sectionX++) {
+                    SectionRenderData section = renderData.getSection(sectionX, sectionY, sectionZ);
+                    SectionVisibility vis = section.getVisibility();
+                    if (vis == null)
+                        continue;
+
+                    for (CubeFace face : CubeFace.values()) {
+                        for (CubeFace face2 : CubeFace.values()) {
+                            if (vis.isVisible(face, face2)) {
+                                int x1 = sectionX * 16 + 8 + 8 * face.x;
+                                int y1 = sectionY * 16 + 8 + 8 * face.y;
+                                int z1 = sectionZ * 16 + 8 + 8 * face.z;
+                                int x2 = sectionX * 16 + 8 + 8 * face2.x;
+                                int y2 = sectionY * 16 + 8 + 8 * face2.y;
+                                int z2 = sectionZ * 16 + 8 + 8 * face2.z;
+
+                                r.addLine(x1, y1, z1, x2, y2, z2, Colors.RGBA.RED);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public PreparedRender prepareRender(Renderer renderer, BlockMap blockMap, LightMap lightMap, LevelRenderData renderData, Vector3fc cameraPos, boolean wireframe) {
         int sectionsX = blockMap.getSectionsX();
         int sectionsY = blockMap.getSectionsY();
@@ -145,6 +179,11 @@ public final class LevelRenderer implements SafeCloseable {
                             }
                             renderSection.getTranslucentLayer().updateMesh(renderer, data);
                         }
+                    }
+
+                    if (renderSection.isVisibilityOutdated()) {
+                        MapSection mapSection = blockMap.getSection(sectionX, sectionY, sectionZ);
+                        renderSection.updateVisibility(visibilityCalc.calculate(mapSection));
                     }
 
                     SectionRenderLayer opaque = renderSection.getOpaqueLayer();
@@ -228,53 +267,127 @@ public final class LevelRenderer implements SafeCloseable {
         }
     }
 
-    private static final class FaceSet {
-        private static final byte BITS_ALL = (byte) 0b111111;
+    private static final class VisibilityCalculator {
+        private static final CubeFace[] FACES = CubeFace.values();
+        
+        private final BitSet visited;
+        private final Queue<Vector3i> frontier;
+        private final FaceSet touchedFaces;
 
-        private byte bits;
+        private MapSection section;
+        private SectionVisibility visibility;
 
-        public FaceSet() {
-            bits = 0;
+        public VisibilityCalculator() {
+            visited = new BitSet(MapSection.SIZE_CUBED);
+            frontier = new ArrayDeque<>();
+            touchedFaces = FaceSet.none();
         }
 
-        public void clear() {
-            bits = 0;
+        private void checkNeighbor(Vector3i pos, Block atPos, CubeFace dir) {
+            int nx = pos.x + dir.x;
+            int ny = pos.y + dir.y;
+            int nz = pos.z + dir.z;
+            Block neighbor = Blocks.getBlock(section.getBlockId(nx, ny, nz));
+            if (neighbor.getOcclusion(dir.getReverse()) == OcclusionType.FULL)
+                return;
+
+            int index = nx + nz * MapSection.SIZE + ny * MapSection.SIZE_SQUARED;
+            if (visited.get(index))
+                return;
+
+            visited.set(index);
+            frontier.add(new Vector3i(nx, ny, nz));
         }
 
-        public void addFace(CubeFace face) {
-            bits |= 1 << face.ordinal();
-        }
-
-        public boolean containsFace(CubeFace face) {
-            return (bits & (1 << face.ordinal())) != 0;
-        }
-
-        public boolean containsAll() {
-            return bits == BITS_ALL;
-        }
-    }
-
-    private SectionVisibility calcSectionVisibility(MapSection section) {
-        if (section.isEmpty())
-            return SectionVisibility.all();
-
-        BitSet visited = new BitSet(MapSection.SIZE_CUBED);
-        Queue<Vector3i> frontier = new ArrayDeque<>();
-        SectionVisibility visibility = SectionVisibility.none();
-        FaceSet touchedFaces = new FaceSet();
-
-        for (Vector3i start : STARTING_POINTS) {
+        private void floodFrom(Vector3i start) {
             touchedFaces.clear();
             frontier.clear();
             frontier.add(start);
 
             Vector3i pos;
             while ((pos = frontier.poll()) != null) {
+                Block at = Blocks.getBlock(section.getBlockId(pos.x, pos.y, pos.z));
+
+                if (at.getOcclusion(CubeFace.NEG_X) != OcclusionType.FULL) {
+                    if (pos.x - 1 < 0)
+                        touchedFaces.addFace(CubeFace.NEG_X);
+                    else
+                        checkNeighbor(pos, at, CubeFace.NEG_X);
+                }
+                if (at.getOcclusion(CubeFace.POS_X) != OcclusionType.FULL) {
+                    if (pos.x + 1 >= MapSection.SIZE)
+                        touchedFaces.addFace(CubeFace.POS_X);
+                    else
+                        checkNeighbor(pos, at, CubeFace.POS_X);
+                }
+
+                if (at.getOcclusion(CubeFace.NEG_Y) != OcclusionType.FULL) {
+                    if (pos.y - 1 < 0)
+                        touchedFaces.addFace(CubeFace.NEG_Y);
+                    else
+                        checkNeighbor(pos, at, CubeFace.NEG_Y);
+                }
+                if (at.getOcclusion(CubeFace.POS_Y) != OcclusionType.FULL) {
+                    if (pos.y + 1 >= MapSection.SIZE)
+                        touchedFaces.addFace(CubeFace.POS_Y);
+                    else
+                        checkNeighbor(pos, at, CubeFace.POS_Y);
+                }
+
+                if (at.getOcclusion(CubeFace.NEG_Z) != OcclusionType.FULL) {
+                    if (pos.z - 1 < 0)
+                        touchedFaces.addFace(CubeFace.NEG_Z);
+                    else
+                        checkNeighbor(pos, at, CubeFace.NEG_Z);
+                }
+                if (at.getOcclusion(CubeFace.POS_Z) != OcclusionType.FULL) {
+                    if (pos.z + 1 >= MapSection.SIZE)
+                        touchedFaces.addFace(CubeFace.POS_Z);
+                    else
+                        checkNeighbor(pos, at, CubeFace.POS_Z);
+                }
                 
+                if (touchedFaces.isAll())
+                    break;
+            }
+
+            if (touchedFaces.isNone())
+                return;
+
+            for (CubeFace from : FACES) {
+                if (touchedFaces.containsFace(from)) {
+                    for (CubeFace to : FACES) {
+                        if (to == from)
+                            continue;
+
+                        if (touchedFaces.containsFace(to)) {
+                            visibility.setVisible(from, to);
+
+                            if (visibility.isAll())
+                                return;
+                        }
+                    }
+                }
             }
         }
-        
-        return visibility;
+
+        public SectionVisibility calculate(MapSection section) {
+            if (section.isEmpty())
+                return SectionVisibility.all();
+
+            this.section = section;
+            visited.clear();
+            visibility = SectionVisibility.none();
+
+            for (Vector3i start : STARTING_POINTS) {
+                floodFrom(start);
+                
+                if (visibility.isAll())
+                    break;
+            }
+
+            return visibility;
+        }
     }
 
     @Override
