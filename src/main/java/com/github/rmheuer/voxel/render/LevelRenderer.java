@@ -179,7 +179,8 @@ public final class LevelRenderer implements SafeCloseable {
         List<RenderSection> translucentToRender = new ArrayList<>();
 
         FrustumIntersection frustum = new FrustumIntersection(viewProj, false);
-        
+
+        long startTime = System.currentTimeMillis();
         VisNode node;
         while ((node = frontier.poll()) != null) {
             if (node.x < 0 || node.x >= sectionsX)
@@ -239,29 +240,31 @@ public final class LevelRenderer implements SafeCloseable {
                 backwards.addFace(CubeFace.POS_Z);
                 frontier.add(new VisNode(node.x, node.y, node.z - 1, CubeFace.POS_Z, backwards));
             }
-            
-            boolean updateTranslucent = cameraMoved;
-            if (renderSection.isMeshOutdated()) {
-                try (SectionGeometry geom = createSectionGeometry(blockMap, lightMap, node.x, node.y, node.z)) {
-                    renderSection.getOpaqueLayer().updateMesh(renderer, geom.getOpaqueData());
-                    renderSection.setTranslucentFaces(geom.getTranslucentFaces());
-                    sharedIndexBuffer.ensureCapacity(geom.getRequiredFaceCount());
-                    renderSection.clearOutdated();
-                }
-                //updated++;
-                updateTranslucent = true;
-            }
-            
-            if (updateTranslucent) {
-                // Reorder translucent faces from back to front
-                List<BlockFace> translucentFaces = renderSection.getTranslucentFaces();
-                translucentFaces.sort(Comparator.comparingDouble((face) -> -cameraPos.distanceSquared(face.getCenterPos(ox, oy, oz))));
-                
-                try (VertexData data = new VertexData(BlockFace.VERTEX_LAYOUT)) {
-                    for (BlockFace face : translucentFaces) {
-                        face.addToMesh(data);
+
+            if (System.currentTimeMillis() - startTime < 5) {
+                boolean updateTranslucent = cameraMoved;
+                if (renderSection.isMeshOutdated()) {
+                    try (SectionGeometry geom = createSectionGeometry(blockMap, lightMap, node.x, node.y, node.z)) {
+                        renderSection.getOpaqueLayer().updateMesh(renderer, geom.getOpaqueData());
+                        renderSection.setTranslucentFaces(geom.getTranslucentFaces());
+                        sharedIndexBuffer.ensureCapacity(geom.getRequiredFaceCount());
+                        renderSection.clearOutdated();
                     }
-                    renderSection.getTranslucentLayer().updateMesh(renderer, data);
+                    //updated++;
+                    updateTranslucent = true;
+                }
+                
+                if (updateTranslucent) {
+                    // Reorder translucent faces from back to front
+                    List<BlockFace> translucentFaces = renderSection.getTranslucentFaces();
+                    translucentFaces.sort(Comparator.comparingDouble((face) -> -cameraPos.distanceSquared(face.getCenterPos(ox, oy, oz))));
+                    
+                    try (VertexData data = new VertexData(BlockFace.VERTEX_LAYOUT)) {
+                        for (BlockFace face : translucentFaces) {
+                            face.addToMesh(data);
+                        }
+                        renderSection.getTranslucentLayer().updateMesh(renderer, data);
+                    }
                 }
             }
             
