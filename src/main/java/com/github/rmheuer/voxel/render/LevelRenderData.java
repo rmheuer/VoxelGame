@@ -41,7 +41,9 @@ public final class LevelRenderData implements SafeCloseable {
         int relY = blockY % MapSection.SIZE;
         int relZ = blockZ % MapSection.SIZE;
 
-        markSectionOutdated(sectionX, sectionY, sectionZ);
+        SectionRenderData section = getSection(sectionX, sectionY, sectionZ);
+        section.markOutdated();
+        section.markVisibilityOutdated();
 
         boolean faceNX = sectionX > 0 && relX == 0;
         boolean faceNY = sectionY > 0 && relY == 0;
