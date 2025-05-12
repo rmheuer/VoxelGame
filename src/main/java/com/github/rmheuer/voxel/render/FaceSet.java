@@ -16,6 +16,10 @@ public final class FaceSet {
         this.bits = bits;
     }
 
+    public FaceSet(FaceSet other) {
+        bits = other.bits;
+    }
+
     public void clear() {
         bits = NONE_BITS;
     }

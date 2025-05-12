@@ -15,6 +15,7 @@ import com.github.rmheuer.azalea.utils.SafeCloseable;
 import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.level.*;
+import org.joml.FrustumIntersection;
 import org.joml.Matrix4f;
 import org.joml.Vector3fc;
 import org.joml.Vector3i;
@@ -105,6 +106,14 @@ public final class LevelRenderer implements SafeCloseable {
                 }
             }
         }
+
+        public int getOpaqueCount() {
+            return opaqueToRender.size();
+        }
+
+        public int getTranslucentCount() {
+            return translucentToRender.size();
+        }
     }
 
     public void renderVisibilityDebug(DebugLineRenderer r, LevelRenderData renderData) {
@@ -135,7 +144,146 @@ public final class LevelRenderer implements SafeCloseable {
         }
     }
 
-    public PreparedRender prepareRender(Renderer renderer, BlockMap blockMap, LightMap lightMap, LevelRenderData renderData, Vector3fc cameraPos, boolean wireframe) {
+    private static final class VisNode {
+        public final int x, y, z;
+        public final CubeFace cameFrom;
+        public final FaceSet backwards;
+
+        public VisNode(int x, int y, int z, CubeFace cameFrom, FaceSet backwards) {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.cameFrom = cameFrom;
+            this.backwards = backwards;
+        }
+    }
+
+    public PreparedRender prepareRender(Renderer renderer, BlockMap blockMap, LightMap lightMap, LevelRenderData renderData, Matrix4f viewProj, Vector3fc cameraPos, boolean wireframe) {
+        int sectionsX = blockMap.getSectionsX();
+        int sectionsY = blockMap.getSectionsY();
+        int sectionsZ = blockMap.getSectionsZ();
+
+        boolean cameraMoved = !renderData.getPrevCameraPos().equals(cameraPos);
+        renderData.setPrevCameraPos(cameraPos);
+
+        int cameraX = (int) Math.floor(cameraPos.x() / MapSection.SIZE);
+        int cameraY = (int) Math.floor(cameraPos.y() / MapSection.SIZE);
+        int cameraZ = (int) Math.floor(cameraPos.z() / MapSection.SIZE);
+        
+        BitSet visited = new BitSet(sectionsX * sectionsY * sectionsZ);
+        Queue<VisNode> frontier = new ArrayDeque<>();
+
+        frontier.add(new VisNode(cameraX, cameraY, cameraZ, null, FaceSet.none()));
+
+        List<RenderSection> opaqueToRender = new ArrayList<>();
+        List<RenderSection> translucentToRender = new ArrayList<>();
+
+        FrustumIntersection frustum = new FrustumIntersection(viewProj, false);
+        
+        VisNode node;
+        while ((node = frontier.poll()) != null) {
+            if (node.x < 0 || node.x >= sectionsX)
+                continue;
+            if (node.y < 0 || node.y >= sectionsY)
+                continue;
+            if (node.z < 0 || node.z >= sectionsZ)
+                continue;
+
+            int index = node.x + node.z * sectionsX + node.y * sectionsX * sectionsZ;
+            if (visited.get(index))
+                continue;
+            visited.set(index);
+
+            int ox = node.x * MapSection.SIZE;
+            int oy = node.y * MapSection.SIZE;
+            int oz = node.z * MapSection.SIZE;
+
+            // Don't test first section to prevent culling the entire world
+            if (node.cameFrom != null && !frustum.testAab(ox, oy, oz, ox + MapSection.SIZE, oy + MapSection.SIZE, oz + MapSection.SIZE))
+                continue;
+
+            SectionRenderData renderSection = renderData.getSection(node.x, node.y, node.z);
+
+            if (renderSection.isVisibilityOutdated()) {
+                MapSection mapSection = blockMap.getSection(node.x, node.y, node.z);
+                renderSection.updateVisibility(visibilityCalc.calculate(mapSection));
+            }
+            
+            if (!node.backwards.containsFace(CubeFace.POS_X) && (node.cameFrom == null || renderSection.canSeeThrough(node.cameFrom, CubeFace.POS_X))) {
+                FaceSet backwards = new FaceSet(node.backwards);
+                backwards.addFace(CubeFace.NEG_X);
+                frontier.add(new VisNode(node.x + 1, node.y, node.z, CubeFace.NEG_X, backwards));
+            }
+            if (!node.backwards.containsFace(CubeFace.NEG_X) && (node.cameFrom == null || renderSection.canSeeThrough(node.cameFrom, CubeFace.NEG_X))) {
+                FaceSet backwards = new FaceSet(node.backwards);
+                backwards.addFace(CubeFace.POS_X);
+                frontier.add(new VisNode(node.x - 1, node.y, node.z, CubeFace.POS_X, backwards));
+            }
+            if (!node.backwards.containsFace(CubeFace.POS_Y) && (node.cameFrom == null || renderSection.canSeeThrough(node.cameFrom, CubeFace.POS_Y))) {
+                FaceSet backwards = new FaceSet(node.backwards);
+                backwards.addFace(CubeFace.NEG_Y);
+                frontier.add(new VisNode(node.x, node.y + 1, node.z, CubeFace.NEG_Y, backwards));
+            }
+            if (!node.backwards.containsFace(CubeFace.NEG_Y) && (node.cameFrom == null || renderSection.canSeeThrough(node.cameFrom, CubeFace.NEG_Y))) {
+                FaceSet backwards = new FaceSet(node.backwards);
+                backwards.addFace(CubeFace.POS_Y);
+                frontier.add(new VisNode(node.x, node.y - 1, node.z, CubeFace.POS_Y, backwards));
+            }
+            if (!node.backwards.containsFace(CubeFace.POS_Z) && (node.cameFrom == null || renderSection.canSeeThrough(node.cameFrom, CubeFace.POS_Z))) {
+                FaceSet backwards = new FaceSet(node.backwards);
+                backwards.addFace(CubeFace.NEG_Z);
+                frontier.add(new VisNode(node.x, node.y, node.z + 1, CubeFace.NEG_Z, backwards));
+            }
+            if (!node.backwards.containsFace(CubeFace.NEG_Z) && (node.cameFrom == null || renderSection.canSeeThrough(node.cameFrom, CubeFace.NEG_Z))) {
+                FaceSet backwards = new FaceSet(node.backwards);
+                backwards.addFace(CubeFace.POS_Z);
+                frontier.add(new VisNode(node.x, node.y, node.z - 1, CubeFace.POS_Z, backwards));
+            }
+            
+            boolean updateTranslucent = cameraMoved;
+            if (renderSection.isMeshOutdated()) {
+                try (SectionGeometry geom = createSectionGeometry(blockMap, lightMap, node.x, node.y, node.z)) {
+                    renderSection.getOpaqueLayer().updateMesh(renderer, geom.getOpaqueData());
+                    renderSection.setTranslucentFaces(geom.getTranslucentFaces());
+                    sharedIndexBuffer.ensureCapacity(geom.getRequiredFaceCount());
+                    renderSection.clearOutdated();
+                }
+                //updated++;
+                updateTranslucent = true;
+            }
+            
+            if (updateTranslucent) {
+                // Reorder translucent faces from back to front
+                List<BlockFace> translucentFaces = renderSection.getTranslucentFaces();
+                translucentFaces.sort(Comparator.comparingDouble((face) -> -cameraPos.distanceSquared(face.getCenterPos(ox, oy, oz))));
+                
+                try (VertexData data = new VertexData(BlockFace.VERTEX_LAYOUT)) {
+                    for (BlockFace face : translucentFaces) {
+                        face.addToMesh(data);
+                    }
+                    renderSection.getTranslucentLayer().updateMesh(renderer, data);
+                }
+            }
+            
+            SectionRenderLayer opaque = renderSection.getOpaqueLayer();
+            SectionRenderLayer translucent = renderSection.getTranslucentLayer();
+            if (opaque.getElementCount() > 0) {
+                opaqueToRender.add(new RenderSection(ox, oy, oz, opaque));
+            }
+            if (translucent.getElementCount() > 0) {
+                translucentToRender.add(new RenderSection(ox, oy, oz, translucent));
+            }
+        }
+
+        Collections.reverse(translucentToRender);
+
+        pipeline.setFillMode(wireframe ? FillMode.WIREFRAME : FillMode.FILLED);
+
+        return new PreparedRender(pipeline, sharedIndexBuffer.getIndexBuffer(), atlasTexture, opaqueToRender, translucentToRender);
+    }
+
+    /*
+    public PreparedRender prepareRender(Renderer renderer, BlockMap blockMap, LightMap lightMap, LevelRenderData renderData, Matrix4f viewProj, Vector3fc cameraPos, boolean wireframe) {
         int sectionsX = blockMap.getSectionsX();
         int sectionsY = blockMap.getSectionsY();
         int sectionsZ = blockMap.getSectionsZ();
@@ -220,6 +368,7 @@ public final class LevelRenderer implements SafeCloseable {
 
         return new PreparedRender(pipeline, sharedIndexBuffer.getIndexBuffer(), atlasTexture, opaqueToRender, translucentToRender);
     }
+    */
 
     private SectionGeometry createSectionGeometry(BlockMap blockMap, LightMap lightMap, int sectionX, int sectionY, int sectionZ) {
         SectionGeometry geom = new SectionGeometry();

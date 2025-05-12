@@ -1,5 +1,6 @@
 package com.github.rmheuer.voxel.render;
 
+import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
 
 import java.util.Collections;
@@ -64,6 +65,13 @@ public final class SectionRenderData implements SafeCloseable {
 
     public SectionVisibility getVisibility() {
         return visibility;
+    }
+
+    public boolean canSeeThrough(CubeFace from, CubeFace to) {
+        if (visibility == null || from == to)
+            return true;
+
+        return visibility.isVisible(from, to);
     }
 
     @Override

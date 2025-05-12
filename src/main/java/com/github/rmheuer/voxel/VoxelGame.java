@@ -74,6 +74,7 @@ public final class VoxelGame extends BaseGame {
     private final WaterAnimationGenerator waterAnimationGenerator;
     private final LavaAnimationGenerator lavaAnimationGenerator;
 
+    private final PerspectiveProjection cameraProj;
     private final Camera camera;
     private Player player;
 
@@ -97,6 +98,11 @@ public final class VoxelGame extends BaseGame {
 
     private boolean ticked;
 
+    private RenderDistance renderDistance;
+
+    private Matrix4f capturedViewProj;
+    private Vector3f capturedCameraPos;
+
     public VoxelGame() throws IOException {
         super(WINDOW_SETTINGS);
 
@@ -114,7 +120,8 @@ public final class VoxelGame extends BaseGame {
         waterAnimationGenerator = new WaterAnimationGenerator();
         lavaAnimationGenerator = new LavaAnimationGenerator();
 
-        camera = new Camera(new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f));
+        cameraProj = new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f);
+        camera = new Camera(cameraProj);
         outsideRenderer = new OutsideLevelRenderer(getRenderer());
 
         resetLevel(16);
@@ -139,6 +146,11 @@ public final class VoxelGame extends BaseGame {
 
         drawSectionBoundaries = false;
         drawLightHeights = false;
+
+        renderDistance = RenderDistance.FAR;
+
+        capturedViewProj = null;
+        capturedCameraPos = null;
     }
 
     public void resetLevel(int sizeSections) {
@@ -208,6 +220,20 @@ public final class VoxelGame extends BaseGame {
                 break;
             case F2:
                 drawLightHeights = !drawLightHeights;
+                break;
+            case F3:
+                if (capturedViewProj == null) {
+                    Vector2i size = getWindow().getFramebufferSize();
+                    Matrix4f proj = camera.getProjectionMatrix(size.x, size.y);
+                    Matrix4f view = camera.getViewMatrix();
+                    capturedViewProj = proj.mul(view);
+                    capturedCameraPos = new Vector3f(camera.getTransform().position);
+                    System.out.println("Captured frustum");
+                } else {
+                    capturedViewProj = null;
+                    capturedCameraPos = null;
+                    System.out.println("Reset frustum");
+                }
                 break;
 
             case B:
@@ -404,6 +430,15 @@ public final class VoxelGame extends BaseGame {
                 0
         );
 
+        FogInfo fogInfo = AIR_FOG;
+        if (isCameraInLiquid(Liquid.WATER))
+            fogInfo = WATER_FOG;
+        else if (isCameraInLiquid(Liquid.LAVA))
+            fogInfo = LAVA_FOG;
+        else
+            fogInfo = new FogInfo(0, renderDistance.getFogDistance(), new Vector4f(225 / 255.0f, 240 / 255.0f, 255 / 255.0f, 1.0f), new Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
+        cameraProj.setFarPlane(fogInfo.maxDistance);
+        
         Vector2i windowSize = getWindow().getFramebufferSize();
         Matrix4f proj = camera.getProjectionMatrix(windowSize.x, windowSize.y);
         Matrix4f view = camera.getViewMatrix();
@@ -421,15 +456,11 @@ public final class VoxelGame extends BaseGame {
                 blockMap,
                 lightMap,
                 levelRenderData,
-                camera.getTransform().position,
+                capturedViewProj != null ? capturedViewProj : viewProj,
+                capturedCameraPos != null ? capturedCameraPos : camera.getTransform().position,
                 wireframe
         );
 
-        FogInfo fogInfo = AIR_FOG;
-        if (isCameraInLiquid(Liquid.WATER))
-            fogInfo = WATER_FOG;
-        else if (isCameraInLiquid(Liquid.LAVA))
-            fogInfo = LAVA_FOG;
         renderer.setClearColor(Colors.RGBA.fromFloats(fogInfo.color));
         renderer.clear(BufferType.COLOR);
 
@@ -441,7 +472,7 @@ public final class VoxelGame extends BaseGame {
         outsideRenderer.renderTranslucentLayer(renderer, view, proj, fogInfo);
         levelRender.renderTranslucentLayer(renderer, view, proj, fogInfo);
 
-        levelRenderer.renderVisibilityDebug(lineRenderer, levelRenderData);
+        // levelRenderer.renderVisibilityDebug(lineRenderer, levelRenderData);
         
         if (raycastResult != null) {
             int col = Colors.RGBA.BLUE;
@@ -501,6 +532,31 @@ public final class VoxelGame extends BaseGame {
             }
         }
 
+        if (capturedViewProj != null) {
+            Vector3f nnn = capturedViewProj.frustumCorner(Matrix4fc.CORNER_NXNYNZ, new Vector3f());
+            Vector3f nnp = capturedViewProj.frustumCorner(Matrix4fc.CORNER_NXNYPZ, new Vector3f());
+            Vector3f npn = capturedViewProj.frustumCorner(Matrix4fc.CORNER_NXPYNZ, new Vector3f());
+            Vector3f npp = capturedViewProj.frustumCorner(Matrix4fc.CORNER_NXPYPZ, new Vector3f());
+            Vector3f pnn = capturedViewProj.frustumCorner(Matrix4fc.CORNER_PXNYNZ, new Vector3f());
+            Vector3f pnp = capturedViewProj.frustumCorner(Matrix4fc.CORNER_PXNYPZ, new Vector3f());
+            Vector3f ppn = capturedViewProj.frustumCorner(Matrix4fc.CORNER_PXPYNZ, new Vector3f());
+            Vector3f ppp = capturedViewProj.frustumCorner(Matrix4fc.CORNER_PXPYPZ, new Vector3f());
+
+            int col = Colors.RGBA.MAGENTA;
+            lineRenderer.addLine(nnn, nnp, col);
+            lineRenderer.addLine(nnn, npn, col);
+            lineRenderer.addLine(nnn, pnn, col);
+            lineRenderer.addLine(ppp, ppn, col);
+            lineRenderer.addLine(ppp, pnp, col);
+            lineRenderer.addLine(ppp, npp, col);
+            lineRenderer.addLine(pnn, ppn, col);
+            lineRenderer.addLine(pnn, pnp, col);
+            lineRenderer.addLine(npn, ppn, col);
+            lineRenderer.addLine(npn, npp, col);
+            lineRenderer.addLine(nnp, pnp, col);
+            lineRenderer.addLine(nnp, npp, col);
+        }
+
         lineRenderer.flush(renderer, viewProj);
 
         Vector2d mousePos = getWindow().getMouse().getCursorPos();
@@ -510,6 +566,7 @@ public final class VoxelGame extends BaseGame {
             int fps = (int) getFpsCounter().getFrameRate();
             float mspf = getFpsCounter().getFrameTime() * 1000.0f;
             uiDraw.drawText(1, 8, String.format("%d FPS, %.2f ms/frame", fps, mspf));
+            uiDraw.drawText(1, 18, String.format("Render sections: %d opaque, %d translucent", levelRender.getOpaqueCount(), levelRender.getTranslucentCount()));
             
             uiDraw.drawSprite(uiDraw.getWidth() / 2 - 8, uiDraw.getHeight() / 2 - 8, uiSprites.getCrosshair());
             drawHotbar(uiDraw);
@@ -546,6 +603,14 @@ public final class VoxelGame extends BaseGame {
         uiSprites.close();
         atlasTexture.close();
         renderer2D.close();
+    }
+
+    public RenderDistance getRenderDistance() {
+        return renderDistance;
+    }
+
+    public void setRenderDistance(RenderDistance renderDistance) {
+        this.renderDistance = renderDistance;
     }
 
     public static void main(String[] args) {
