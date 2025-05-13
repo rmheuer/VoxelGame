@@ -7,6 +7,9 @@ import com.github.rmheuer.voxel.render.AtlasSprite;
 import com.github.rmheuer.voxel.render.SectionContext;
 import com.github.rmheuer.voxel.render.SectionGeometry;
 
+/**
+ * Invisible block
+ */
 public final class InvisibleShape implements BlockShape {
     @Override
     public void mesh(SectionContext ctx, Block block, int x, int y, int z, SectionGeometry geom) {

@@ -5,11 +5,19 @@ import com.github.rmheuer.voxel.render.AtlasSprite;
 import com.github.rmheuer.voxel.render.BlockFace;
 import org.joml.Vector3f;
 
+/**
+ * Template for one face of a cuboid.
+ */
 public final class CubeFaceTemplate {
     public final CubeFace face;
     private final Vector3f v1, v2, v3, v4;
     private final float faceShade;
 
+    /**
+     * @param face which face of the cuboid this is
+     * @param faceShade brightness of the face. Should be one of the SHADE
+     *                  values from {@link com.github.rmheuer.voxel.render.LightingConstants}
+     */
     public CubeFaceTemplate(CubeFace face, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, float x4, float y4, float z4, float faceShade) {
         this.face = face;
         this.v1 = new Vector3f(x1, y1, z1);
@@ -19,6 +27,15 @@ public final class CubeFaceTemplate {
         this.faceShade = faceShade;
     }
 
+    /**
+     * Creates the face at the given position.
+     *
+     * @param x x position to offset by
+     * @param y y position to offset by
+     * @param z z position to offset by
+     * @param sprite sprite that should be drawn on the face
+     * @param lightShade shade multiplier from lighting
+     */
     public BlockFace makeFace(int x, int y, int z, AtlasSprite sprite, float lightShade) {
         return new BlockFace(
                 new Vector3f(v1).add(x, y, z),

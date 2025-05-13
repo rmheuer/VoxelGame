@@ -5,11 +5,19 @@ import com.github.rmheuer.voxel.level.MapSection;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
 
+/**
+ * Holds all the data to render the level.
+ */
 public final class LevelRenderData implements SafeCloseable {
     private final int sectionsX, sectionsY, sectionsZ;
     private final SectionRenderData[] sections;
     private final Vector3f prevCameraPos;
 
+    /**
+     * @param sectionsX number of level sections along the X axis
+     * @param sectionsY number of level sections along the Y axis
+     * @param sectionsZ number of level sections along the Z axis
+     */
     public LevelRenderData(int sectionsX, int sectionsY, int sectionsZ) {
         this.sectionsX = sectionsX;
         this.sectionsY = sectionsY;
@@ -24,6 +32,14 @@ public final class LevelRenderData implements SafeCloseable {
         }
     }
 
+    /**
+     * Gets the render data for a specified section.
+     *
+     * @param sectionX X coordinate of the section
+     * @param sectionY Y coordinate of the section
+     * @param sectionZ Z coordinate of the section
+     * @return render data for the section          
+     */
     public SectionRenderData getSection(int sectionX, int sectionY, int sectionZ) {
         int index = sectionX + sectionZ * sectionsX + sectionY * sectionsX * sectionsZ;
         return sections[index];
@@ -33,6 +49,14 @@ public final class LevelRenderData implements SafeCloseable {
         getSection(sectionX, sectionY, sectionZ).markOutdated();
     }
 
+    /**
+     * Informs the renderer that a block has been changed, so the section meshes
+     * should be updated.
+     *
+     * @param blockX X coordinate of changed block
+     * @param blockY Y coordinate of changed block
+     * @param blockZ Z coordinate of changed block
+     */
     public void blockChanged(int blockX, int blockY, int blockZ) {
         int sectionX = blockX / MapSection.SIZE;
         int sectionY = blockY / MapSection.SIZE;
@@ -87,6 +111,16 @@ public final class LevelRenderData implements SafeCloseable {
             markSectionOutdated(sectionX + 1, sectionY - 1, sectionZ + 1);
     }
 
+    /**
+     * Informs the renderer that a light column has been changed, so the section
+     * meshes should be updated.
+     *
+     * @param blockX X coordinate of changed column
+     * @param blockZ Z coordinate of changed column
+     * @param prevHeight previous height of light in the column
+     * @param newHeight new height of light in the column. Must be different
+     *                  than prevHeight
+     */
     public void lightChanged(int blockX, int blockZ, int prevHeight, int newHeight) {
         if (prevHeight == newHeight)
             throw new IllegalArgumentException("Height did not change");

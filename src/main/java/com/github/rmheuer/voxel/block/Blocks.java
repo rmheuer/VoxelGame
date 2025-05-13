@@ -2,6 +2,9 @@ package com.github.rmheuer.voxel.block;
 
 import com.github.rmheuer.voxel.render.AtlasSprite;
 
+/**
+ * Definitions of all block types.
+ */
 public final class Blocks {
     public static final byte ID_AIR = 0;
     public static final byte ID_STONE = 1;
@@ -39,6 +42,7 @@ public final class Blocks {
     public static final byte ID_MOSSY_STONE = 48;
     public static final byte ID_OBSIDIAN = 49;
 
+    /** Total number of blocks */
     public static final int BLOCK_COUNT = 50;
 
     private static final Block[] BLOCKS = new Block[BLOCK_COUNT];
@@ -119,6 +123,12 @@ public final class Blocks {
         BLOCKS[block.getId()] = block;
     }
 
+    /**
+     * Gets the block properties for the specified block ID.
+     *
+     * @param id block ID to look up
+     * @return properties of the block
+     */
     public static Block getBlock(byte id) {
         return BLOCKS[id];
     }

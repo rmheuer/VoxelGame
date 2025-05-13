@@ -6,7 +6,14 @@ import com.github.rmheuer.voxel.level.OcclusionType;
 import com.github.rmheuer.voxel.render.*;
 import org.joml.Vector3f;
 
+/**
+ * Liquid block
+ */
 public final class LiquidShape implements BlockShape {
+    /**
+     * Height of the surface of the liquid. This is slightly below the top of
+     * the block.
+     */
     public static final float LIQUID_SURFACE_HEIGHT = 0.9f;
     private static final float LIQUID_INSET = 0.0015f; // To prevent Z-fighting on touching faces
 
@@ -47,6 +54,12 @@ public final class LiquidShape implements BlockShape {
     private final boolean opaque;
     private final boolean applyShade;
 
+    /**
+     * @param sprite sprite to show
+     * @param opaque whether the texture is opaque and can be rendered normally.
+     *               Translucent textures need special rendering.
+     * @param applyShade whether shadows apply to the liquid
+     */
     public LiquidShape(AtlasSprite sprite, boolean opaque, boolean applyShade) {
         this.sprite = sprite;
         this.opaque = opaque;
@@ -61,6 +74,8 @@ public final class LiquidShape implements BlockShape {
         boolean tall = above != null && above.getLiquid() == thisLiquid;
 
         if (!tall) {
+            // Only render the surface if the top is visible, or any of the
+            // surrounding blocks are visible
             boolean surface = false;
             for (int j = -1; j <= 1; j++) {
                 for (int i = -1; i <= 1; i++) {
@@ -127,6 +142,7 @@ public final class LiquidShape implements BlockShape {
 
     @Override
     public AABB getDefaultBoundingBox() {
+        // No bounding box
         return null;
     }
 

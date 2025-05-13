@@ -9,6 +9,9 @@ import com.github.rmheuer.voxel.render.LightingConstants;
 import com.github.rmheuer.voxel.render.SectionContext;
 import com.github.rmheuer.voxel.render.SectionGeometry;
 
+/**
+ * Half-height cube, in the bottom half of the block
+ */
 public final class SlabShape implements BlockShape {
     private static final CubeFaceTemplate[] SLAB_TEMPLATES = {
             new CubeFaceTemplate(CubeFace.POS_X, 1, 0.5f, 1, 1, 0,    1, 1, 0,    0, 1, 0.5f, 0, LightingConstants.SHADE_LEFT_RIGHT),
@@ -22,8 +25,13 @@ public final class SlabShape implements BlockShape {
     private final AtlasSprite topSprite;
     private final AtlasSprite sideSprite;
 
+    /**
+     * @param topSprite sprite for the top and bottom faces
+     * @param sideSprite sprite for the side faces
+     */
     public SlabShape(AtlasSprite topSprite, AtlasSprite sideSprite) {
         this.topSprite = topSprite;
+        // Take only half of the side sprite
         this.sideSprite = sideSprite.getSection(0, 0, 1, 0.5f);
     }
 
@@ -48,6 +56,7 @@ public final class SlabShape implements BlockShape {
 
                 lit = ctx.isLit(nx, ny, nz);
             } else {
+                // Top face cannot be occluded
                 lit = ctx.isLit(x, y, z);
             }
 

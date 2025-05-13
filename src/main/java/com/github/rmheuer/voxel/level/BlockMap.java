@@ -9,11 +9,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
+/**
+ * Stores the grid of blocks in the level
+ */
 public final class BlockMap {
     private final int sectionsX, sectionsY, sectionsZ;
     private final int blocksX, blocksY, blocksZ;
     private final MapSection[] sections;
 
+    /**
+     * Creates a new map filled with air.
+     *
+     * @param sectionsX number of sections along the X axis
+     * @param sectionsY number of sections along the Y axis
+     * @param sectionsZ number of sections along the Z axis
+     */
     public BlockMap(int sectionsX, int sectionsY, int sectionsZ) {
         this.sectionsX = sectionsX;
         this.sectionsY = sectionsY;
@@ -30,14 +40,31 @@ public final class BlockMap {
         }
     }
 
+    // Gets the index of the section within the sections array
     private int sectionIndex(int sectionX, int sectionY, int sectionZ) {
         return sectionX + sectionZ * sectionsX + sectionY * sectionsX * sectionsZ;
     }
 
+    /**
+     * Gets one section of the map at the specified position.
+     *
+     * @param sectionX x coordinate of the section
+     * @param sectionY y coordinate of the section
+     * @param sectionZ z coordinate of the section
+     * @return section at those coordinates
+     */
     public MapSection getSection(int sectionX, int sectionY, int sectionZ) {
         return sections[sectionIndex(sectionX, sectionY, sectionZ)];
     }
 
+    /**
+     * Gets the section containing the specified block position.
+     *
+     * @param blockX block position X to get section
+     * @param blockY block position Y to get section
+     * @param blockZ block position Z to get section
+     * @return section containing the block position
+     */
     public MapSection getSectionContainingBlock(int blockX, int blockY, int blockZ) {
         int sectionX = blockX / MapSection.SIZE;
         int sectionY = blockY / MapSection.SIZE;
@@ -46,6 +73,14 @@ public final class BlockMap {
         return getSection(sectionX, sectionY, sectionZ);
     }
 
+    /**
+     * Gets the ID of the block at the specified position.
+     *
+     * @param blockX x coordinate of block
+     * @param blockY y coordinate of block
+     * @param blockZ z coordinate of block
+     * @return ID of block at the position
+     */
     public byte getBlockId(int blockX, int blockY, int blockZ) {
         MapSection section = getSectionContainingBlock(blockX, blockY, blockZ);
         int relX = blockX % MapSection.SIZE;
@@ -55,6 +90,15 @@ public final class BlockMap {
         return section.getBlockId(relX, relY, relZ);
     }
 
+    /**
+     * Sets the block at a specified position.
+     *
+     * @param blockX x coordinate of block
+     * @param blockY y coordinate of block
+     * @param blockZ z coordinate of block
+     * @param newBlockId ID of new block to set
+     * @return ID of block that was there previously
+     */
     public byte setBlockId(int blockX, int blockY, int blockZ, byte newBlockId) {
         MapSection section = getSectionContainingBlock(blockX, blockY, blockZ);
         int relX = blockX % MapSection.SIZE;
@@ -64,12 +108,28 @@ public final class BlockMap {
         return section.setBlockId(relX, relY, relZ, newBlockId);
     }
 
+    /**
+     * Gets whether a block position is within the bounds of the level.
+     *
+     * @param blockX x coordinate of block
+     * @param blockY y coordinate of block
+     * @param blockZ z coordinate of block
+     * @return whether the position is in bounds
+     */
     public boolean isBlockInBounds(int blockX, int blockY, int blockZ) {
         return blockX >= 0 && blockX < blocksX
                 && blockY >= 0 && blockY < blocksY
                 && blockZ >= 0 && blockZ < blocksZ;
     }
 
+    /**
+     * Gets the collision boxes of the blocks within a region. This will also
+     * include collision boxes for the edge of the map if the region extends
+     * out of bounds.
+     *
+     * @param region region to check
+     * @return collision boxes within the region
+     */
     public List<AABB> getCollidersWithin(AABB region) {
         List<AABB> colliders = new ArrayList<>();
 
@@ -104,6 +164,7 @@ public final class BlockMap {
         return colliders;
     }
 
+    // Checks if a condition is true for any block within a region
     private boolean anyInRegionMatches(AABB region, Predicate<Block> condition) {
         int minX = (int) Math.max(Math.floor(region.minX), 0);
         int minY = (int) Math.max(Math.floor(region.minY), 0);
@@ -125,14 +186,34 @@ public final class BlockMap {
         return false;
     }
 
+    /**
+     * Gets whether a region contains the specified liquid.
+     *
+     * @param region region to check
+     * @param liquid liquid to search for
+     * @return whether the liquid is within the region
+     */
     public boolean containsLiquid(AABB region, Liquid liquid) {
         return anyInRegionMatches(region, (block) -> block.getLiquid() == liquid);
     }
 
+    /**
+     * Gets whether a region contains any liquid.
+     *
+     * @param region region to check
+     * @return whether any liquid is within the region
+     */
     public boolean containsAnyLiquid(AABB region) {
         return anyInRegionMatches(region, (block) -> block.getLiquid() != null);
     }
 
+    /**
+     * Gets whether the region intersects no collision boxes and does not
+     * contain any liquid.
+     *
+     * @param region region to check
+     * @return whether the region is free
+     */
     public boolean isFree(AABB region) {
         for (AABB collider : getCollidersWithin(region)) {
             if (collider.intersects(region))

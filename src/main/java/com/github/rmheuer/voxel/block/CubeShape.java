@@ -8,10 +8,19 @@ import com.github.rmheuer.voxel.render.LightingConstants;
 import com.github.rmheuer.voxel.render.SectionContext;
 import com.github.rmheuer.voxel.render.SectionGeometry;
 
+/**
+ * Standard cube shaped block.
+ */
 public final class CubeShape implements BlockShape {
+    /**
+     * Type of transparency this block has
+     */
     public enum TransparencyType {
+        /** Fully occludes blocks behind */
         OPAQUE,
+        /** Never occludes blocks behind */
         TRANSPARENT,
+        /** Only occludes neighbors if they are the same block */
         TRANSPARENT_OCCLUDE_SELF
     }
 
@@ -24,10 +33,24 @@ public final class CubeShape implements BlockShape {
             new CubeFaceTemplate(CubeFace.NEG_Z, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, LightingConstants.SHADE_FRONT_BACK)
     };
 
+    /**
+     * Creates a cube shape with the same sprite on all faces.
+     *
+     * @param sprite sprite for all faces
+     * @return new shape
+     */
     public static CubeShape all(AtlasSprite sprite) {
         return new CubeShape(sprite, sprite, sprite);
     }
 
+    /**
+     * Creates a cube shape with the same sprite on top and bottom, with a
+     * different sprite on the sides.
+     *
+     * @param face sprite for top and bottom faces
+     * @param side sprite for side faces
+     * @return new shape
+     */
     public static CubeShape column(AtlasSprite face, AtlasSprite side) {
         return new CubeShape(face, side, face);
     }
@@ -35,6 +58,14 @@ public final class CubeShape implements BlockShape {
     private final AtlasSprite topSprite, sideSprite, bottomSprite;
     private TransparencyType transparencyType;
 
+    /**
+     * Creates a cube shape with the specified sprites on each face. The side
+     * sprite will be used for breaking particles.
+     *
+     * @param topSprite sprite for the top face
+     * @param sideSprite sprite for the side faces
+     * @param bottomSprite sprite for the bottom face
+     */
     public CubeShape(AtlasSprite topSprite, AtlasSprite sideSprite, AtlasSprite bottomSprite) {
         this.topSprite = topSprite;
         this.sideSprite = sideSprite;
@@ -42,6 +73,13 @@ public final class CubeShape implements BlockShape {
         transparencyType = TransparencyType.OPAQUE;
     }
 
+    /**
+     * Sets the type of transparency this block has. The default transparency is
+     * {@link TransparencyType#OPAQUE}.
+     *
+     * @param transparencyType new transparency type.
+     * @return this
+     */
     public CubeShape setTransparencyType(TransparencyType transparencyType) {
         this.transparencyType = transparencyType;
         return this;

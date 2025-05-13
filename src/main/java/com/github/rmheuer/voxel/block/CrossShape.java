@@ -6,7 +6,11 @@ import com.github.rmheuer.voxel.level.OcclusionType;
 import com.github.rmheuer.voxel.render.*;
 import org.joml.Vector3f;
 
+/**
+ * Sprite made up of two cross planes (e.g. plants)
+ */
 public final class CrossShape implements BlockShape {
+    // Scale down horizontally so that pixels are still square
     private static final float SIZE = (float) Math.sqrt(2) / 4;
     private static final float MIN_POS = 0.5f - SIZE;
     private static final float MAX_POS = 0.5f + SIZE;
