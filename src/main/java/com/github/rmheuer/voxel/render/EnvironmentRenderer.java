@@ -19,8 +19,7 @@ import java.io.IOException;
 /**
  * Renders the environment outside the level (the sky and surrounding ocean).
  */
-// TODO: Rename to EnvironmentRenderer
-public final class OutsideLevelRenderer implements SafeCloseable {
+public final class EnvironmentRenderer implements SafeCloseable {
     private static final int WATER_LEVEL = 32;
     private static final int WATER_DEPTH = 3;
     private static final int DISTANCE = 2048;
@@ -45,7 +44,7 @@ public final class OutsideLevelRenderer implements SafeCloseable {
     /**
      * @param renderer renderer to create resources with
      */
-    public OutsideLevelRenderer(Renderer renderer) throws IOException {
+    public EnvironmentRenderer(Renderer renderer) throws IOException {
         shader = renderer.createShaderProgram(
                 ResourceUtil.readAsStream("shaders/outside_vertex.glsl"),
                 ResourceUtil.readAsStream("shaders/fragment.glsl")

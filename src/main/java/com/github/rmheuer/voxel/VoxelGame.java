@@ -36,7 +36,7 @@ import com.github.rmheuer.voxel.physics.Raycast;
 import com.github.rmheuer.voxel.render.FogInfo;
 import com.github.rmheuer.voxel.render.LevelRenderData;
 import com.github.rmheuer.voxel.render.LevelRenderer;
-import com.github.rmheuer.voxel.render.OutsideLevelRenderer;
+import com.github.rmheuer.voxel.render.EnvironmentRenderer;
 import com.github.rmheuer.voxel.ui.*;
 import org.joml.*;
 
@@ -72,7 +72,7 @@ public final class VoxelGame extends BaseGame {
     private final LevelRenderer levelRenderer;
     private final DebugLineRenderer lineRenderer;
     private final ParticleSystem particleSystem;
-    private final OutsideLevelRenderer outsideRenderer;
+    private final EnvironmentRenderer environmentRenderer;
 
     private final WaterAnimationGenerator waterAnimationGenerator;
     private final LavaAnimationGenerator lavaAnimationGenerator;
@@ -125,7 +125,7 @@ public final class VoxelGame extends BaseGame {
 
         cameraProj = new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f);
         camera = new Camera(cameraProj);
-        outsideRenderer = new OutsideLevelRenderer(getRenderer());
+        environmentRenderer = new EnvironmentRenderer(getRenderer());
 
         resetLevel(16);
         
@@ -190,7 +190,7 @@ public final class VoxelGame extends BaseGame {
         levelRenderData = new LevelRenderData(
             blockMap.getSectionsX(), blockMap.getSectionsY(), blockMap.getSectionsZ());
 
-        outsideRenderer.updateLevelSize(blockMap.getBlocksX(), blockMap.getBlocksZ());
+        environmentRenderer.updateLevelSize(blockMap.getBlocksX(), blockMap.getBlocksZ());
         
         player = new Player(32, 40, 32);
     }
@@ -381,7 +381,7 @@ public final class VoxelGame extends BaseGame {
         waterAnimationGenerator.tick();
         lavaAnimationGenerator.tick();
 
-        outsideRenderer.tick();
+        environmentRenderer.tick();
 
         particleSystem.tickParticles(blockMap);
 
@@ -480,11 +480,11 @@ public final class VoxelGame extends BaseGame {
         renderer.clear(BufferType.COLOR);
 
         levelRender.renderOpaqueLayer(renderer, view, proj, fogInfo);
-        outsideRenderer.renderOpaqueLayer(renderer, view, proj, fogInfo, subtick);
+        environmentRenderer.renderOpaqueLayer(renderer, view, proj, fogInfo, subtick);
 
         particleSystem.renderParticles(renderer, view, proj, fogInfo, subtick, lightMap);
 
-        outsideRenderer.renderTranslucentLayer(renderer, view, proj, fogInfo);
+        environmentRenderer.renderTranslucentLayer(renderer, view, proj, fogInfo);
         levelRender.renderTranslucentLayer(renderer, view, proj, fogInfo);
 
         // levelRenderer.renderVisibilityDebug(lineRenderer, levelRenderData);
@@ -610,7 +610,7 @@ public final class VoxelGame extends BaseGame {
 
     @Override
     protected void cleanUp() {
-        outsideRenderer.close();
+        environmentRenderer.close();
         levelRenderData.close();
         levelRenderer.close();
         particleSystem.close();
