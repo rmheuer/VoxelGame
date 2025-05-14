@@ -1,55 +1,19 @@
 package com.github.rmheuer.voxel.network;
 
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
+public interface PacketDataInput {
+    short readUByte();
 
-public final class PacketDataInput {
-    private final DataInputStream in;
+    byte readSByte();
 
-    public PacketDataInput(DataInputStream in) {
-        this.in = in;
-    }
+    float readFByte();
 
-    public short readUByte() throws IOException {
-        return (short) in.readUnsignedByte();
-    }
+    short readShort();
 
-    public byte readSByte() throws IOException {
-        return in.readByte();
-    }
+    float readFShort();
 
-    public float readFByte() throws IOException {
-        return in.readByte() / 32.0f;
-    }
+    String readString();
 
-    public short readShort() throws IOException {
-        return in.readShort();
-    }
+    byte[] readBytes(int count);
 
-    public float readFShort() throws IOException {
-        return in.readShort() / 32.0f;
-    }
-
-    public String readString() throws IOException {
-        byte[] data = new byte[64];
-        in.readFully(data);
-
-        String str = new String(data, StandardCharsets.US_ASCII);
-        return str.stripTrailing();
-    }
-
-    public byte[] readBytes(int count) throws IOException {
-        byte[] buf = new byte[count];
-        in.readFully(buf);
-        return buf;
-    }
-
-    public void skipBytes(int count) throws IOException {
-        in.skipBytes(count);
-    }
-
-    public int available() throws IOException {
-        return in.available();
-    }
+    void skipBytes(int count);
 }
