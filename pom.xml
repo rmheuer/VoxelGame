@@ -35,7 +35,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifest>
-                            <mainClass>com.github.rmheuer.voxel.VoxelGame</mainClass>
+                            <mainClass>com.github.rmheuer.voxel.client.VoxelGame</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

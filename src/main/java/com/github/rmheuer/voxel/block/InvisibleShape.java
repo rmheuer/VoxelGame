@@ -2,10 +2,9 @@ package com.github.rmheuer.voxel.block;
 
 import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.azalea.math.CubeFace;
-import com.github.rmheuer.voxel.level.OcclusionType;
-import com.github.rmheuer.voxel.render.AtlasSprite;
-import com.github.rmheuer.voxel.render.SectionContext;
-import com.github.rmheuer.voxel.render.SectionGeometry;
+import com.github.rmheuer.voxel.client.render.AtlasSprite;
+import com.github.rmheuer.voxel.client.render.SectionContext;
+import com.github.rmheuer.voxel.client.render.SectionGeometry;
 
 /**
  * Invisible block

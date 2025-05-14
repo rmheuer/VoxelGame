@@ -1,8 +1,9 @@
 package com.github.rmheuer.voxel.block;
 
 import com.github.rmheuer.azalea.math.CubeFace;
-import com.github.rmheuer.voxel.render.AtlasSprite;
-import com.github.rmheuer.voxel.render.BlockFace;
+import com.github.rmheuer.voxel.client.render.AtlasSprite;
+import com.github.rmheuer.voxel.client.render.BlockFace;
+import com.github.rmheuer.voxel.client.render.LightingConstants;
 import org.joml.Vector3f;
 
 /**
@@ -16,7 +17,7 @@ public final class CubeFaceTemplate {
     /**
      * @param face which face of the cuboid this is
      * @param faceShade brightness of the face. Should be one of the SHADE
-     *                  values from {@link com.github.rmheuer.voxel.render.LightingConstants}
+     *                  values from {@link LightingConstants}
      */
     public CubeFaceTemplate(CubeFace face, float x1, float y1, float z1, float x2, float y2, float z2, float x3, float y3, float z3, float x4, float y4, float z4, float faceShade) {
         this.face = face;

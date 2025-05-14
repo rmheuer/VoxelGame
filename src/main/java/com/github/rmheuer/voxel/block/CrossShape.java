@@ -2,8 +2,7 @@ package com.github.rmheuer.voxel.block;
 
 import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.azalea.math.CubeFace;
-import com.github.rmheuer.voxel.level.OcclusionType;
-import com.github.rmheuer.voxel.render.*;
+import com.github.rmheuer.voxel.client.render.*;
 import org.joml.Vector3f;
 
 /**

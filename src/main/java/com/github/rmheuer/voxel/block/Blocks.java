@@ -1,6 +1,6 @@
 package com.github.rmheuer.voxel.block;
 
-import com.github.rmheuer.voxel.render.AtlasSprite;
+import com.github.rmheuer.voxel.client.render.AtlasSprite;
 
 /**
  * Definitions of all block types.
