@@ -12,6 +12,24 @@ Clone of Minecraft Classic version c0.30_c
 - B or E to open block picker
 - Esc to pause game
 
+## Building
+
+Requires Azalea, found here: https://github.com/rmheuer/azalea
+
+Azalea is not currently in any Maven repositories, so it must be installed
+manually using `mvn install`.
+
+Then VoxelGame can be built using `mvn package`. The resulting JAR will be
+found at `target/VoxelGame-1.0-SNAPSHOT-jar-with-dependencies.jar`.
+
+## Running
+
+On Windows or Linux, you can simply run the JAR file with
+`java -jar target/VoxelGame-1.0-SNAPSHOT-jar-with-dependencies.jar`.
+
+On macOS, the JVM flag `-XstartOnFirstThread` is required:
+`java -XstartOnFirstThread -jar target/VoxelGame-1.0-SNAPSHOT-jar-with-dependencies.jar`.
+
 ## References
 
 Lava and water animations: https://github.com/ClassiCube/ClassiCube/wiki/Minecraft-Classic-lava-animation-algorithm
