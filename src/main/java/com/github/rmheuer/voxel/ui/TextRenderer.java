@@ -13,6 +13,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Helper to render text using the bitmap font texture.
+ */
 public final class TextRenderer implements SafeCloseable {
     private static final class Glyph {
         private final Texture2DRegion region;
@@ -58,6 +61,12 @@ public final class TextRenderer implements SafeCloseable {
         }
     }
 
+    /**
+     * Gets the width in pixels that a String would be rendered at
+     *
+     * @param text text to get width
+     * @return width of the text in pixels
+     */
     public int textWidth(String text) {
         char[] chars = text.toCharArray();
 
@@ -76,7 +85,15 @@ public final class TextRenderer implements SafeCloseable {
         return width;
     }
 
-    // x, y is left baseline position
+    /**
+     * Draws a String of text into a draw list.
+     *
+     * @param draw draw list to draw into
+     * @param x X coordinate of left edge
+     * @param y Y coordinate of baseline
+     * @param text text to draw
+     * @param color color to draw the text
+     */
     public void drawText(DrawList2D draw, int x, int y, String text, int color) {
         char[] chars = text.toCharArray();
         for (char c : chars) {

@@ -6,6 +6,9 @@ import com.github.rmheuer.voxel.VoxelGame;
 
 import org.joml.Vector2i;
 
+/**
+ * UI for when the game is paused.
+ */
 public final class PauseMenuUI implements UI {
     private static final String TITLE = "Game Paused";
 
@@ -17,6 +20,9 @@ public final class PauseMenuUI implements UI {
     private final Button resetLevelButton;
     private final Button quitGameButton;
 
+    /**
+     * @param game main game instance
+     */
     public PauseMenuUI(VoxelGame game) {
         backToGameButton = new Button("Back to Game", () -> game.setUI(null));
         renderDistanceButton = new CycleButton<>("Render Distance: ", RenderDistance.values(), game.getRenderDistance().ordinal(), game::setRenderDistance);

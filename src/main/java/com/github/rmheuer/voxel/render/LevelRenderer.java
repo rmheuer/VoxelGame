@@ -23,6 +23,9 @@ import org.joml.Vector3i;
 import java.io.IOException;
 import java.util.*;
 
+/**
+ * Handles all of the rendering for the level.
+ */
 public final class LevelRenderer implements SafeCloseable {
     private final Texture2D atlasTexture;
 
@@ -31,6 +34,10 @@ public final class LevelRenderer implements SafeCloseable {
     private final SharedIndexBuffer sharedIndexBuffer;
     private final VisibilityCalculator visibilityCalc;
 
+    /**
+     * @param renderer renderer to create resources with
+     * @param atlasTexture block atlas texture
+     */
     public LevelRenderer(Renderer renderer, Texture2D atlasTexture) throws IOException {
         this.atlasTexture = atlasTexture;
 
@@ -54,6 +61,7 @@ public final class LevelRenderer implements SafeCloseable {
         visibilityCalc = new VisibilityCalculator();
     }
 
+    // Section layer to render and where to render it
     private static final class RenderSection {
         public final int blockX, blockY, blockZ;
         public final SectionRenderLayer layer;
@@ -66,6 +74,11 @@ public final class LevelRenderer implements SafeCloseable {
         }
     }
 
+    /**
+     * Stores the information about what to render this frame. This is needed in
+     * order to render the opaque and translucent layers separately while only
+     * processing the level sections once per frame.
+     */
     public static final class PreparedRender {
         private final PipelineInfo pipeline;
         private final IndexBuffer indexBuffer;
@@ -81,10 +94,26 @@ public final class LevelRenderer implements SafeCloseable {
             this.translucentToRender = translucentToRender;
         }
 
+        /**
+         * Renders the opaque layer of the level.
+         *
+         * @param renderer renderer to render with
+         * @param view camera view matrix
+         * @param proj camera projection matrix
+         * @param fogInfo information for distance fog
+         */
         public void renderOpaqueLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
             renderLayer(renderer, view, proj, fogInfo, opaqueToRender);
         }
 
+        /**
+         * Renders the translucent layer of the level.
+         *
+         * @param renderer renderer to render with
+         * @param view camera view matrix
+         * @param proj camera projection matrix
+         * @param fogInfo information for distance fog
+         */
         public void renderTranslucentLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
             renderLayer(renderer, view, proj, fogInfo, translucentToRender);
         }
@@ -116,6 +145,12 @@ public final class LevelRenderer implements SafeCloseable {
         }
     }
 
+    /**
+     * Renders lines to show the visibility connections for each section.
+     *
+     * @param r line renderer to render with
+     * @param renderData level render data to render
+     */
     public void renderVisibilityDebug(DebugLineRenderer r, LevelRenderData renderData) {
         for (int sectionY = 0; sectionY < renderData.getSectionsY(); sectionY++) {
             for (int sectionZ = 0; sectionZ < renderData.getSectionsZ(); sectionZ++) {
@@ -158,6 +193,20 @@ public final class LevelRenderer implements SafeCloseable {
         }
     }
 
+
+    /**
+     * Determines what should be rendered this frame.
+     *
+     * @param renderer renderer to render with
+     * @param blockMap block map to render
+     * @param lightMap light map for lighting
+     * @param renderData level render data to render
+     * @param viewProj combined camera view and projection matrices
+     * @param cameraPos position of the camera in the level
+     * @param wireframe whether to render the level as a wireframe mesh
+     *
+     * @return prepared render information to be rendered later
+     */
     public PreparedRender prepareRender(Renderer renderer, BlockMap blockMap, LightMap lightMap, LevelRenderData renderData, Matrix4f viewProj, Vector3fc cameraPos, boolean wireframe) {
         int sectionsX = blockMap.getSectionsX();
         int sectionsY = blockMap.getSectionsY();
@@ -180,6 +229,7 @@ public final class LevelRenderer implements SafeCloseable {
 
         FrustumIntersection frustum = new FrustumIntersection(viewProj, false);
 
+        // TODO: Clean up
         long startTime = System.currentTimeMillis();
         VisNode node;
         while ((node = frontier.poll()) != null) {
@@ -285,94 +335,7 @@ public final class LevelRenderer implements SafeCloseable {
         return new PreparedRender(pipeline, sharedIndexBuffer.getIndexBuffer(), atlasTexture, opaqueToRender, translucentToRender);
     }
 
-    /*
-    public PreparedRender prepareRender(Renderer renderer, BlockMap blockMap, LightMap lightMap, LevelRenderData renderData, Matrix4f viewProj, Vector3fc cameraPos, boolean wireframe) {
-        int sectionsX = blockMap.getSectionsX();
-        int sectionsY = blockMap.getSectionsY();
-        int sectionsZ = blockMap.getSectionsZ();
-
-        boolean cameraMoved = !renderData.getPrevCameraPos().equals(cameraPos);
-        renderData.setPrevCameraPos(cameraPos);
-
-        List<RenderSection> opaqueToRender = new ArrayList<>();
-        List<RenderSection> translucentToRender = new ArrayList<>();
-
-        int updated = 0;
-        for (int sectionY = 0; sectionY < sectionsY; sectionY++) {
-            for (int sectionZ = 0; sectionZ < sectionsZ; sectionZ++) {
-                for (int sectionX = 0; sectionX < sectionsX; sectionX++) {
-                    SectionRenderData renderSection = renderData.getSection(sectionX, sectionY, sectionZ);
-
-                    int ox = sectionX * MapSection.SIZE;
-                    int oy = sectionY * MapSection.SIZE;
-                    int oz = sectionZ * MapSection.SIZE;
-
-                    boolean updateTranslucent = cameraMoved;
-                    if (renderSection.isMeshOutdated()) {
-                        try (SectionGeometry geom = createSectionGeometry(blockMap, lightMap, sectionX, sectionY, sectionZ)) {
-                            renderSection.getOpaqueLayer().updateMesh(renderer, geom.getOpaqueData());
-                            renderSection.setTranslucentFaces(geom.getTranslucentFaces());
-                            sharedIndexBuffer.ensureCapacity(geom.getRequiredFaceCount());
-                            renderSection.clearOutdated();
-                        }
-                        updated++;
-                        updateTranslucent = true;
-                    }
-
-                    if (updateTranslucent) {
-                        // Reorder translucent faces from back to front
-                        List<BlockFace> translucentFaces = renderSection.getTranslucentFaces();
-                        translucentFaces.sort(Comparator.comparingDouble((face) -> -cameraPos.distanceSquared(face.getCenterPos(ox, oy, oz))));
-
-                        try (VertexData data = new VertexData(BlockFace.VERTEX_LAYOUT)) {
-                            for (BlockFace face : translucentFaces) {
-                                face.addToMesh(data);
-                            }
-                            renderSection.getTranslucentLayer().updateMesh(renderer, data);
-                        }
-                    }
-
-                    if (renderSection.isVisibilityOutdated()) {
-                        MapSection mapSection = blockMap.getSection(sectionX, sectionY, sectionZ);
-                        renderSection.updateVisibility(visibilityCalc.calculate(mapSection));
-                    }
-
-                    SectionRenderLayer opaque = renderSection.getOpaqueLayer();
-                    SectionRenderLayer translucent = renderSection.getTranslucentLayer();
-                    if (opaque.getElementCount() > 0) {
-                        opaqueToRender.add(new RenderSection(ox, oy, oz, opaque));
-                    }
-                    if (translucent.getElementCount() > 0) {
-                        translucentToRender.add(new RenderSection(ox, oy, oz, translucent));
-                    }
-                }
-            }
-        }
-        if (updated > 0) {
-            System.out.println("Updated " + updated + " section mesh(es)");
-        }
-
-        // Sort opaque sections front to back to minimize overdraw
-        int halfSz = MapSection.SIZE / 2;
-        opaqueToRender.sort(Comparator.comparingDouble((section) -> cameraPos.distanceSquared(
-                section.blockX + halfSz,
-                section.blockY + halfSz,
-                section.blockZ + halfSz
-        )));
-
-        // Sort translucent sections back to front for correct blending
-        translucentToRender.sort(Comparator.comparingDouble((section) -> -cameraPos.distanceSquared(
-                section.blockX + halfSz,
-                section.blockY + halfSz,
-                section.blockZ + halfSz
-        )));
-
-        pipeline.setFillMode(wireframe ? FillMode.WIREFRAME : FillMode.FILLED);
-
-        return new PreparedRender(pipeline, sharedIndexBuffer.getIndexBuffer(), atlasTexture, opaqueToRender, translucentToRender);
-    }
-    */
-
+    // Creates the updated render geometry for one level section
     private SectionGeometry createSectionGeometry(BlockMap blockMap, LightMap lightMap, int sectionX, int sectionY, int sectionZ) {
         SectionGeometry geom = new SectionGeometry();
         SectionContext ctx = new SectionContext(blockMap, lightMap, sectionX, sectionY, sectionZ);
@@ -419,6 +382,7 @@ public final class LevelRenderer implements SafeCloseable {
         }
     }
 
+    // Helper to calculate the visibility info for a level section
     private static final class VisibilityCalculator {
         private static final CubeFace[] FACES = CubeFace.values();
         

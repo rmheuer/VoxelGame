@@ -5,7 +5,10 @@ import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.texture.Bitmap;
 import com.github.rmheuer.azalea.render.texture.ColorFormat;
 
-// From https://github.com/ClassiCube/ClassiCube/wiki/Minecraft-Classic-lava-animation-algorithm
+/**
+ * Generates the animated water texture.
+ * Based on https://github.com/ClassiCube/ClassiCube/wiki/Minecraft-Classic-lava-animation-algorithm
+ */
 public final class WaterAnimationGenerator {
     private final float[] flameHeat = new float[256];
     private final float[] potHeat = new float[256];
@@ -21,6 +24,9 @@ public final class WaterAnimationGenerator {
         return x + y * 16;
     }
 
+    /**
+     * Advances the animation by one step.
+     */
     public void tick() {
         for (int y = 0; y < 16; y++) {
             for (int x = 0; x < 16; x++) {
@@ -41,6 +47,11 @@ public final class WaterAnimationGenerator {
         }
     }
 
+    /**
+     * Gets the current image of the animation.
+     *
+     * @return current image
+     */
     public Bitmap getImage() {
         Bitmap img = new Bitmap(16, 16, ColorFormat.RGBA);
 

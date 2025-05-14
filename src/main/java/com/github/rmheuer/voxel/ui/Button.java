@@ -2,6 +2,9 @@ package com.github.rmheuer.voxel.ui;
 
 import org.joml.Vector2i;
 
+/**
+ * A clickable button with a text label.
+ */
 public class Button {
     public static final int WIDTH = 200;
     public static final int HEIGHT = 20;
@@ -10,6 +13,10 @@ public class Button {
     private final Runnable onClick;
     private int x, y;
 
+    /**
+     * @param label label for the button
+     * @param onClick function to call when the button is clicked
+     */
     public Button(String label, Runnable onClick) {
         this.label = label;
         this.onClick = onClick;
@@ -19,6 +26,12 @@ public class Button {
         this.label = label;
     }
 
+    /**
+     * Sets the position of the top-left corner on the screen.
+     *
+     * @param x X coordinate of left side
+     * @param y Y coordinate of top side
+     */
     public void setPosition(int x, int y) {
         this.x = x;
         this.y = y;
@@ -29,6 +42,13 @@ public class Button {
             && mousePos.y >= y && mousePos.y < y + HEIGHT;
     }
 
+    /**
+     * Draws the button into the draw list.
+     *
+     * @param draw draw list to draw into
+     * @param sprites access to UI sprites
+     * @param mousePos current mouse position
+     */
     public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
         UISprite sprite = mouseOver(mousePos)
             ? sprites.getButtonHighlight()
@@ -42,6 +62,11 @@ public class Button {
         onClick.run();
     }
 
+    /**
+     * Handles a mouse press at the specified position.
+     *
+     * @param mousePos position the mouse was clicked
+     */
     public void mouseClicked(Vector2i mousePos) {
         if (mouseOver(mousePos)) {
             clicked();

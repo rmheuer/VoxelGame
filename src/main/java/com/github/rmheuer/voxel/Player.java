@@ -9,6 +9,9 @@ import org.joml.Vector3f;
 
 import java.util.List;
 
+/**
+ * Handles the state and physics of the player.
+ */
 public final class Player {
     private static final float JUMP_VELOCITY = 0.42f;
     private static final float TRACTION_ON_GROUND = 0.1f;
@@ -28,6 +31,11 @@ public final class Player {
     private float pitch, yaw;
     private boolean onGround;
 
+    /**
+     * @param x X coordinate of feet position
+     * @param y Y coordinate of feet position
+     * @param z Z coordinate of feet position
+     */
     public Player(float x, float y, float z) {
         position = new Vector3f(x, y, z);
         prevPosition = new Vector3f(x, y, z);
@@ -38,6 +46,14 @@ public final class Player {
         onGround = false;
     }
 
+    /**
+     * Moves based on the player inputs and physics.
+     *
+     * @param map block map for collision
+     * @param inputForward keyboard input in forward direction, from -1 to 1
+     * @param inputRight keyboard input in right direction, from -1 to 1
+     * @param jump keyboard input for jumping
+     */
     public void tickMovement(BlockMap map, float inputForward, float inputRight, boolean jump) {
         prevPosition.set(position);
 
@@ -51,12 +67,14 @@ public final class Player {
 
         if (jump) {
             if (inLiquid) {
+                // Swim upward
                 velocity.y += 0.04f;
             } else if (onGround) {
                 velocity.y = JUMP_VELOCITY;
             }
         }
 
+        // Normalize and apply keyboard input
         float magnitude = Math.min(1.0f, (float) Math.hypot(inputForward, inputRight));
         if (magnitude > 0) {
             float friction = onGround && !(inWater || inLava)
@@ -67,6 +85,7 @@ public final class Player {
             velocity.add(new Vector3f(inputRight, 0, -inputForward).rotateY(yaw));
         }
 
+        // Move with collision
         AABB extended = box.expandTowards(velocity.x, velocity.y, velocity.z);
         List<AABB> colliders = map.getCollidersWithin(extended);
 
@@ -87,6 +106,8 @@ public final class Player {
 
         boolean horizontalCollision = moveX != velocity.x || moveZ != velocity.z;
         if (onGround && horizontalCollision) {
+            // Handle stepping up onto a slab
+            
             AABB stepUp = getBoundingBox().translate(0, 0.6f, 0);
             AABB stepExtended = extended.expandTowards(0, 0.6f, 0).expandTowards(0, -0.6f, 0);
             colliders = map.getCollidersWithin(stepExtended);
@@ -122,6 +143,7 @@ public final class Player {
             }
         }
 
+        // Cancel horizontal velocity if collided
         if (moveX != velocity.x)
             velocity.x = 0;
         if (moveZ != velocity.z)
@@ -136,11 +158,13 @@ public final class Player {
 
         position.add(moveX, moveY, moveZ);
 
+        // Apply friction and gravity
         if (inLiquid) {
             float friction = inWater ? 0.8f : 0.5f;
             velocity.mul(friction);
             velocity.y -= 0.02f;
 
+            // Allow jumping out at edge of liquid
             if (horizontalCollision) {
                 AABB jumpOut = getBoundingBox().translate(velocity.x, velocity.y + 0.6f - moveY, velocity.z);
                 if (map.isFree(jumpOut))
@@ -156,6 +180,12 @@ public final class Player {
         }
     }
 
+    /**
+     * Rotates the view direction by the specified inputs.
+     *
+     * @param deltaPitch angle to rotate by around X axis
+     * @param deltaYaw angle to rotate by around Y axis
+     */
     public void turn(float deltaPitch, float deltaYaw) {
         pitch += deltaPitch;
         pitch = MathUtil.clamp(pitch, -(float) Math.PI / 2, (float) Math.PI / 2);
@@ -163,10 +193,21 @@ public final class Player {
         yaw += deltaYaw;
     }
 
+    /**
+     * Gets the smoothed feet position.
+     *
+     * @param subtick percentage elapsed within the current tick
+     * @return feet position
+     */
     public Vector3f getPosition(float subtick) {
         return new Vector3f(prevPosition).lerp(position, subtick);
     }
 
+    /**
+     * Gets the collision box of the player at the current position.
+     *
+     * @return hitbox
+     */
     public AABB getBoundingBox() {
         return AABB.fromBaseCenterSize(position.x, position.y, position.z, BB_SIZE, BB_HEIGHT, BB_SIZE);
     }

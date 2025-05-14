@@ -9,6 +9,9 @@ import java.util.function.Consumer;
 
 import static com.github.rmheuer.voxel.block.Blocks.*;
 
+/**
+ * In-game UI to pick blocks
+ */
 public final class BlockPickerUI implements UI {
     private static final String TITLE = "Select block";
     private static final byte[][] BLOCKS = {
@@ -30,6 +33,9 @@ public final class BlockPickerUI implements UI {
     private final Consumer<Byte> blockPickedCallback;
     private int blocksOriginX, blocksOriginY;
 
+    /**
+     * @param blockPickedCallback function to call when a block is picked
+     */
     public BlockPickerUI(Consumer<Byte> blockPickedCallback) {
         this.blockPickedCallback = blockPickedCallback;
     }
@@ -89,6 +95,7 @@ public final class BlockPickerUI implements UI {
 
     @Override
     public boolean shouldPauseGame() {
+        // In game, so don't pause
         return false;
     }
 }

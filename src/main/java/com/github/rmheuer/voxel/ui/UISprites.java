@@ -8,6 +8,9 @@ import com.github.rmheuer.azalea.utils.SafeCloseable;
 
 import java.io.IOException;
 
+/**
+ * Stores the various sprites used by the UI.
+ */
 public final class UISprites implements SafeCloseable {
     private static final int ATLAS_SIZE = 256;
 
@@ -20,6 +23,9 @@ public final class UISprites implements SafeCloseable {
     private final UISprite buttonGray;
     private final UISprite buttonHighlight;
 
+    /**
+     * @param renderer renderer to load resources with
+     */
     public UISprites(Renderer renderer) throws IOException {
         atlasTexture = renderer.createTexture2D(ResourceUtil.readAsStream("gui.png"));
 

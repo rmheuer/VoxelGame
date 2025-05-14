@@ -29,6 +29,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
+/**
+ * Handles and renders all particles in the level.
+ */
 public final class ParticleSystem implements SafeCloseable {
     private static final VertexLayout LAYOUT = new VertexLayout(
             AttribType.VEC3, // Position
@@ -127,6 +130,10 @@ public final class ParticleSystem implements SafeCloseable {
     private final List<Particle> particles;
     private final Random random;
 
+    /**
+     * @param renderer renderer to create resources with
+     * @param atlasTexture block atlas texture
+     */
     public ParticleSystem(Renderer renderer, Texture2D atlasTexture) throws IOException {
         this.atlasTexture = atlasTexture;
 
@@ -147,14 +154,24 @@ public final class ParticleSystem implements SafeCloseable {
         random = new Random();
     }
 
+    // Gets the position of a breaking particle along one axis
     private float particlePos(int index) {
         return (index + 0.5f) / BREAK_PARTICLES_PER_AXIS;
     }
 
+    // Gets a random offset for the particle velocity
     private float velocityRand() {
         return (random.nextFloat() * 2 - 1) * 0.4f;
     }
 
+    /**
+     * Spawns the block breaking particles for the specified block.
+     *
+     * @param blockX X position of the broken block
+     * @param blockY Y position of the broken block
+     * @param blockZ Z position of the broken block
+     * @param brokenBlock the block that was broken
+     */
     public void spawnBreakParticles(int blockX, int blockY, int blockZ, Block brokenBlock) {
         AtlasSprite sprite = brokenBlock.getShape().getParticleSprite();
         float gravityScale = brokenBlock.getParticleGravityScale();
@@ -189,6 +206,11 @@ public final class ParticleSystem implements SafeCloseable {
         }
     }
 
+    /**
+     * Updates the particles by one step.
+     *
+     * @param map block map for collisions
+     */
     public void tickParticles(BlockMap map) {
         for (Iterator<Particle> iter = particles.iterator(); iter.hasNext(); ) {
             Particle particle = iter.next();
@@ -200,6 +222,16 @@ public final class ParticleSystem implements SafeCloseable {
         }
     }
 
+    /**
+     * Renders the particles into the level.
+     *
+     * @param renderer renderer to render with
+     * @param view camera view matrix
+     * @param proj camera projection matrix
+     * @param fogInfo information for distance fog
+     * @param subtick percentage elapsed within this tick
+     * @param lightMap light map for handling shadows
+     */
     public void renderParticles(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo, float subtick, LightMap lightMap) {
         if (particles.isEmpty())
             return;

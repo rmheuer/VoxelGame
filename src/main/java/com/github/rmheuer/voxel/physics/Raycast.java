@@ -8,12 +8,21 @@ import com.github.rmheuer.voxel.level.BlockMap;
 import org.joml.Vector3f;
 import org.joml.Vector3i;
 
+/**
+ * Helper to perform raycasts through the level.
+ * Based on http://www.cse.yorku.ca/~amana/research/grid.pdf
+ */
 public final class Raycast {
     public static final class Result {
         public final Vector3i blockPos;
         public final Vector3f hitPos;
         public final CubeFace hitFace;
 
+        /**
+         * @param blockPos position of the hit block
+         * @param hitPos intersection point of the ray with the block
+         * @param hitFace face of the block that was hit
+         */
         public Result(Vector3i blockPos, Vector3f hitPos, CubeFace hitFace) {
             this.blockPos = blockPos;
             this.hitPos = hitPos;
@@ -21,7 +30,15 @@ public final class Raycast {
         }
     }
 
-    // Direction must be normalized
+    /**
+     * Performs a raycast through the block map to find hit block.
+     *
+     * @param map block map to cast through
+     * @param pos origin of the ray
+     * @param dir direction of the ray, must be normalized
+     * @param maxDistance maximum reach distance
+     * @return hit information, or null if no block was hit
+     */
     public static Result raycast(BlockMap map, Vector3f pos, Vector3f dir, float maxDistance) {
         int blockX = (int) Math.floor(pos.x);
         int blockY = (int) Math.floor(pos.y);

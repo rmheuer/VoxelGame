@@ -43,6 +43,9 @@ import org.joml.*;
 import java.io.IOException;
 import java.lang.Math;
 
+/**
+ * Main game class
+ */
 public final class VoxelGame extends BaseGame {
     private static final WindowSettings WINDOW_SETTINGS =
             new WindowSettings(640, 480, "Voxel")
@@ -153,6 +156,12 @@ public final class VoxelGame extends BaseGame {
         capturedCameraPos = null;
     }
 
+    /**
+     * Erases the current level and creates a new one with the specified
+     * horizontal size in sections.
+     *
+     * @param sizeSections number of level sections along the X and Z axes
+     */
     public void resetLevel(int sizeSections) {
         blockMap = new BlockMap(sizeSections, 4, sizeSections);
         lightMap = new LightMap(blockMap.getBlocksX(), blockMap.getBlocksZ());
@@ -194,6 +203,11 @@ public final class VoxelGame extends BaseGame {
         getWindow().getMouse().setCursorCaptured(mouseCaptured);
     }
 
+    /**
+     * Sets the currently shown UI.
+     *
+     * @param ui new UI to show. If null, no UI will be shown
+     */
     public void setUI(UI ui) {
         setMouseCaptured(ui == null);
         this.ui = ui;
@@ -360,6 +374,7 @@ public final class VoxelGame extends BaseGame {
         ticker.update(dt);
     }
 
+    // Fixed tick at 20 Hz
     private void fixedTick(float dt) {
         ticked = true;
 

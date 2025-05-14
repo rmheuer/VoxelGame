@@ -16,6 +16,10 @@ import org.joml.Matrix4f;
 
 import java.io.IOException;
 
+/**
+ * Renders the environment outside the level (the sky and surrounding ocean).
+ */
+// TODO: Rename to EnvironmentRenderer
 public final class OutsideLevelRenderer implements SafeCloseable {
     private static final int WATER_LEVEL = 32;
     private static final int WATER_DEPTH = 3;
@@ -38,6 +42,9 @@ public final class OutsideLevelRenderer implements SafeCloseable {
 
     private int tickCount;
 
+    /**
+     * @param renderer renderer to create resources with
+     */
     public OutsideLevelRenderer(Renderer renderer) throws IOException {
         shader = renderer.createShaderProgram(
                 ResourceUtil.readAsStream("shaders/outside_vertex.glsl"),
@@ -64,6 +71,14 @@ public final class OutsideLevelRenderer implements SafeCloseable {
         tickCount = 0;
     }
 
+    /**
+     * Updates the environment to properly contain a level of the specified
+     * size. This must be called at least once before the environment is
+     * rendered.
+     *
+     * @param blocksX size of the level along the X axis
+     * @param blocksZ size of the level along the Z axis
+     */
     public void updateLevelSize(int blocksX, int blocksZ) {
         try (MeshData data = createBedrockMesh(blocksX, blocksZ)) {
             bedrockMesh.setData(data, DataUsage.STATIC);
@@ -138,6 +153,7 @@ public final class OutsideLevelRenderer implements SafeCloseable {
     private MeshData createCloudsMesh(float subtick) {
         MeshData data = new MeshData(VERTEX_LAYOUT, PrimitiveType.TRIANGLES);
 
+        // FIXME: For some reason the clouds move slightly jittery, not sure why
         int y = 66;
         float scroll = ((tickCount + subtick) * 0.025f) % 4096;
 
@@ -155,6 +171,15 @@ public final class OutsideLevelRenderer implements SafeCloseable {
         tickCount++;
     }
 
+    /**
+     * Renders the opaque layer of the environment.
+     *
+     * @param renderer renderer to render with
+     * @param view camera view matrix
+     * @param proj camera projection matrix
+     * @param fogInfo information for distance fog
+     * @param subtick percentage elapsed of the current tick
+     */
     public void renderOpaqueLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo, float subtick) {
         renderLayer(bedrockTex, bedrockMesh, renderer, view, proj, fogInfo);
         renderLayer(skyTex, skyMesh, renderer, view, proj, fogInfo);
@@ -165,6 +190,14 @@ public final class OutsideLevelRenderer implements SafeCloseable {
         renderLayer(cloudsTex, cloudsMesh, renderer, view, proj, fogInfo);
     }
 
+    /**
+     * Renders the translucent layer of the environment.
+     *
+     * @param renderer renderer to render with
+     * @param view camera view matrix
+     * @param proj camera projection matrix
+     * @param fogInfo information for distance fog
+     */
     public void renderTranslucentLayer(Renderer renderer, Matrix4f view, Matrix4f proj, FogInfo fogInfo) {
         renderLayer(waterTex, waterMesh, renderer, view, proj, fogInfo);
     }

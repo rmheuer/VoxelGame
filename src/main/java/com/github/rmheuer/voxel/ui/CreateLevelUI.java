@@ -6,6 +6,9 @@ import com.github.rmheuer.voxel.level.MapSection;
 
 import org.joml.Vector2i;
 
+/**
+ * UI to choose the size to create a new level.
+ */
 public final class CreateLevelUI implements UI {
     private static final String TITLE = "Create Level";
 
@@ -17,6 +20,10 @@ public final class CreateLevelUI implements UI {
     private final Button largeButton;
     private final Button cancelButton;
 
+    /**
+     * @param game main game instance
+     * @param pauseMenu pause menu to go back to if cancel is pressed
+     */
     public CreateLevelUI(VoxelGame game, PauseMenuUI pauseMenu) {
         smallButton = new Button("Small (128x128)", () -> createLevel(game, 128));
         normalButton = new Button("Normal (256x256)", () -> createLevel(game, 256));
