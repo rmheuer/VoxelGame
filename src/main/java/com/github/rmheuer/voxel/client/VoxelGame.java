@@ -10,6 +10,7 @@ import com.github.rmheuer.azalea.input.mouse.MouseScrollEvent;
 import com.github.rmheuer.azalea.io.ResourceUtil;
 import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.azalea.math.CubeFace;
+import com.github.rmheuer.azalea.math.MathUtil;
 import com.github.rmheuer.azalea.render.BufferType;
 import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.Renderer;
@@ -577,7 +578,9 @@ public final class VoxelGame extends BaseGame {
         Vector2d mousePos = getWindow().getMouse().getCursorPos();
         Vector2i uiMousePos = new Vector2i((int) (mousePos.x / guiScale), (int) (mousePos.y / guiScale));
 
-        try (UIDrawList uiDraw = new UIDrawList(windowSize.x / guiScale, windowSize.y / guiScale, atlasTexture, textRenderer)) {
+        int uiWidth = MathUtil.ceilDiv(windowSize.x, guiScale);
+        int uiHeight = MathUtil.ceilDiv(windowSize.y, guiScale);
+        try (UIDrawList uiDraw = new UIDrawList(uiWidth, uiHeight, atlasTexture, textRenderer)) {
             int fps = (int) getFpsCounter().getFrameRate();
             float mspf = getFpsCounter().getFrameTime() * 1000.0f;
             uiDraw.drawText(1, 8, String.format("%d FPS, %.2f ms/frame", fps, mspf));
