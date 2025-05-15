@@ -1,5 +1,6 @@
 package com.github.rmheuer.voxel.network;
 
+import com.github.rmheuer.azalea.math.MathUtil;
 import io.netty.buffer.ByteBuf;
 
 import java.io.IOException;
@@ -42,7 +43,20 @@ public final class PacketDataBuf implements PacketDataInput, PacketDataOutput {
 
     @Override
     public void writeFByte(float val) {
-        buf.writeByte((byte) (val / 32.0f));
+        buf.writeByte((byte) (val * 32.0f));
+    }
+
+    @Override
+    public float readAngle() {
+        int val = buf.readUnsignedByte();
+        return -val / 256.0f * (float) Math.PI * 2;
+    }
+
+    @Override
+    public void writeAngle(float radians) {
+        float scaled = -radians / ((float) Math.PI * 2) * 256.0f;
+        int wrapped = (int) MathUtil.wrap(scaled, 0, 256);
+        buf.writeByte(wrapped);
     }
 
     @Override
@@ -62,7 +76,7 @@ public final class PacketDataBuf implements PacketDataInput, PacketDataOutput {
 
     @Override
     public void writeFShort(float val) {
-        buf.writeShort((short) (val / 32.0f));
+        buf.writeShort((short) (val * 32.0f));
     }
 
     @Override

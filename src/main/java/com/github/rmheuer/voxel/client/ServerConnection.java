@@ -1,9 +1,7 @@
 package com.github.rmheuer.voxel.client;
 
-import com.github.rmheuer.voxel.network.PacketMapping;
-import com.github.rmheuer.voxel.network.PacketRegistry;
-import com.github.rmheuer.voxel.network.PacketDecoder;
-import com.github.rmheuer.voxel.network.PacketEncoder;
+import com.github.rmheuer.voxel.network.*;
+import com.github.rmheuer.voxel.network.packet.BidiPlayerPositionPacket;
 import com.github.rmheuer.voxel.network.packet.ClientPacket;
 import com.github.rmheuer.voxel.network.packet.ServerPacket;
 import io.netty.bootstrap.Bootstrap;
@@ -40,6 +38,7 @@ public final class ServerConnection extends ChannelInboundHandlerAdapter {
     }
 
     private final Channel channel;
+    private ServerPacketListener listener;
 
     public ServerConnection(Channel channel) {
         this.channel = channel;
@@ -49,10 +48,17 @@ public final class ServerConnection extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         ServerPacket packet = (ServerPacket) msg;
         System.out.println("Received packet: " + packet);
+        packet.handleServer(listener);
     }
 
     public void sendPacket(ClientPacket packet) {
+        if (!(packet instanceof BidiPlayerPositionPacket))
+            System.out.println("Sent packet: " + packet);
         channel.writeAndFlush(packet, channel.voidPromise());
+    }
+
+    public void setPacketListener(ServerPacketListener listener) {
+        this.listener = listener;
     }
 
     public void disconnect() {

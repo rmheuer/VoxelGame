@@ -11,12 +11,12 @@ public final class ServerRelativeMoveAndLookPacket implements ServerPacket {
     private float deltaX;
     private float deltaY;
     private float deltaZ;
-    private short yaw;
-    private short pitch;
+    private float yaw;
+    private float pitch;
 
     public ServerRelativeMoveAndLookPacket() {}
 
-    public ServerRelativeMoveAndLookPacket(byte playerId, float deltaX, float deltaY, float deltaZ, short yaw, short pitch) {
+    public ServerRelativeMoveAndLookPacket(byte playerId, float deltaX, float deltaY, float deltaZ, float yaw, float pitch) {
         this.playerId = playerId;
         this.deltaX = deltaX;
         this.deltaY = deltaY;
@@ -31,8 +31,8 @@ public final class ServerRelativeMoveAndLookPacket implements ServerPacket {
         deltaX = in.readFByte();
         deltaY = in.readFByte();
         deltaZ = in.readFByte();
-        yaw = in.readUByte();
-        pitch = in.readUByte();
+        yaw = in.readAngle();
+        pitch = in.readAngle();
     }
 
     @Override
@@ -41,8 +41,8 @@ public final class ServerRelativeMoveAndLookPacket implements ServerPacket {
         out.writeFByte(deltaX);
         out.writeFByte(deltaY);
         out.writeFByte(deltaZ);
-        out.writeUByte(yaw);
-        out.writeUByte(pitch);
+        out.writeAngle(yaw);
+        out.writeAngle(pitch);
     }
 
     @Override
@@ -66,11 +66,11 @@ public final class ServerRelativeMoveAndLookPacket implements ServerPacket {
         return deltaZ;
     }
 
-    public short getYaw() {
+    public float getYaw() {
         return yaw;
     }
 
-    public short getPitch() {
+    public float getPitch() {
         return pitch;
     }
 

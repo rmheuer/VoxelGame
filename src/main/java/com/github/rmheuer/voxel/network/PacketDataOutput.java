@@ -9,6 +9,8 @@ public interface PacketDataOutput {
 
     void writeFByte(float val);
 
+    void writeAngle(float radians);
+
     void writeShort(short val);
 
     void writeFShort(float val);

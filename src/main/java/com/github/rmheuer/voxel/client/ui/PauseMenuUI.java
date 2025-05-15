@@ -1,6 +1,5 @@
 package com.github.rmheuer.voxel.client.ui;
 
-import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.voxel.client.RenderDistance;
 import com.github.rmheuer.voxel.client.VoxelGame;
 
@@ -11,9 +10,6 @@ import org.joml.Vector2i;
  */
 public final class PauseMenuUI implements UI {
     private static final String TITLE = "Game Paused";
-
-    private static final int BG_COLOR_1 = Colors.RGBA.fromInts(5, 5, 0, 96);
-    private static final int BG_COLOR_2 = Colors.RGBA.fromInts(48, 48, 96, 160);
 
     private final Button backToGameButton;
     private final CycleButton<RenderDistance> renderDistanceButton;
@@ -43,7 +39,7 @@ public final class PauseMenuUI implements UI {
         resetLevelButton.setPosition(cornerX, cornerY + Button.HEIGHT * 2 + 8);
         quitGameButton.setPosition(cornerX, cornerY + Button.HEIGHT * 3 + 36);
 
-        draw.drawRectVGradient(0, 0, draw.getWidth(), draw.getHeight(), BG_COLOR_1, BG_COLOR_2);
+        draw.drawGradientBackground(0, 0, draw.getWidth(), draw.getHeight());
         draw.drawTextCentered(centerX, cornerY - 24, TITLE);
         backToGameButton.draw(draw, sprites, mousePos);
         renderDistanceButton.draw(draw, sprites, mousePos);

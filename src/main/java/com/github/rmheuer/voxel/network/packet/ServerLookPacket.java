@@ -8,12 +8,12 @@ import java.io.IOException;
 
 public final class ServerLookPacket implements ServerPacket {
     private byte playerId;
-    private short yaw;
-    private short pitch;
+    private float yaw;
+    private float pitch;
 
     public ServerLookPacket() {}
 
-    public ServerLookPacket(byte playerId, short yaw, short pitch) {
+    public ServerLookPacket(byte playerId, float yaw, float pitch) {
         this.playerId = playerId;
         this.yaw = yaw;
         this.pitch = pitch;
@@ -22,15 +22,15 @@ public final class ServerLookPacket implements ServerPacket {
     @Override
     public void read(PacketDataInput in) throws IOException {
         playerId = in.readSByte();
-        yaw = in.readUByte();
-        pitch = in.readUByte();
+        yaw = in.readAngle();
+        pitch = in.readAngle();
     }
 
     @Override
     public void write(PacketDataOutput out) throws IOException {
         out.writeSByte(playerId);
-        out.writeUByte(yaw);
-        out.writeUByte(pitch);
+        out.writeAngle(yaw);
+        out.writeAngle(pitch);
     }
 
     @Override
@@ -42,11 +42,11 @@ public final class ServerLookPacket implements ServerPacket {
         return playerId;
     }
 
-    public short getYaw() {
+    public float getYaw() {
         return yaw;
     }
 
-    public short getPitch() {
+    public float getPitch() {
         return pitch;
     }
 

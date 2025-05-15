@@ -13,6 +13,11 @@ import com.github.rmheuer.voxel.client.render.AtlasSprite;
 public final class UIDrawList implements SafeCloseable {
     private static final int TEXT_SHADOW_COLOR = Colors.RGBA.fromInts(64, 64, 64);
 
+    private static final int BG_COLOR_1 = Colors.RGBA.fromInts(5, 5, 0, 96);
+    private static final int BG_COLOR_2 = Colors.RGBA.fromInts(48, 48, 96, 160);
+
+    private static final int DIRT_BG_TINT = Colors.RGBA.fromInts(64, 64, 64);
+
     private final int width, height;
     private final DrawList2D draw;
     private final Texture2D blockAtlas;
@@ -113,6 +118,19 @@ public final class UIDrawList implements SafeCloseable {
     public void drawTextCentered(int x, int y, String text) {
         int w = textRenderer.textWidth(text);
         drawText(x - w / 2, y, text);
+    }
+
+    public void drawGradientBackground(int x, int y, int w, int h) {
+        drawRectVGradient(x, y, w, h, BG_COLOR_1, BG_COLOR_2);
+    }
+
+    // TODO: Hold reference to sprites in this
+    public void drawDirtBackground(UISprites sprites, int x, int y, int w, int h) {
+        draw.drawImage(
+                x, y, w, h,
+                sprites.getDirtTexture(), DIRT_BG_TINT,
+                0, 0, w / 32f, h / 32f
+        );
     }
 
     public int getWidth() {

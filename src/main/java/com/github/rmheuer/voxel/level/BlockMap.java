@@ -40,6 +40,19 @@ public final class BlockMap {
         }
     }
 
+    public BlockMap(int sectionsX, int sectionsY, int sectionsZ, byte[] blockData) {
+        this(sectionsX, sectionsY, sectionsZ);
+
+        // TODO: This could probably be optimized better
+        for (int i = 0; i < blockData.length; i++) {
+            int x = i % blocksX;
+            int z = (i / blocksX) % blocksZ;
+            int y = i / blocksX / blocksZ;
+
+            setBlockId(x, y, z, blockData[i]);
+        }
+    }
+
     // Gets the index of the section within the sections array
     private int sectionIndex(int sectionX, int sectionY, int sectionZ) {
         return sectionX + sectionZ * sectionsX + sectionY * sectionsX * sectionsZ;

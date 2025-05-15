@@ -7,6 +7,9 @@ public interface PacketDataInput {
 
     float readFByte();
 
+    // Radians
+    float readAngle();
+
     short readShort();
 
     float readFShort();

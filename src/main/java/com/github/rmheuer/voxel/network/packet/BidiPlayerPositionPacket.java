@@ -10,12 +10,12 @@ import java.io.IOException;
 public final class BidiPlayerPositionPacket implements ClientPacket, ServerPacket {
     private byte playerId;
     private float x, y, z;
-    private short yaw;
-    private short pitch;
+    private float yaw;
+    private float pitch;
 
     public BidiPlayerPositionPacket() {}
 
-    public BidiPlayerPositionPacket(byte playerId, float x, float y, float z, short yaw, short pitch) {
+    public BidiPlayerPositionPacket(byte playerId, float x, float y, float z, float yaw, float pitch) {
         this.playerId = playerId;
         this.x = x;
         this.y = y;
@@ -30,8 +30,8 @@ public final class BidiPlayerPositionPacket implements ClientPacket, ServerPacke
         x = in.readFShort();
         y = in.readFShort();
         z = in.readFShort();
-        yaw = in.readUByte();
-        pitch = in.readUByte();
+        yaw = in.readAngle();
+        pitch = in.readAngle();
     }
 
     @Override
@@ -40,8 +40,8 @@ public final class BidiPlayerPositionPacket implements ClientPacket, ServerPacke
         out.writeFShort(x);
         out.writeFShort(y);
         out.writeFShort(z);
-        out.writeUByte(yaw);
-        out.writeUByte(pitch);
+        out.writeAngle(yaw);
+        out.writeAngle(pitch);
     }
 
     @Override
@@ -70,11 +70,11 @@ public final class BidiPlayerPositionPacket implements ClientPacket, ServerPacke
         return z;
     }
 
-    public short getYaw() {
+    public float getYaw() {
         return yaw;
     }
 
-    public short getPitch() {
+    public float getPitch() {
         return pitch;
     }
 

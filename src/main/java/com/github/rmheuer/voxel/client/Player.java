@@ -36,13 +36,14 @@ public final class Player {
      * @param y Y coordinate of feet position
      * @param z Z coordinate of feet position
      */
-    public Player(float x, float y, float z) {
+    public Player(float x, float y, float z, float pitch, float yaw) {
         position = new Vector3f(x, y, z);
         prevPosition = new Vector3f(x, y, z);
         velocity = new Vector3f(0, 0, 0);
 
-        pitch = 0;
-        yaw = 0;
+        this.pitch = pitch;
+        this.yaw = yaw;
+
         onGround = false;
     }
 
@@ -193,13 +194,17 @@ public final class Player {
         yaw += deltaYaw;
     }
 
+    public Vector3f getPosition() {
+        return position;
+    }
+
     /**
      * Gets the smoothed feet position.
      *
      * @param subtick percentage elapsed within the current tick
      * @return feet position
      */
-    public Vector3f getPosition(float subtick) {
+    public Vector3f getSmoothedPosition(float subtick) {
         return new Vector3f(prevPosition).lerp(position, subtick);
     }
 
