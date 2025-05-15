@@ -9,7 +9,6 @@ import com.github.rmheuer.azalea.input.mouse.MouseMoveEvent;
 import com.github.rmheuer.azalea.input.mouse.MouseScrollEvent;
 import com.github.rmheuer.azalea.io.ResourceUtil;
 import com.github.rmheuer.azalea.math.AABB;
-import com.github.rmheuer.azalea.math.CubeFace;
 import com.github.rmheuer.azalea.math.MathUtil;
 import com.github.rmheuer.azalea.render.BufferType;
 import com.github.rmheuer.azalea.render.Colors;
@@ -23,46 +22,52 @@ import com.github.rmheuer.azalea.render.utils.DebugLineRenderer;
 import com.github.rmheuer.azalea.render2d.Renderer2D;
 import com.github.rmheuer.azalea.runtime.BaseGame;
 import com.github.rmheuer.azalea.runtime.FixedRateExecutor;
-import com.github.rmheuer.voxel.client.anim.LavaAnimationGenerator;
-import com.github.rmheuer.voxel.client.anim.WaterAnimationGenerator;
 import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.block.Liquid;
 import com.github.rmheuer.voxel.block.LiquidShape;
+import com.github.rmheuer.voxel.client.anim.LavaAnimationGenerator;
+import com.github.rmheuer.voxel.client.anim.WaterAnimationGenerator;
+import com.github.rmheuer.voxel.client.particle.ParticleSystem;
+import com.github.rmheuer.voxel.client.render.EnvironmentRenderer;
+import com.github.rmheuer.voxel.client.render.FogInfo;
+import com.github.rmheuer.voxel.client.render.LevelRenderData;
+import com.github.rmheuer.voxel.client.render.LevelRenderer;
 import com.github.rmheuer.voxel.client.ui.*;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.level.MapSection;
-import com.github.rmheuer.voxel.client.particle.ParticleSystem;
+import com.github.rmheuer.voxel.network.packet.BidiPlayerPositionPacket;
+import com.github.rmheuer.voxel.network.packet.ClientSetBlockPacket;
 import com.github.rmheuer.voxel.physics.Raycast;
-import com.github.rmheuer.voxel.client.render.FogInfo;
-import com.github.rmheuer.voxel.client.render.LevelRenderData;
-import com.github.rmheuer.voxel.client.render.LevelRenderer;
-import com.github.rmheuer.voxel.client.render.EnvironmentRenderer;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import org.joml.*;
 
 import java.io.IOException;
 import java.lang.Math;
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-/**
- * Main game class
- */
 public final class VoxelGame extends BaseGame {
     private static final WindowSettings WINDOW_SETTINGS =
             new WindowSettings(640, 480, "Voxel")
-                .setVSync(false);
+                    .setVSync(false);
 
     private static final int GUI_WIDTH = 320;
     private static final int GUI_HEIGHT = 240;
 
-    private static final int LEVEL_SIZE_SECTIONS = 64 / MapSection.SIZE;
-    
     private static final float CAMERA_HEIGHT = 1.6f;
 
-    private static final FogInfo AIR_FOG = new FogInfo(0, 512, new Vector4f(225 / 255.0f, 240 / 255.0f, 255 / 255.0f, 1.0f), new Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
     private static final FogInfo WATER_FOG = new FogInfo(0, 20, new Vector4f(0.02f, 0.02f, 0.2f, 1.0f), new Vector4f(0.4f, 0.4f, 0.9f, 1.0f));
     private static final FogInfo LAVA_FOG = new FogInfo(-0.3f, 1.6f, new Vector4f(0.6f, 0.1f, 0.0f, 1.0f), new Vector4f(0.4f, 0.3f, 0.3f, 1.0f));
 
+    private final EventLoopGroup nettyEventLoop;
     private final FixedRateExecutor ticker;
     private final Renderer2D renderer2D;
 
@@ -80,11 +85,9 @@ public final class VoxelGame extends BaseGame {
 
     private final PerspectiveProjection cameraProj;
     private final Camera camera;
-    private Player player;
+    private LocalPlayer localPlayer;
 
-    private BlockMap blockMap;
-    private LightMap lightMap;
-    private LevelRenderData levelRenderData;
+    private ClientLevel level;
 
     private boolean mouseCaptured;
     private Raycast.Result raycastResult;
@@ -99,6 +102,7 @@ public final class VoxelGame extends BaseGame {
 
     private boolean drawSectionBoundaries;
     private boolean drawLightHeights;
+    private boolean drawLevelAsTranslucent;
 
     private boolean ticked;
 
@@ -107,9 +111,16 @@ public final class VoxelGame extends BaseGame {
     private Matrix4f capturedViewProj;
     private Vector3f capturedCameraPos;
 
-    public VoxelGame() throws IOException {
+    private ServerConnection connection;
+    private NetworkHandler networkHandler;
+    private Map<Byte, RemotePlayer> remotePlayers;
+
+    private final Queue<Runnable> scheduledTasks;
+
+    public VoxelGame(String username) throws IOException {
         super(WINDOW_SETTINGS);
 
+        nettyEventLoop = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
         ticker = new FixedRateExecutor(1 / 20.0f, this::fixedTick);
         renderer2D = new Renderer2D(getRenderer());
 
@@ -124,12 +135,10 @@ public final class VoxelGame extends BaseGame {
         waterAnimationGenerator = new WaterAnimationGenerator();
         lavaAnimationGenerator = new LavaAnimationGenerator();
 
-        cameraProj = new PerspectiveProjection((float) Math.toRadians(90), 0.01f, 1000f);
+        cameraProj = new PerspectiveProjection((float) Math.toRadians(90), 0.05f, 1000f);
         camera = new Camera(cameraProj);
         environmentRenderer = new EnvironmentRenderer(getRenderer());
 
-        resetLevel(16);
-        
         setMouseCaptured(false);
         getEventBus().addHandler(KeyPressEvent.class, this::keyPressed);
         getEventBus().addHandler(MouseScrollEvent.class, this::mouseScrolled);
@@ -140,13 +149,11 @@ public final class VoxelGame extends BaseGame {
         guiScale = 2;
 
         hotbar = new byte[] {
-                Blocks.ID_STONE, Blocks.ID_GRASS, Blocks.ID_DIRT,
-                Blocks.ID_COBBLESTONE, Blocks.ID_PLANKS, Blocks.ID_SAPLING,
-                Blocks.ID_LOG, Blocks.ID_STILL_WATER, Blocks.ID_STILL_LAVA
+                Blocks.ID_STONE, Blocks.ID_DIRT, Blocks.ID_COBBLESTONE,
+                Blocks.ID_PLANKS, Blocks.ID_SAPLING, Blocks.ID_LOG,
+                Blocks.ID_LEAVES, Blocks.ID_SAND, Blocks.ID_BRICKS
         };
         selectedSlot = 0;
-
-        ui = null;
 
         drawSectionBoundaries = false;
         drawLightHeights = false;
@@ -155,45 +162,73 @@ public final class VoxelGame extends BaseGame {
 
         capturedViewProj = null;
         capturedCameraPos = null;
+
+        scheduledTasks = new ConcurrentLinkedQueue<>();
+        remotePlayers = new HashMap<>();
+
+        beginConnecting("localhost", 25565, username);
     }
 
-    /**
-     * Erases the current level and creates a new one with the specified
-     * horizontal size in sections.
-     *
-     * @param sizeSections number of level sections along the X and Z axes
-     */
-    public void resetLevel(int sizeSections) {
-        blockMap = new BlockMap(sizeSections, 4, sizeSections);
-        lightMap = new LightMap(blockMap.getBlocksX(), blockMap.getBlocksZ());
-        
-        for (int z = 0; z < blockMap.getBlocksZ(); z++) {
-            for (int x = 0; x < blockMap.getBlocksX(); x++) {
-                for (int y = 0; y < 32; y++) {
-                    blockMap.setBlockId(x, y, z, Blocks.ID_STONE);
-                }
-                for (int y = 32; y < blockMap.getBlocksY(); y++) {
-                    blockMap.setBlockId(x, y, z, Blocks.ID_AIR);
-                }
+    private void beginConnecting(String host, int port, String username) {
+        ConnectingToServerUI connectingUI = new ConnectingToServerUI();
+        setUI(connectingUI);
+
+        InetSocketAddress addr = new InetSocketAddress(host, port);
+        ChannelFuture connectFuture = ServerConnection.connectToServer(nettyEventLoop, addr);
+        connectFuture.addListener((future) -> {
+            if (future.isSuccess()) {
+                System.out.println("Socket connected");
+
+                runOnMainThread(() -> {
+                    connectingUI.setState(ConnectingToServerUI.State.LOGGING_IN);
+
+                    connection = connectFuture.channel().pipeline().get(ServerConnection.class);
+                    networkHandler = new NetworkHandler(this, connection, username);
+                });
+            } else {
+                System.err.println("Failed to connect to server");
+                future.cause().printStackTrace();
+                runOnMainThread(this::stop);
             }
+        });
+    }
+
+    public Player getPlayer(byte playerId) {
+        if (playerId == -1)
+            return localPlayer;
+
+        return remotePlayers.get(playerId);
+    }
+
+    public void addRemotePlayer(byte playerId, RemotePlayer player) {
+        remotePlayers.put(playerId, player);
+    }
+
+    public void removeRemotePlayer(byte playerId) {
+        remotePlayers.remove(playerId);
+    }
+
+    public void resetLocalPlayer(float x, float y, float z, float pitch, float yaw) {
+        localPlayer = new LocalPlayer(x, y, z, pitch, yaw);
+    }
+
+    public void initLevel(int sizeX, int sizeY, int sizeZ, byte[] blockData) {
+        System.out.println("Level: " + sizeX + ", " + sizeY + ", " + sizeZ);
+
+        level = new ClientLevel(sizeX, sizeY, sizeZ, blockData);
+
+        environmentRenderer.updateLevelSize(sizeX, sizeZ);
+    }
+
+    public void clearLevel() {
+        if (level != null) {
+            level.close();
+            level = null;
         }
+    }
 
-        for (byte block = 0; block < Blocks.BLOCK_COUNT; block++) {
-            int x = 2 + (block % 10) * 2;
-            int z = 2 + (block / 10) * 2;
-            blockMap.setBlockId(x, 33, z, block);
-        }
-
-        lightMap.recalculateAll(blockMap);
-
-        if (levelRenderData != null)
-            levelRenderData.close();
-        levelRenderData = new LevelRenderData(
-            blockMap.getSectionsX(), blockMap.getSectionsY(), blockMap.getSectionsZ());
-
-        environmentRenderer.updateLevelSize(blockMap.getBlocksX(), blockMap.getBlocksZ());
-        
-        player = new Player(32, 40, 32, 0, 0);
+    public void runOnMainThread(Runnable fn) {
+        scheduledTasks.add(fn);
     }
 
     private void setMouseCaptured(boolean mouseCaptured) {
@@ -202,6 +237,10 @@ public final class VoxelGame extends BaseGame {
 
         this.mouseCaptured = mouseCaptured;
         getWindow().getMouse().setCursorCaptured(mouseCaptured);
+    }
+
+    public UI getUI() {
+        return ui;
     }
 
     /**
@@ -250,6 +289,9 @@ public final class VoxelGame extends BaseGame {
                     System.out.println("Reset frustum");
                 }
                 break;
+            case F4:
+                drawLevelAsTranslucent = !drawLevelAsTranslucent;
+                break;
 
             case B:
             case E:
@@ -287,10 +329,17 @@ public final class VoxelGame extends BaseGame {
         float deltaPitch = (float) -delta.y * sensitivity;
         float deltaYaw = (float) -delta.x * sensitivity;
 
-        player.turn(deltaPitch, deltaYaw);
+        if (capturedViewProj != null)
+            camera.getTransform().rotation.add(deltaPitch, deltaYaw, 0);
+        else
+            localPlayer.turn(deltaPitch, deltaYaw);
     }
 
-    private void setBlock(Vector3i pos, byte blockId) {
+    public void setBlock(Vector3i pos, byte blockId) {
+        BlockMap blockMap = level.getBlockMap();
+        LightMap lightMap = level.getLightMap();
+        LevelRenderData levelRenderData = level.getRenderData();
+
         byte prevId = blockMap.setBlockId(pos.x, pos.y, pos.z, blockId);
         if (blockId == prevId)
             return;
@@ -311,52 +360,65 @@ public final class VoxelGame extends BaseGame {
             return;
         }
 
-        if (!mouseCaptured)
+        if (!mouseCaptured || level == null)
             return;
 
         if (event.getButton() == MouseButton.LEFT) {
             if (raycastResult != null) {
                 Vector3i pos = raycastResult.blockPos;
-                byte brokenBlock = blockMap.getBlockId(pos.x, pos.y, pos.z);
+                byte brokenBlock = level.getBlockMap().getBlockId(pos.x, pos.y, pos.z);
                 if (brokenBlock != Blocks.ID_AIR) {
                     setBlock(pos, Blocks.ID_AIR);
-
                     particleSystem.spawnBreakParticles(pos.x, pos.y, pos.z, Blocks.getBlock(brokenBlock));
+
+                    connection.sendPacket(new ClientSetBlockPacket(
+                            (short) pos.x, (short) pos.y, (short) pos.z,
+                            ClientSetBlockPacket.Mode.DESTROYED,
+                            hotbar[selectedSlot]
+                    ));
                 }
             }
         } else if (event.getButton() == MouseButton.RIGHT) {
             if (raycastResult != null && raycastResult.hitFace != null) {
                 byte held = hotbar[selectedSlot];
-                byte placedOn = blockMap.getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z);
 
-                Vector3i placePos;
-                byte toPlace;
-                if (held == Blocks.ID_SLAB && placedOn == Blocks.ID_SLAB && raycastResult.hitFace == CubeFace.POS_Y) {
-                    placePos = raycastResult.blockPos;
-                    toPlace = Blocks.ID_DOUBLE_SLAB;
-                    setBlock(raycastResult.blockPos, Blocks.ID_DOUBLE_SLAB);
-                } else {
-                    placePos = new Vector3i(raycastResult.blockPos)
+                Vector3i placePos = new Vector3i(raycastResult.blockPos)
                             .add(raycastResult.hitFace.getDirection());
+                byte toPlace = held;
 
-                    toPlace = hotbar[selectedSlot];
-                    byte existing = blockMap.getBlockId(placePos.x, placePos.y, placePos.z);
-                    if (toPlace == Blocks.ID_SLAB && existing == Blocks.ID_SLAB)
-                        toPlace = Blocks.ID_DOUBLE_SLAB;
+                Block replacing = Blocks.getBlock(level.getBlockMap().getBlockId(placePos.x, placePos.y, placePos.z));
+                if (!replacing.isReplaceable())
+                    return;
+
+                if (toPlace == Blocks.ID_SLAB && placePos.y > 0 && level.getBlockMap().getBlockId(placePos.x, placePos.y - 1, placePos.z) == Blocks.ID_SLAB) {
+                    toPlace = Blocks.ID_DOUBLE_SLAB;
+
+                    // Bug in original, but needed to be consistent with server behavior
+                    setBlock(placePos, Blocks.ID_AIR);
+                    placePos.y--;
                 }
 
                 Block toPlaceBlock = Blocks.getBlock(toPlace);
                 if (toPlaceBlock.getBoundingBox() != null) {
                     AABB blockAABB = toPlaceBlock.getBoundingBox().translate(placePos.x, placePos.y, placePos.z);
-                    AABB playerAABB = player.getBoundingBox();
+                    AABB playerAABB = localPlayer.getBoundingBox();
                     if (blockAABB.intersects(playerAABB))
                         return;
                 }
                 setBlock(placePos, toPlace);
+
+                short packetY = (short) placePos.y;
+                if (toPlace == Blocks.ID_DOUBLE_SLAB)
+                    packetY++;
+                connection.sendPacket(new ClientSetBlockPacket(
+                        (short) placePos.x, packetY, (short) placePos.z,
+                        ClientSetBlockPacket.Mode.PLACED,
+                        held
+                ));
             }
         } else if (event.getButton() == MouseButton.MIDDLE) {
             if (raycastResult != null) {
-                byte clicked = blockMap.getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z);
+                byte clicked = level.getBlockMap().getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z);
                 blockPicked(Blocks.getBlock(clicked).getItemId());
             }
         }
@@ -364,15 +426,65 @@ public final class VoxelGame extends BaseGame {
 
     @Override
     protected void tick(float dt) {
+        Runnable fn;
+        while ((fn = scheduledTasks.poll()) != null) {
+            fn.run();
+        }
+
+        if (connection != null && !connection.isConnected()) {
+            stop();
+        }
+
+        if (!getWindow().isFocused() && ui == null)
+            setUI(new PauseMenuUI(this));
+
         // Don't update game if paused
         if (ui != null && ui.shouldPauseGame())
             return;
-        
-        Vector3f pos = camera.getTransform().position;
-        Vector3f dir = camera.getTransform().getForward();
-        raycastResult = Raycast.raycast(blockMap, pos, dir, 32);
+
+        if (level != null) {
+            Vector3f pos = camera.getTransform().position;
+            Vector3f dir = camera.getTransform().getForward();
+            raycastResult = Raycast.raycast(level.getBlockMap(), pos, dir, 5);
+        }
+
+        if (capturedCameraPos != null)
+            freeMoveCamera(getWindow().getKeyboard(), dt);
 
         ticker.update(dt);
+    }
+
+    private void freeMoveCamera(Keyboard kb, float dt) {
+        Vector3f pos = camera.getTransform().position;
+        Vector3f rot = camera.getTransform().rotation;
+
+        float move = dt * 20;
+        Vector3f forward = new Vector3f(0, 0, -move).rotateY(rot.y);
+        Vector3f right = new Vector3f(move, 0, 0).rotateY(rot.y);
+        Vector3f up = new Vector3f(0, move, 0);
+
+        if (kb.isKeyPressed(Key.W))
+            pos.add(forward);
+        if (kb.isKeyPressed(Key.S))
+            pos.sub(forward);
+        if (kb.isKeyPressed(Key.D))
+            pos.add(right);
+        if (kb.isKeyPressed(Key.A))
+            pos.sub(right);
+        if (kb.isKeyPressed(Key.SPACE))
+            pos.add(up);
+        if (kb.isKeyPressed(Key.LEFT_SHIFT))
+            pos.sub(up);
+
+        float turn = (float) (dt * Math.PI);
+        if (kb.isKeyPressed(Key.LEFT))
+            rot.y += turn;
+        if (kb.isKeyPressed(Key.RIGHT))
+            rot.y -= turn;
+        if (kb.isKeyPressed(Key.UP))
+            rot.x += turn;
+        if (kb.isKeyPressed(Key.DOWN))
+            rot.x -= turn;
     }
 
     // Fixed tick at 20 Hz
@@ -384,7 +496,10 @@ public final class VoxelGame extends BaseGame {
 
         environmentRenderer.tick();
 
-        particleSystem.tickParticles(blockMap);
+        if (level == null)
+            return;
+
+        particleSystem.tickParticles(level.getBlockMap());
 
         Keyboard kb = getWindow().getKeyboard();
         float inputForward = 0, inputRight = 0;
@@ -400,53 +515,59 @@ public final class VoxelGame extends BaseGame {
                 inputRight -= 1;
             jump = kb.isKeyPressed(Key.SPACE);
         }
-        player.tickMovement(blockMap, inputForward, inputRight, jump);
+        localPlayer.tickMovement(level.getBlockMap(), inputForward, inputRight, jump);
+
+        Vector3f pos = localPlayer.getPosition();
+        connection.sendPacket(new BidiPlayerPositionPacket(
+                (byte) -1,
+                pos.x, pos.y + NetworkHandler.POSITION_Y_OFFSET, pos.z,
+                localPlayer.getYaw(), localPlayer.getPitch()
+        ));
     }
 
     private boolean isCameraInLiquid(Liquid liquid) {
+        if (capturedCameraPos != null)
+            return false;
+
         Vector3f pos = new Vector3f(camera.getTransform().position)
-            .add(camera.getTransform().getForward().mul(0.01f));
+                .add(camera.getTransform().getForward().mul(0.01f));
         int blockX = (int) pos.x;
         int blockY = (int) pos.y;
         int blockZ = (int) pos.z;
 
+        BlockMap blockMap = level.getBlockMap();
+
         if (!blockMap.isBlockInBounds(blockX, blockY, blockZ))
             return false;
-        
+
         Liquid in = Blocks.getBlock(blockMap.getBlockId(blockX, blockY, blockZ)).getLiquid();
         if (in != liquid)
             return false;
 
         Liquid above = blockMap.isBlockInBounds(blockX, blockY + 1, blockZ)
-            ? Blocks.getBlock(blockMap.getBlockId(blockX, blockY + 1, blockZ)).getLiquid()
-            : null;
+                ? Blocks.getBlock(blockMap.getBlockId(blockX, blockY + 1, blockZ)).getLiquid()
+                : null;
 
         float surfaceY = above == liquid ? 1.0f : LiquidShape.LIQUID_SURFACE_HEIGHT;
         return (pos.y % 1.0f) <= surfaceY;
     }
 
-    @Override
-    protected void render(Renderer renderer) {
-        if (ticked) {
-            try (Bitmap img = waterAnimationGenerator.getImage()) {
-                atlasTexture.setSubData(img, 14 * 16, 0);
-            }
-            try (Bitmap img = lavaAnimationGenerator.getImage()) {
-                atlasTexture.setSubData(img, 14 * 16, 16);
-            }
-            ticked = false;
-        }
+    private LevelRenderer.PreparedRender renderLevel(Renderer renderer, Vector2i windowSize) {
+        if (localPlayer == null)
+            throw new IllegalStateException("No player!");
 
         float subtick = ticker.getSubtickPercent();
-        camera.getTransform().setPosition(player.getSmoothedPosition(subtick));
-        camera.getTransform().position.y += CAMERA_HEIGHT;
-        camera.getTransform().rotation.set(
-                player.getPitch(),
-                player.getYaw(),
-                0
-        );
+        if (capturedCameraPos == null) {
+            camera.getTransform().setPosition(localPlayer.getSmoothedPosition(subtick));
+            camera.getTransform().position.y += CAMERA_HEIGHT;
+            camera.getTransform().rotation.set(
+                    localPlayer.getPitch(),
+                    localPlayer.getYaw(),
+                    0
+            );
+        }
 
-        FogInfo fogInfo = AIR_FOG;
+        FogInfo fogInfo;
         if (isCameraInLiquid(Liquid.WATER))
             fogInfo = WATER_FOG;
         else if (isCameraInLiquid(Liquid.LAVA))
@@ -454,49 +575,30 @@ public final class VoxelGame extends BaseGame {
         else
             fogInfo = new FogInfo(0, renderDistance.getFogDistance(), new Vector4f(225 / 255.0f, 240 / 255.0f, 255 / 255.0f, 1.0f), new Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
         cameraProj.setFarPlane(fogInfo.maxDistance);
-        
-        Vector2i windowSize = getWindow().getFramebufferSize();
+
         Matrix4f proj = camera.getProjectionMatrix(windowSize.x, windowSize.y);
         Matrix4f view = camera.getViewMatrix();
         Matrix4f viewProj = new Matrix4f(proj).mul(view);
 
-        int guiScaleX = windowSize.x / GUI_WIDTH;
-        int guiScaleY = windowSize.y / GUI_HEIGHT;
-        guiScale = Math.min(guiScaleX, guiScaleY);
-        if (guiScale < 1)
-            guiScale = 1;
-
         boolean wireframe = getWindow().getKeyboard().isKeyPressed(Key.TAB);
         LevelRenderer.PreparedRender levelRender = levelRenderer.prepareRender(
                 renderer,
-                blockMap,
-                lightMap,
-                levelRenderData,
+                level.getBlockMap(),
+                level.getLightMap(),
+                level.getRenderData(),
                 capturedViewProj != null ? capturedViewProj : viewProj,
                 capturedCameraPos != null ? capturedCameraPos : camera.getTransform().position,
-                wireframe
+                wireframe,
+                lineRenderer
         );
 
-        renderer.setClearColor(Colors.RGBA.fromFloats(fogInfo.color));
-        renderer.clear(BufferType.COLOR);
-
-        levelRender.renderOpaqueLayer(renderer, view, proj, fogInfo);
-        environmentRenderer.renderOpaqueLayer(renderer, view, proj, fogInfo, subtick);
-
-        particleSystem.renderParticles(renderer, view, proj, fogInfo, subtick, lightMap);
-
-        environmentRenderer.renderTranslucentLayer(renderer, view, proj, fogInfo);
-        levelRender.renderTranslucentLayer(renderer, view, proj, fogInfo);
-
-        // levelRenderer.renderVisibilityDebug(lineRenderer, levelRenderData);
-        
         if (raycastResult != null) {
             int col = Colors.RGBA.BLUE;
             int x = raycastResult.blockPos.x;
             int y = raycastResult.blockPos.y;
             int z = raycastResult.blockPos.z;
 
-            AABB bb = Blocks.getBlock(blockMap.getBlockId(x, y, z)).getBoundingBox();
+            AABB bb = Blocks.getBlock(level.getBlockMap().getBlockId(x, y, z)).getBoundingBox();
 
             lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.minZ, x + bb.maxX, y + bb.minY, z + bb.minZ, col);
             lineRenderer.addLine(x + bb.minX, y + bb.minY, z + bb.minZ, x + bb.minX, y + bb.maxY, z + bb.minZ, col);
@@ -515,6 +617,7 @@ public final class VoxelGame extends BaseGame {
         if (drawSectionBoundaries) {
             int col = Colors.RGBA.YELLOW;
 
+            BlockMap blockMap = level.getBlockMap();
             int s = MapSection.SIZE;
             int nx = blockMap.getSectionsX() * s;
             int ny = blockMap.getSectionsY() * s;
@@ -538,6 +641,8 @@ public final class VoxelGame extends BaseGame {
         }
 
         if (drawLightHeights) {
+            BlockMap blockMap = level.getBlockMap();
+            LightMap lightMap = level.getLightMap();
             int col = Colors.RGBA.GREEN;
             for (int z = 0; z < blockMap.getBlocksZ(); z++) {
                 for (int x = 0; x < blockMap.getBlocksX(); x++) {
@@ -573,27 +678,45 @@ public final class VoxelGame extends BaseGame {
             lineRenderer.addLine(nnp, npp, col);
         }
 
+        for (RemotePlayer player : remotePlayers.values()) {
+            int col = Colors.RGBA.fromFloats(1.0f, 0.5f, 0.0f);
+            Vector3f pos = player.getSmoothedPosition(subtick);
+            lineRenderer.addLine(pos.x - 0.3f, pos.y + 1.6f, pos.z, pos.x + 0.3f, pos.y + 1.6f, pos.z, col);
+            lineRenderer.addLine(pos.x, pos.y + 1.6f, pos.z - 0.3f, pos.x, pos.y + 1.6f, pos.z + 0.3f, col);
+            lineRenderer.addLine(pos.x, pos.y + 1.3f, pos.z, pos.x, pos.y + 1.9f, pos.z, col);
+        }
+
+        renderer.setClearColor(Colors.RGBA.fromFloats(fogInfo.color));
+        renderer.clear(BufferType.COLOR);
+
         lineRenderer.flush(renderer, viewProj);
 
-        Vector2d mousePos = getWindow().getMouse().getCursorPos();
-        Vector2i uiMousePos = new Vector2i((int) (mousePos.x / guiScale), (int) (mousePos.y / guiScale));
-
-        int uiWidth = MathUtil.ceilDiv(windowSize.x, guiScale);
-        int uiHeight = MathUtil.ceilDiv(windowSize.y, guiScale);
-        try (UIDrawList uiDraw = new UIDrawList(uiWidth, uiHeight, atlasTexture, textRenderer)) {
-            int fps = (int) getFpsCounter().getFrameRate();
-            float mspf = getFpsCounter().getFrameTime() * 1000.0f;
-            uiDraw.drawText(1, 8, String.format("%d FPS, %.2f ms/frame", fps, mspf));
-            uiDraw.drawText(1, 18, String.format("Render sections: %d opaque, %d translucent", levelRender.getOpaqueCount(), levelRender.getTranslucentCount()));
-            
-            uiDraw.drawSprite(uiDraw.getWidth() / 2 - 8, uiDraw.getHeight() / 2 - 8, uiSprites.getCrosshair());
-            drawHotbar(uiDraw);
-
-            if (ui != null)
-                ui.draw(uiDraw, uiSprites, uiMousePos);
-
-            renderer2D.draw(uiDraw.getDrawList(), new Matrix4f().ortho(0, (float) windowSize.x / guiScale, (float) windowSize.y / guiScale, 0, -1, 1));
+        if (drawLevelAsTranslucent) {
+            float a = 0.5f;
+            fogInfo = new FogInfo(fogInfo.minDistance, fogInfo.maxDistance, new Vector4f(fogInfo.color).setComponent(3, a), new Vector4f(fogInfo.tintColor).setComponent(3, a));
         }
+
+        levelRender.renderOpaqueLayer(renderer, view, proj, fogInfo);
+        environmentRenderer.renderOpaqueLayer(renderer, view, proj, fogInfo, subtick);
+
+//        levelRenderer.renderVisibilityDebug(lineRenderer, level.getRenderData());
+
+        particleSystem.renderParticles(renderer, view, proj, fogInfo, subtick, level.getLightMap());
+
+        environmentRenderer.renderTranslucentLayer(renderer, view, proj, fogInfo);
+        levelRender.renderTranslucentLayer(renderer, view, proj, fogInfo);
+
+        return levelRender;
+    }
+
+    private void renderInGameUI(UIDrawList uiDraw, LevelRenderer.PreparedRender levelRender) {
+        int fps = (int) getFpsCounter().getFrameRate();
+        float mspf = getFpsCounter().getFrameTime() * 1000.0f;
+        uiDraw.drawText(1, 8, String.format("%d FPS, %.2f ms/frame", fps, mspf));
+        uiDraw.drawText(1, 18, String.format("Render sections: %d opaque, %d translucent", levelRender.getOpaqueCount(), levelRender.getTranslucentCount()));
+
+        uiDraw.drawSprite(uiDraw.getWidth() / 2 - 8, uiDraw.getHeight() / 2 - 8, uiSprites.getCrosshair());
+        drawHotbar(uiDraw);
     }
 
     private void drawHotbar(UIDrawList draw) {
@@ -612,15 +735,44 @@ public final class VoxelGame extends BaseGame {
     }
 
     @Override
-    protected void cleanUp() {
-        environmentRenderer.close();
-        levelRenderData.close();
-        levelRenderer.close();
-        particleSystem.close();
-        textRenderer.close();
-        uiSprites.close();
-        atlasTexture.close();
-        renderer2D.close();
+    protected void render(Renderer renderer) {
+        if (ticked) {
+            try (Bitmap img = waterAnimationGenerator.getImage()) {
+                atlasTexture.setSubData(img, 14 * 16, 0);
+            }
+            try (Bitmap img = lavaAnimationGenerator.getImage()) {
+                atlasTexture.setSubData(img, 14 * 16, 16);
+            }
+            ticked = false;
+        }
+
+        Vector2i windowSize = getWindow().getFramebufferSize();
+
+        LevelRenderer.PreparedRender levelRender = null;
+        if (level != null) {
+            levelRender = renderLevel(renderer, windowSize);
+        }
+
+        int guiScaleX = windowSize.x / GUI_WIDTH;
+        int guiScaleY = windowSize.y / GUI_HEIGHT;
+        guiScale = Math.min(guiScaleX, guiScaleY);
+        if (guiScale < 1)
+            guiScale = 1;
+
+        Vector2d mousePos = getWindow().getMouse().getCursorPos();
+        Vector2i uiMousePos = new Vector2i((int) (mousePos.x / guiScale), (int) (mousePos.y / guiScale));
+
+        int uiWidth = MathUtil.ceilDiv(windowSize.x, guiScale);
+        int uiHeight = MathUtil.ceilDiv(windowSize.y, guiScale);
+        try (UIDrawList uiDraw = new UIDrawList(uiWidth, uiHeight, atlasTexture, textRenderer)) {
+            if (levelRender != null)
+                renderInGameUI(uiDraw, levelRender);
+
+            if (ui != null)
+                ui.draw(uiDraw, uiSprites, uiMousePos);
+
+            renderer2D.draw(uiDraw.getDrawList(), new Matrix4f().ortho(0, (float) windowSize.x / guiScale, (float) windowSize.y / guiScale, 0, -1, 1));
+        }
     }
 
     public RenderDistance getRenderDistance() {
@@ -631,10 +783,25 @@ public final class VoxelGame extends BaseGame {
         this.renderDistance = renderDistance;
     }
 
+    @Override
+    protected void cleanUp() {
+        if (level != null)
+            level.close();
+
+        environmentRenderer.close();
+        levelRenderer.close();
+        particleSystem.close();
+        textRenderer.close();
+        uiSprites.close();
+        atlasTexture.close();
+        renderer2D.close();
+        nettyEventLoop.shutdownGracefully();
+    }
+
     public static void main(String[] args) {
         VoxelGame game;
         try {
-            game = new VoxelGame();
+            game = new VoxelGame(args[0]);
         } catch (IOException e) {
             throw new RuntimeException("Failed to load resources", e);
         }

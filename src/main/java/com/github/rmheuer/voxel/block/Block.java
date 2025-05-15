@@ -14,6 +14,7 @@ public final class Block {
     private AABB boundingBox;
     private boolean solid;
     private boolean interactable;
+    private boolean replaceable;
     private boolean lightBlocking;
     private Liquid liquid;
     private float particleGravityScale;
@@ -32,6 +33,7 @@ public final class Block {
         boundingBox = shape.getDefaultBoundingBox();
         solid = true;
         interactable = true;
+        replaceable = false;
         lightBlocking = true;
         liquid = null;
         particleGravityScale = 1;
@@ -80,6 +82,17 @@ public final class Block {
      */
     public Block setInteractable(boolean interactable) {
         this.interactable = interactable;
+        return this;
+    }
+
+    /**
+     * Sets whether this block can be replaced by a new block when placing.
+     *
+     * @param replaceable whether the block can be replaced by the player
+     * @return this
+     */
+    public Block setReplaceable(boolean replaceable) {
+        this.replaceable = replaceable;
         return this;
     }
 
@@ -138,6 +151,10 @@ public final class Block {
 
     public boolean isInteractable() {
         return interactable;
+    }
+
+    public boolean isReplaceable() {
+        return replaceable;
     }
 
     public boolean isLightBlocking() {

@@ -1,6 +1,5 @@
-package com.github.rmheuer.voxel.client.multiplayer_test;
+package com.github.rmheuer.voxel.client;
 
-import com.github.rmheuer.voxel.client.ServerConnection;
 import com.github.rmheuer.voxel.client.ui.DownloadingTerrainUI;
 import com.github.rmheuer.voxel.network.ServerPacketListener;
 import com.github.rmheuer.voxel.network.packet.*;
@@ -14,24 +13,22 @@ import java.util.List;
 import java.util.zip.GZIPInputStream;
 
 public final class NetworkHandler implements ServerPacketListener {
-    private final MultiplayerClientTest client;
+    public static final float POSITION_Y_OFFSET = 0.6f;
+
+    private final VoxelGame client;
     private final ServerConnection conn;
 
     private DownloadingTerrainUI downloadingTerrainUI;
     private final List<byte[]> receivedLevelChunks;
 
-    public NetworkHandler(MultiplayerClientTest client, ServerConnection conn) {
+    public NetworkHandler(VoxelGame client, ServerConnection conn, String username) {
         this.client = client;
         this.conn = conn;
 
         receivedLevelChunks = new ArrayList<>();
 
         conn.setPacketListener(this);
-        conn.sendPacket(new ClientPlayerIdPacket(
-                (short) 7,
-                "TestPlayer",
-                ""
-        ));
+        conn.sendPacket(new ClientPlayerIdPacket((short) 7, username, ""));
     }
 
     @Override
@@ -109,36 +106,60 @@ public final class NetworkHandler implements ServerPacketListener {
     @Override
     public void onSpawnPlayer(ServerSpawnPlayerPacket packet) {
         if (packet.getPlayerId() == -1) {
-            client.runOnMainThread(() -> client.resetPlayer(
-                    packet.getX(), packet.getY(), packet.getZ(),
+            client.runOnMainThread(() -> client.resetLocalPlayer(
+                    packet.getX(), packet.getY() - POSITION_Y_OFFSET, packet.getZ(),
                     packet.getPitch(), packet.getYaw()
+            ));
+        } else {
+            client.runOnMainThread(() -> client.addRemotePlayer(
+                    packet.getPlayerId(),
+                    new RemotePlayer(
+                            packet.getX(), packet.getY() - POSITION_Y_OFFSET, packet.getZ(),
+                            packet.getPitch(), packet.getYaw()
+                    )
             ));
         }
     }
 
     @Override
     public void onPlayerPosition(BidiPlayerPositionPacket packet) {
-
+        client.runOnMainThread(() -> {
+            Player player = client.getPlayer(packet.getPlayerId());
+            player.teleport(packet.getX(), packet.getY() - POSITION_Y_OFFSET, packet.getZ());
+            player.setDirection(packet.getPitch(), packet.getYaw());
+        });
     }
 
     @Override
     public void onRelativeMoveAndLook(ServerRelativeMoveAndLookPacket packet) {
-
+        client.runOnMainThread(() -> {
+            Player player = client.getPlayer(packet.getPlayerId());
+            player.move(packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
+            player.setDirection(packet.getPitch(), packet.getYaw());
+        });
     }
 
     @Override
     public void onRelativeMove(ServerRelativeMovePacket packet) {
-
+        client.runOnMainThread(() -> {
+            Player player = client.getPlayer(packet.getPlayerId());
+            player.move(packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
+        });
     }
 
     @Override
     public void onLook(ServerLookPacket packet) {
-
+        client.runOnMainThread(() -> {
+            Player player = client.getPlayer(packet.getPlayerId());
+            player.setDirection(packet.getPitch(), packet.getYaw());
+        });
     }
 
     @Override
     public void onDespawnPlayer(ServerDespawnPlayerPacket packet) {
-
+        client.runOnMainThread(() -> {
+            client.removeRemotePlayer(packet.getPlayerId());
+        });
     }
 
     @Override

@@ -194,6 +194,23 @@ public final class LevelRenderer implements SafeCloseable {
         }
     }
 
+    private void drawVisLine(DebugLineRenderer r, int sx, int sy, int sz, CubeFace from, CubeFace to) {
+//        int x1, y1, z1;
+//        if (from != null) {
+//            x1 = sx * 16 + 8 + 8 * from.x;
+//            y1 = sy * 16 + 8 + 8 * from.y;
+//            z1 = sz * 16 + 8 + 8 * from.z;
+//        } else {
+//            x1 = sx * 16 + 8;
+//            y1 = sy * 16 + 8;
+//            z1 = sz * 16 + 8;
+//        }
+//        int x2 = sx * 16 + 8 + 8 * to.x;
+//        int y2 = sy * 16 + 8 + 8 * to.y;
+//        int z2 = sz * 16 + 8 + 8 * to.z;
+//
+//        r.addLine(x1, y1, z1, x2, y2, z2, Colors.RGBA.RED);
+    }
 
     /**
      * Determines what should be rendered this frame.
@@ -208,7 +225,7 @@ public final class LevelRenderer implements SafeCloseable {
      *
      * @return prepared render information to be rendered later
      */
-    public PreparedRender prepareRender(Renderer renderer, BlockMap blockMap, LightMap lightMap, LevelRenderData renderData, Matrix4f viewProj, Vector3fc cameraPos, boolean wireframe) {
+    public PreparedRender prepareRender(Renderer renderer, BlockMap blockMap, LightMap lightMap, LevelRenderData renderData, Matrix4f viewProj, Vector3fc cameraPos, boolean wireframe, DebugLineRenderer lineRenderer) {
         int sectionsX = blockMap.getSectionsX();
         int sectionsY = blockMap.getSectionsY();
         int sectionsZ = blockMap.getSectionsZ();
@@ -265,31 +282,37 @@ public final class LevelRenderer implements SafeCloseable {
                 FaceSet backwards = new FaceSet(node.backwards);
                 backwards.addFace(CubeFace.NEG_X);
                 frontier.add(new VisNode(node.x + 1, node.y, node.z, CubeFace.NEG_X, backwards));
+                drawVisLine(lineRenderer, node.x, node.y, node.z, node.cameFrom, CubeFace.POS_X);
             }
             if (!node.backwards.containsFace(CubeFace.NEG_X) && (node.cameFrom == null || renderSection.canSeeThrough(node.cameFrom, CubeFace.NEG_X))) {
                 FaceSet backwards = new FaceSet(node.backwards);
                 backwards.addFace(CubeFace.POS_X);
                 frontier.add(new VisNode(node.x - 1, node.y, node.z, CubeFace.POS_X, backwards));
+                drawVisLine(lineRenderer, node.x, node.y, node.z, node.cameFrom, CubeFace.NEG_X);
             }
             if (!node.backwards.containsFace(CubeFace.POS_Y) && (node.cameFrom == null || renderSection.canSeeThrough(node.cameFrom, CubeFace.POS_Y))) {
                 FaceSet backwards = new FaceSet(node.backwards);
                 backwards.addFace(CubeFace.NEG_Y);
                 frontier.add(new VisNode(node.x, node.y + 1, node.z, CubeFace.NEG_Y, backwards));
+                drawVisLine(lineRenderer, node.x, node.y, node.z, node.cameFrom, CubeFace.POS_Y);
             }
             if (!node.backwards.containsFace(CubeFace.NEG_Y) && (node.cameFrom == null || renderSection.canSeeThrough(node.cameFrom, CubeFace.NEG_Y))) {
                 FaceSet backwards = new FaceSet(node.backwards);
                 backwards.addFace(CubeFace.POS_Y);
                 frontier.add(new VisNode(node.x, node.y - 1, node.z, CubeFace.POS_Y, backwards));
+                drawVisLine(lineRenderer, node.x, node.y, node.z, node.cameFrom, CubeFace.NEG_Y);
             }
             if (!node.backwards.containsFace(CubeFace.POS_Z) && (node.cameFrom == null || renderSection.canSeeThrough(node.cameFrom, CubeFace.POS_Z))) {
                 FaceSet backwards = new FaceSet(node.backwards);
                 backwards.addFace(CubeFace.NEG_Z);
                 frontier.add(new VisNode(node.x, node.y, node.z + 1, CubeFace.NEG_Z, backwards));
+                drawVisLine(lineRenderer, node.x, node.y, node.z, node.cameFrom, CubeFace.POS_Z);
             }
             if (!node.backwards.containsFace(CubeFace.NEG_Z) && (node.cameFrom == null || renderSection.canSeeThrough(node.cameFrom, CubeFace.NEG_Z))) {
                 FaceSet backwards = new FaceSet(node.backwards);
                 backwards.addFace(CubeFace.POS_Z);
                 frontier.add(new VisNode(node.x, node.y, node.z - 1, CubeFace.POS_Z, backwards));
+                drawVisLine(lineRenderer, node.x, node.y, node.z, node.cameFrom, CubeFace.NEG_Z);
             }
 
             if (System.currentTimeMillis() - startTime < 5) {

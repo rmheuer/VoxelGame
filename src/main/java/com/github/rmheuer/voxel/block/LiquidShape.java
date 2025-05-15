@@ -114,9 +114,8 @@ public final class LiquidShape implements BlockShape {
                 geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, sprite, LightingConstants.SHADE_LIT, applyShade, 0, h));
             } else if (tall && neighbor.getLiquid() == thisLiquid) {
                 Block aboveNeighbor = ctx.getSurroundingBlock(nx, y + 1, nz);
-                boolean neighborTall = aboveNeighbor != null && aboveNeighbor.getLiquid() == thisLiquid;
 
-                if (!neighborTall)
+                if (aboveNeighbor == null || (aboveNeighbor.getLiquid() != thisLiquid && aboveNeighbor.getOcclusion(CubeFace.NEG_Y) != OcclusionType.FULL))
                     geom.addDoubleSidedFace(opaque, sideTemplate.makeFace(x, y, z, sprite, LightingConstants.SHADE_LIT, applyShade, LIQUID_SURFACE_HEIGHT - LIQUID_INSET, 1));
             }
         }

@@ -1,8 +1,8 @@
 package com.github.rmheuer.voxel.client.ui;
 
 import com.github.rmheuer.voxel.client.RenderDistance;
-import com.github.rmheuer.voxel.client.VoxelGame;
 
+import com.github.rmheuer.voxel.client.VoxelGame;
 import org.joml.Vector2i;
 
 /**
@@ -13,7 +13,7 @@ public final class PauseMenuUI implements UI {
 
     private final Button backToGameButton;
     private final CycleButton<RenderDistance> renderDistanceButton;
-    private final Button resetLevelButton;
+//    private final Button resetLevelButton;
     private final Button quitGameButton;
 
     /**
@@ -22,7 +22,7 @@ public final class PauseMenuUI implements UI {
     public PauseMenuUI(VoxelGame game) {
         backToGameButton = new Button("Back to Game", () -> game.setUI(null));
         renderDistanceButton = new CycleButton<>("Render Distance: ", RenderDistance.values(), game.getRenderDistance().ordinal(), game::setRenderDistance);
-        resetLevelButton = new Button("Create New Level...", () -> game.setUI(new CreateLevelUI(game, this)));
+//        resetLevelButton = new Button("Create New Level...", () -> game.setUI(new CreateLevelUI(game, this)));
         quitGameButton = new Button("Quit Game", game::stop);
     }
 
@@ -36,14 +36,14 @@ public final class PauseMenuUI implements UI {
         
         backToGameButton.setPosition(cornerX, cornerY);
         renderDistanceButton.setPosition(cornerX, cornerY + Button.HEIGHT + 4);
-        resetLevelButton.setPosition(cornerX, cornerY + Button.HEIGHT * 2 + 8);
+//        resetLevelButton.setPosition(cornerX, cornerY + Button.HEIGHT * 2 + 8);
         quitGameButton.setPosition(cornerX, cornerY + Button.HEIGHT * 3 + 36);
 
         draw.drawGradientBackground(0, 0, draw.getWidth(), draw.getHeight());
         draw.drawTextCentered(centerX, cornerY - 24, TITLE);
         backToGameButton.draw(draw, sprites, mousePos);
         renderDistanceButton.draw(draw, sprites, mousePos);
-        resetLevelButton.draw(draw, sprites, mousePos);
+//        resetLevelButton.draw(draw, sprites, mousePos);
         quitGameButton.draw(draw, sprites, mousePos);
     }
 
@@ -51,7 +51,7 @@ public final class PauseMenuUI implements UI {
     public void mouseClicked(Vector2i mousePos) {
         backToGameButton.mouseClicked(mousePos);
         renderDistanceButton.mouseClicked(mousePos);
-        resetLevelButton.mouseClicked(mousePos);
+//        resetLevelButton.mouseClicked(mousePos);
         quitGameButton.mouseClicked(mousePos);
     }
 

@@ -20,11 +20,17 @@ public final class MapSection {
     /**
      * Creates a new section filled with air.
      */
-    public MapSection() {
-        blocks = new byte[SIZE_CUBED];
-        Arrays.fill(blocks, Blocks.ID_AIR);
+    public MapSection(byte[] blockData) {
+        if (blockData.length != SIZE_CUBED)
+            throw new IllegalArgumentException("Wrong block data size");
+        blocks = blockData;
 
         nonAirCount = 0;
+        for (byte b : blockData) {
+            if (b != Blocks.ID_AIR) {
+                nonAirCount++;
+            }
+        }
     }
 
     // Gets the index of a block within the blocks array

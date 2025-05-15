@@ -18,13 +18,14 @@ public final class BlockMap {
     private final MapSection[] sections;
 
     /**
-     * Creates a new map filled with air.
+     * Creates a new map.
      *
      * @param sectionsX number of sections along the X axis
      * @param sectionsY number of sections along the Y axis
      * @param sectionsZ number of sections along the Z axis
+     * @param blockData initial block data for the map
      */
-    public BlockMap(int sectionsX, int sectionsY, int sectionsZ) {
+    public BlockMap(int sectionsX, int sectionsY, int sectionsZ, byte[] blockData) {
         this.sectionsX = sectionsX;
         this.sectionsY = sectionsY;
         this.sectionsZ = sectionsZ;
@@ -35,22 +36,31 @@ public final class BlockMap {
         int sectionCount = sectionsX * sectionsY * sectionsZ;
 
         sections = new MapSection[sectionCount];
-        for (int i = 0; i < sectionCount; i++) {
-            sections[i] = new MapSection();
+
+        long before = System.nanoTime();
+        for (int sectionY = 0; sectionY < sectionsY; sectionY++) {
+            for (int sectionZ = 0; sectionZ < sectionsZ; sectionZ++) {
+                for (int sectionX = 0; sectionX < sectionsX; sectionX++) {
+                    int sectionBase = sectionX * 16 + sectionZ * 16 * blocksX + sectionY * 16 * blocksX * blocksZ;
+
+                    byte[] sectionData = new byte[MapSection.SIZE_CUBED];
+
+                    for (int blockY = 0; blockY < MapSection.SIZE; blockY++) {
+                        for (int blockZ = 0; blockZ < MapSection.SIZE; blockZ++) {
+                            int sectionOffset = blockZ * blocksX + blockY * blocksX * blocksZ;
+                            int blockBase = blockZ * 16 + blockY * 256;
+
+                            System.arraycopy(blockData, sectionBase + sectionOffset, sectionData, blockBase, 16);
+                        }
+                    }
+
+                    sections[sectionIndex(sectionX, sectionY, sectionZ)] = new MapSection(sectionData);
+                }
+            }
         }
-    }
+        long after = System.nanoTime();
 
-    public BlockMap(int sectionsX, int sectionsY, int sectionsZ, byte[] blockData) {
-        this(sectionsX, sectionsY, sectionsZ);
-
-        // TODO: This could probably be optimized better
-        for (int i = 0; i < blockData.length; i++) {
-            int x = i % blocksX;
-            int z = (i / blocksX) % blocksZ;
-            int y = i / blocksX / blocksZ;
-
-            setBlockId(x, y, z, blockData[i]);
-        }
+        System.out.println("Level data unpacking took " + ((after - before) / 1_000_000.0) + " ms");
     }
 
     // Gets the index of the section within the sections array

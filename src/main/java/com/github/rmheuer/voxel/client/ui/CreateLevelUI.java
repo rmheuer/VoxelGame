@@ -28,7 +28,7 @@ public final class CreateLevelUI implements UI {
     }
 
     private void createLevel(VoxelGame game, int size) {
-        game.resetLevel(size / MapSection.SIZE);
+//        game.resetLevel(size / MapSection.SIZE);
         game.setUI(null);
     }
 

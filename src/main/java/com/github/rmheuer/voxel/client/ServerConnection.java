@@ -45,7 +45,7 @@ public final class ServerConnection extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
         ServerPacket packet = (ServerPacket) msg;
         System.out.println("Received packet: " + packet);
         packet.handleServer(listener);
@@ -59,6 +59,10 @@ public final class ServerConnection extends ChannelInboundHandlerAdapter {
 
     public void setPacketListener(ServerPacketListener listener) {
         this.listener = listener;
+    }
+
+    public boolean isConnected() {
+        return channel.isOpen() && channel.isActive();
     }
 
     public void disconnect() {

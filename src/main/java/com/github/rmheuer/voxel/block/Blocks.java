@@ -50,6 +50,7 @@ public final class Blocks {
         register(new Block(ID_AIR, new InvisibleShape())
                 .setLightBlocking(false)
                 .setSolid(false)
+                .setReplaceable(true)
                 .setInteractable(false));
 
         register(new Block(ID_STONE, CubeShape.all(new AtlasSprite(1, 0))));
@@ -64,18 +65,22 @@ public final class Blocks {
         register(new Block(ID_FLOWING_WATER, new LiquidShape(new AtlasSprite(14, 0), false, true))
                 .setLiquid(Liquid.WATER)
                 .setSolid(false)
+                .setReplaceable(true)
                 .setInteractable(false));
         register(new Block(ID_STILL_WATER, new LiquidShape(new AtlasSprite(14, 0), false, true))
                 .setLiquid(Liquid.WATER)
                 .setSolid(false)
+                .setReplaceable(true)
                 .setInteractable(false));
         register(new Block(ID_FLOWING_LAVA, new LiquidShape(new AtlasSprite(14, 1), true, false))
                 .setLiquid(Liquid.LAVA)
                 .setSolid(false)
+                .setReplaceable(true)
                 .setInteractable(false));
         register(new Block(ID_STILL_LAVA, new LiquidShape(new AtlasSprite(14, 1), true, false))
                 .setLiquid(Liquid.LAVA)
                 .setSolid(false)
+                .setReplaceable(true)
                 .setInteractable(false));
         register(new Block(ID_SAND, CubeShape.all(new AtlasSprite(2, 1))));
         register(new Block(ID_GRAVEL, CubeShape.all(new AtlasSprite(3, 1))));
