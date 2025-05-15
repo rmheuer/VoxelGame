@@ -20,10 +20,12 @@ public final class LocalPlayer extends Player {
     private static final float BB_SIZE = 0.6f;
     private static final float BB_HEIGHT = 1.8f;
 
+    private final Vector3f prevPosition;
     private boolean onGround;
 
     public LocalPlayer(float x, float y, float z, float pitch, float yaw) {
         super(x, y, z, pitch, yaw);
+        prevPosition = new Vector3f(x, y, z);
 
         onGround = false;
     }
@@ -169,5 +171,10 @@ public final class LocalPlayer extends Player {
      */
     public AABB getBoundingBox() {
         return AABB.fromBaseCenterSize(position.x, position.y, position.z, BB_SIZE, BB_HEIGHT, BB_SIZE);
+    }
+
+    @Override
+    public Vector3f getSmoothedPosition(float subtick) {
+        return new Vector3f(prevPosition).lerp(position, subtick);
     }
 }

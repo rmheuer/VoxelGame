@@ -79,6 +79,7 @@ public final class VoxelGame extends BaseGame {
     private final DebugLineRenderer lineRenderer;
     private final ParticleSystem particleSystem;
     private final EnvironmentRenderer environmentRenderer;
+    private final RemotePlayerRenderer remotePlayerRenderer;
 
     private final WaterAnimationGenerator waterAnimationGenerator;
     private final LavaAnimationGenerator lavaAnimationGenerator;
@@ -127,6 +128,7 @@ public final class VoxelGame extends BaseGame {
         atlasTexture = getRenderer().createTexture2D(ResourceUtil.readAsStream("terrain.png"));
         uiSprites = new UISprites(getRenderer());
         textRenderer = new TextRenderer(getRenderer());
+        remotePlayerRenderer = new RemotePlayerRenderer(getRenderer());
 
         levelRenderer = new LevelRenderer(getRenderer(), atlasTexture);
         lineRenderer = new DebugLineRenderer(getRenderer());
@@ -435,12 +437,12 @@ public final class VoxelGame extends BaseGame {
             stop();
         }
 
-        if (!getWindow().isFocused() && ui == null)
-            setUI(new PauseMenuUI(this));
+//        if (!getWindow().isFocused() && ui == null)
+//            setUI(new PauseMenuUI(this));
 
         // Don't update game if paused
-        if (ui != null && ui.shouldPauseGame())
-            return;
+//        if (ui != null && ui.shouldPauseGame())
+//            return;
 
         if (level != null) {
             Vector3f pos = camera.getTransform().position;
@@ -501,10 +503,14 @@ public final class VoxelGame extends BaseGame {
 
         particleSystem.tickParticles(level.getBlockMap());
 
+        for (RemotePlayer remotePlayer : remotePlayers.values()) {
+            remotePlayer.tick();
+        }
+
         Keyboard kb = getWindow().getKeyboard();
         float inputForward = 0, inputRight = 0;
         boolean jump = false;
-        if (ui == null) {
+        if (ui == null && capturedCameraPos == null) {
             if (kb.isKeyPressed(Key.W))
                 inputForward += 1;
             if (kb.isKeyPressed(Key.S))
@@ -678,14 +684,6 @@ public final class VoxelGame extends BaseGame {
             lineRenderer.addLine(nnp, npp, col);
         }
 
-        for (RemotePlayer player : remotePlayers.values()) {
-            int col = Colors.RGBA.fromFloats(1.0f, 0.5f, 0.0f);
-            Vector3f pos = player.getSmoothedPosition(subtick);
-            lineRenderer.addLine(pos.x - 0.3f, pos.y + 1.6f, pos.z, pos.x + 0.3f, pos.y + 1.6f, pos.z, col);
-            lineRenderer.addLine(pos.x, pos.y + 1.6f, pos.z - 0.3f, pos.x, pos.y + 1.6f, pos.z + 0.3f, col);
-            lineRenderer.addLine(pos.x, pos.y + 1.3f, pos.z, pos.x, pos.y + 1.9f, pos.z, col);
-        }
-
         renderer.setClearColor(Colors.RGBA.fromFloats(fogInfo.color));
         renderer.clear(BufferType.COLOR);
 
@@ -699,7 +697,7 @@ public final class VoxelGame extends BaseGame {
         levelRender.renderOpaqueLayer(renderer, view, proj, fogInfo);
         environmentRenderer.renderOpaqueLayer(renderer, view, proj, fogInfo, subtick);
 
-//        levelRenderer.renderVisibilityDebug(lineRenderer, level.getRenderData());
+        remotePlayerRenderer.renderPlayers(renderer, level, remotePlayers.values(), view, proj, fogInfo, subtick);
 
         particleSystem.renderParticles(renderer, view, proj, fogInfo, subtick, level.getLightMap());
 
@@ -792,6 +790,7 @@ public final class VoxelGame extends BaseGame {
         levelRenderer.close();
         particleSystem.close();
         textRenderer.close();
+        remotePlayerRenderer.close();
         uiSprites.close();
         atlasTexture.close();
         renderer2D.close();

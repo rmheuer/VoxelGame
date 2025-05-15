@@ -8,7 +8,6 @@ import org.joml.Vector3f;
  */
 public abstract class Player {
     protected final Vector3f position;
-    protected final Vector3f prevPosition;
     protected final Vector3f velocity;
 
     protected float pitch, yaw;
@@ -20,7 +19,6 @@ public abstract class Player {
      */
     public Player(float x, float y, float z, float pitch, float yaw) {
         position = new Vector3f(x, y, z);
-        prevPosition = new Vector3f(x, y, z);
         velocity = new Vector3f(0, 0, 0);
 
         this.pitch = pitch;
@@ -63,9 +61,7 @@ public abstract class Player {
      * @param subtick percentage elapsed within the current tick
      * @return feet position
      */
-    public Vector3f getSmoothedPosition(float subtick) {
-        return new Vector3f(prevPosition).lerp(position, subtick);
-    }
+    public abstract Vector3f getSmoothedPosition(float subtick);
 
     public float getPitch() {
         return pitch;
