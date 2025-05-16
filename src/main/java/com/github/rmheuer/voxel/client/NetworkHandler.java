@@ -10,6 +10,7 @@ import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPInputStream;
 
 public final class NetworkHandler implements ServerPacketListener {
@@ -22,7 +23,7 @@ public final class NetworkHandler implements ServerPacketListener {
     private DownloadingTerrainUI downloadingTerrainUI;
     private final List<byte[]> receivedLevelChunks;
 
-    private int timeoutTimer;
+    private final AtomicInteger timeoutTimer;
 
     public NetworkHandler(VoxelGame client, ServerConnection conn, String username) {
         this.client = client;
@@ -32,14 +33,19 @@ public final class NetworkHandler implements ServerPacketListener {
 
         conn.setPacketListener(this);
         conn.sendPacket(new ClientPlayerIdPacket((short) 7, username, ""));
+
+        timeoutTimer = new AtomicInteger(0);
     }
 
     public void tick() {
-        timeoutTimer++;
-        if (timeoutTimer >= TIMEOUT_TICKS) {
+        if (timeoutTimer.incrementAndGet() >= TIMEOUT_TICKS) {
             System.err.println("Server connection timed out");
             conn.disconnect();
         }
+    }
+
+    private void resetTimeout() {
+        timeoutTimer.set(0);
     }
 
     @Override
@@ -50,11 +56,12 @@ public final class NetworkHandler implements ServerPacketListener {
 
     @Override
     public void onPing() {
-        timeoutTimer = 0;
+        resetTimeout();
     }
 
     @Override
     public void onLevelInit() {
+        resetTimeout();
         downloadingTerrainUI = new DownloadingTerrainUI();
         receivedLevelChunks.clear();
         client.runOnMainThread(() -> {
@@ -65,12 +72,15 @@ public final class NetworkHandler implements ServerPacketListener {
 
     @Override
     public void onLevelDataChunk(ServerLevelDataChunkPacket packet) {
+        resetTimeout();
         receivedLevelChunks.add(packet.getChunkData());
         client.runOnMainThread(() -> downloadingTerrainUI.setPercentReceived(packet.getPercentComplete()));
     }
 
     @Override
     public void onLevelFinalize(ServerLevelFinalizePacket packet) {
+        resetTimeout();
+
         int totalSize = 0;
         for (byte[] chunk : receivedLevelChunks) {
             totalSize += chunk.length;

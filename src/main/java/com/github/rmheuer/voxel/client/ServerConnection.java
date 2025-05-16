@@ -11,7 +11,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.net.InetSocketAddress;
 
-public final class ServerConnection extends ChannelInboundHandlerAdapter {
+public final class ServerConnection extends Connection<ServerPacket, ClientPacket> {
     private static final int TIMEOUT_MS = 10000;
 
     public static ChannelFuture connectToServer(EventLoopGroup eventLoop, InetSocketAddress address) {
@@ -37,35 +37,18 @@ public final class ServerConnection extends ChannelInboundHandlerAdapter {
         return b.connect();
     }
 
-    private final Channel channel;
     private ServerPacketListener listener;
 
     public ServerConnection(Channel channel) {
-        this.channel = channel;
+        super(channel);
     }
 
     @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        ServerPacket packet = (ServerPacket) msg;
-        System.out.println("Received packet: " + packet);
+    protected void dispatchPacket(ServerPacket packet) {
         packet.handleServer(listener);
-    }
-
-    public void sendPacket(ClientPacket packet) {
-        if (!(packet instanceof BidiPlayerPositionPacket))
-            System.out.println("Sent packet: " + packet);
-        channel.writeAndFlush(packet, channel.voidPromise());
     }
 
     public void setPacketListener(ServerPacketListener listener) {
         this.listener = listener;
-    }
-
-    public boolean isConnected() {
-        return channel.isOpen() && channel.isActive();
-    }
-
-    public void disconnect() {
-        channel.close();
     }
 }
