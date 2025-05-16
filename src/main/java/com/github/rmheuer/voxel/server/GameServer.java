@@ -6,6 +6,7 @@ import com.github.rmheuer.voxel.network.PacketDecoder;
 import com.github.rmheuer.voxel.network.PacketEncoder;
 import com.github.rmheuer.voxel.network.PacketMapping;
 import com.github.rmheuer.voxel.network.PacketRegistry;
+import com.github.rmheuer.voxel.network.packet.BidiChatMessagePacket;
 import com.github.rmheuer.voxel.network.packet.ClientPacket;
 import com.github.rmheuer.voxel.network.packet.ServerPacket;
 import com.github.rmheuer.voxel.network.packet.ServerSetBlockPacket;
@@ -102,6 +103,10 @@ public final class GameServer {
 
             client.sendPacket(packet);
         }
+    }
+
+    public void broadcastSystemMessage(String message) {
+        broadcastPacketToAll(new BidiChatMessagePacket((byte) -1, message));
     }
 
     public BlockMap getCopyOfMap() {

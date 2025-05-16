@@ -45,6 +45,8 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
             server.broadcastPacketToOthers(new ServerDespawnPlayerPacket(playerId), this);
             server.removeClient(playerId);
 
+            server.broadcastSystemMessage(username + " left the game");
+
             return;
         }
 
@@ -105,6 +107,8 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
 
         // Tell others that we joined
         server.broadcastPacketToOthers(makeSpawnPlayerPacket(), this);
+
+        server.broadcastSystemMessage(username + " joined the game");
 
         long prev = System.nanoTime();
         BlockMap map = server.getCopyOfMap();
