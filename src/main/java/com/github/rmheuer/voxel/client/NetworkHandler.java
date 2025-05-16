@@ -14,12 +14,15 @@ import java.util.zip.GZIPInputStream;
 
 public final class NetworkHandler implements ServerPacketListener {
     public static final float POSITION_Y_OFFSET = 0.6f;
+    private static final int TIMEOUT_TICKS = 10 * 20;
 
     private final VoxelGame client;
     private final ServerConnection conn;
 
     private DownloadingTerrainUI downloadingTerrainUI;
     private final List<byte[]> receivedLevelChunks;
+
+    private int timeoutTimer;
 
     public NetworkHandler(VoxelGame client, ServerConnection conn, String username) {
         this.client = client;
@@ -31,6 +34,14 @@ public final class NetworkHandler implements ServerPacketListener {
         conn.sendPacket(new ClientPlayerIdPacket((short) 7, username, ""));
     }
 
+    public void tick() {
+        timeoutTimer++;
+        if (timeoutTimer >= TIMEOUT_TICKS) {
+            System.err.println("Server connection timed out");
+            conn.disconnect();
+        }
+    }
+
     @Override
     public void onServerId(ServerIdPacket packet) {
         System.out.println("Server name: " + packet.getServerName());
@@ -39,7 +50,7 @@ public final class NetworkHandler implements ServerPacketListener {
 
     @Override
     public void onPing() {
-
+        timeoutTimer = 0;
     }
 
     @Override
@@ -164,7 +175,9 @@ public final class NetworkHandler implements ServerPacketListener {
 
     @Override
     public void onChatMessage(BidiChatMessagePacket packet) {
-
+        client.runOnMainThread(() -> {
+            client.addChatMessage(packet.getMessage());
+        });
     }
 
     @Override

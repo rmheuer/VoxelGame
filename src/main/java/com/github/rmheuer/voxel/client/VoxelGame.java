@@ -1,5 +1,6 @@
 package com.github.rmheuer.voxel.client;
 
+import com.github.rmheuer.azalea.input.keyboard.CharTypeEvent;
 import com.github.rmheuer.azalea.input.keyboard.Key;
 import com.github.rmheuer.azalea.input.keyboard.KeyPressEvent;
 import com.github.rmheuer.azalea.input.keyboard.Keyboard;
@@ -29,14 +30,12 @@ import com.github.rmheuer.voxel.block.LiquidShape;
 import com.github.rmheuer.voxel.client.anim.LavaAnimationGenerator;
 import com.github.rmheuer.voxel.client.anim.WaterAnimationGenerator;
 import com.github.rmheuer.voxel.client.particle.ParticleSystem;
-import com.github.rmheuer.voxel.client.render.EnvironmentRenderer;
-import com.github.rmheuer.voxel.client.render.FogInfo;
-import com.github.rmheuer.voxel.client.render.LevelRenderData;
-import com.github.rmheuer.voxel.client.render.LevelRenderer;
+import com.github.rmheuer.voxel.client.render.*;
 import com.github.rmheuer.voxel.client.ui.*;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.level.MapSection;
+import com.github.rmheuer.voxel.network.packet.BidiChatMessagePacket;
 import com.github.rmheuer.voxel.network.packet.BidiPlayerPositionPacket;
 import com.github.rmheuer.voxel.network.packet.ClientSetBlockPacket;
 import com.github.rmheuer.voxel.physics.Raycast;
@@ -49,9 +48,7 @@ import org.joml.*;
 import java.io.IOException;
 import java.lang.Math;
 import java.net.InetSocketAddress;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public final class VoxelGame extends BaseGame {
@@ -66,6 +63,20 @@ public final class VoxelGame extends BaseGame {
 
     private static final FogInfo WATER_FOG = new FogInfo(0, 20, new Vector4f(0.02f, 0.02f, 0.2f, 1.0f), new Vector4f(0.4f, 0.4f, 0.9f, 1.0f));
     private static final FogInfo LAVA_FOG = new FogInfo(-0.3f, 1.6f, new Vector4f(0.6f, 0.1f, 0.0f, 1.0f), new Vector4f(0.4f, 0.3f, 0.3f, 1.0f));
+
+    private static final int CHAT_FADE_START = 5 * 20;
+    private static final int CHAT_FADE_TIME = 20;
+    private static final int CHAT_MAX_SHOWING = 10;
+
+    private static final class ChatMessage {
+        public final String message;
+        public int age;
+
+        public ChatMessage(String message) {
+            this.message = message;
+            age = 0;
+        }
+    }
 
     private final EventLoopGroup nettyEventLoop;
     private final FixedRateExecutor ticker;
@@ -114,7 +125,9 @@ public final class VoxelGame extends BaseGame {
 
     private ServerConnection connection;
     private NetworkHandler networkHandler;
-    private Map<Byte, RemotePlayer> remotePlayers;
+    private final Map<Byte, RemotePlayer> remotePlayers;
+
+    private final List<ChatMessage> chatHistory;
 
     private final Queue<Runnable> scheduledTasks;
 
@@ -143,6 +156,7 @@ public final class VoxelGame extends BaseGame {
 
         setMouseCaptured(false);
         getEventBus().addHandler(KeyPressEvent.class, this::keyPressed);
+        getEventBus().addHandler(CharTypeEvent.class, this::charTyped);
         getEventBus().addHandler(MouseScrollEvent.class, this::mouseScrolled);
         getEventBus().addHandler(MouseMoveEvent.class, this::mouseMoved);
         getEventBus().addHandler(MouseButtonPressEvent.class, this::mousePressed);
@@ -167,6 +181,8 @@ public final class VoxelGame extends BaseGame {
 
         scheduledTasks = new ConcurrentLinkedQueue<>();
         remotePlayers = new HashMap<>();
+
+        chatHistory = new ArrayList<>();
 
         beginConnecting("localhost", 25565, username);
     }
@@ -229,6 +245,17 @@ public final class VoxelGame extends BaseGame {
         }
     }
 
+    public void addChatMessage(String message) {
+        chatHistory.add(new ChatMessage(message));
+        if (chatHistory.size() > CHAT_MAX_SHOWING)
+            chatHistory.remove(0);
+    }
+
+    public void sendChatMessage(String message) {
+        if (connection != null)
+            connection.sendPacket(new BidiChatMessagePacket((byte) -1, message));
+    }
+
     public void runOnMainThread(Runnable fn) {
         scheduledTasks.add(fn);
     }
@@ -255,20 +282,24 @@ public final class VoxelGame extends BaseGame {
         this.ui = ui;
     }
 
-    private void blockPicked(byte blockId) {
+    public void pickBlock(byte blockId) {
         hotbar[selectedSlot] = blockId;
-        setUI(null);
     }
 
     private void keyPressed(KeyPressEvent event) {
         Key key = event.getKey();
+
+        if (ui != null) {
+            if (ui.keyPressed(key)) {
+                // UI captured key press
+                return;
+            }
+        }
+
         switch (key) {
             case ESCAPE:
-                if (ui != null) {
-                    setUI(null);
-                } else {
+                if (ui == null)
                     setUI(new PauseMenuUI(this));
-                }
                 break;
 
             case F1:
@@ -298,9 +329,7 @@ public final class VoxelGame extends BaseGame {
             case B:
             case E:
                 if (ui == null)
-                    setUI(new BlockPickerUI(this::blockPicked));
-                else if (ui instanceof BlockPickerUI)
-                    setUI(null);
+                    setUI(new BlockPickerUI(this));
                 break;
 
             default:
@@ -308,6 +337,18 @@ public final class VoxelGame extends BaseGame {
                     selectedSlot = key.getNumber() - 1;
                 }
                 break;
+        }
+    }
+
+    private void charTyped(CharTypeEvent event) {
+        if (ui != null) {
+            ui.charTyped(event.getChar());
+        }
+
+        // Checked here instead of keyPressed() to prevent the t from being
+        // immediately typed into the chat
+        if (ui == null && Character.toLowerCase(event.getChar()) == 't') {
+            setUI(new ChatInputUI(this));
         }
     }
 
@@ -421,7 +462,7 @@ public final class VoxelGame extends BaseGame {
         } else if (event.getButton() == MouseButton.MIDDLE) {
             if (raycastResult != null) {
                 byte clicked = level.getBlockMap().getBlockId(raycastResult.blockPos.x, raycastResult.blockPos.y, raycastResult.blockPos.z);
-                blockPicked(Blocks.getBlock(clicked).getItemId());
+                pickBlock(Blocks.getBlock(clicked).getItemId());
             }
         }
     }
@@ -437,12 +478,8 @@ public final class VoxelGame extends BaseGame {
             stop();
         }
 
-//        if (!getWindow().isFocused() && ui == null)
-//            setUI(new PauseMenuUI(this));
-
-        // Don't update game if paused
-//        if (ui != null && ui.shouldPauseGame())
-//            return;
+        if (!getWindow().isFocused() && ui == null)
+            setUI(new PauseMenuUI(this));
 
         if (level != null) {
             Vector3f pos = camera.getTransform().position;
@@ -497,6 +534,17 @@ public final class VoxelGame extends BaseGame {
         lavaAnimationGenerator.tick();
 
         environmentRenderer.tick();
+
+        for (int i = chatHistory.size() - 1; i >= 0; i--) {
+            ChatMessage msg = chatHistory.get(i);
+            if (msg.age >= CHAT_FADE_START + CHAT_FADE_TIME)
+                break;
+
+            msg.age++;
+        }
+
+        if (networkHandler != null)
+            networkHandler.tick();
 
         if (level == null)
             return;
@@ -714,6 +762,7 @@ public final class VoxelGame extends BaseGame {
         uiDraw.drawText(1, 18, String.format("Render sections: %d opaque, %d translucent", levelRender.getOpaqueCount(), levelRender.getTranslucentCount()));
 
         uiDraw.drawSprite(uiDraw.getWidth() / 2 - 8, uiDraw.getHeight() / 2 - 8, uiSprites.getCrosshair());
+        drawChatHistory(uiDraw);
         drawHotbar(uiDraw);
     }
 
@@ -730,6 +779,21 @@ public final class VoxelGame extends BaseGame {
         }
 
         draw.drawSprite(x - 1 + selectedSlot * 20, y - 1, highlightSprite);
+    }
+
+    private void drawChatHistory(UIDrawList draw) {
+        boolean showAll = ui instanceof ChatInputUI;
+
+        for (int i = 0; i < chatHistory.size(); i++) {
+            ChatMessage msg = chatHistory.get(chatHistory.size() - i - 1);
+            if (!showAll && msg.age >= CHAT_FADE_START + CHAT_FADE_TIME)
+                break;
+
+            int y = draw.getHeight() - 48 - 10 * i;
+            float alpha = showAll ? 1 : Math.min(1, MathUtil.map(msg.age, CHAT_FADE_START, CHAT_FADE_START + CHAT_FADE_TIME, 1, 0));
+
+            draw.drawTextAlpha(2, y, msg.message, alpha);
+        }
     }
 
     @Override

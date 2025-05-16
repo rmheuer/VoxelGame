@@ -1,5 +1,6 @@
 package com.github.rmheuer.voxel.client.ui;
 
+import com.github.rmheuer.azalea.input.keyboard.Key;
 import org.joml.Vector2i;
 
 /**
@@ -21,6 +22,13 @@ public interface UI {
      * @param mousePos position that was clicked
      */
     void mouseClicked(Vector2i mousePos);
+
+    default boolean keyPressed(Key key) {
+        return false;
+    }
+
+    default void charTyped(char c) {
+    }
 
     /**
      * @return whether the game should be paused while this UI is open

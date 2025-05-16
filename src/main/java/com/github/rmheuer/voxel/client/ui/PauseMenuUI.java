@@ -1,5 +1,6 @@
 package com.github.rmheuer.voxel.client.ui;
 
+import com.github.rmheuer.azalea.input.keyboard.Key;
 import com.github.rmheuer.voxel.client.RenderDistance;
 
 import com.github.rmheuer.voxel.client.VoxelGame;
@@ -11,6 +12,8 @@ import org.joml.Vector2i;
 public final class PauseMenuUI implements UI {
     private static final String TITLE = "Game Paused";
 
+    private final VoxelGame game;
+
     private final Button backToGameButton;
     private final CycleButton<RenderDistance> renderDistanceButton;
 //    private final Button resetLevelButton;
@@ -20,6 +23,8 @@ public final class PauseMenuUI implements UI {
      * @param game main game instance
      */
     public PauseMenuUI(VoxelGame game) {
+        this.game = game;
+
         backToGameButton = new Button("Back to Game", () -> game.setUI(null));
         renderDistanceButton = new CycleButton<>("Render Distance: ", RenderDistance.values(), game.getRenderDistance().ordinal(), game::setRenderDistance);
 //        resetLevelButton = new Button("Create New Level...", () -> game.setUI(new CreateLevelUI(game, this)));
@@ -53,6 +58,15 @@ public final class PauseMenuUI implements UI {
         renderDistanceButton.mouseClicked(mousePos);
 //        resetLevelButton.mouseClicked(mousePos);
         quitGameButton.mouseClicked(mousePos);
+    }
+
+    @Override
+    public boolean keyPressed(Key key) {
+        if (key == Key.ESCAPE) {
+            game.setUI(null);
+            return true;
+        }
+        return false;
     }
 
     @Override

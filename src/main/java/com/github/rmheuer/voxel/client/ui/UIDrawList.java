@@ -108,6 +108,11 @@ public final class UIDrawList implements SafeCloseable {
         textRenderer.drawText(draw, x, y, text, Colors.RGBA.WHITE);
     }
 
+    public void drawTextAlpha(int x, int y, String text, float alpha) {
+        textRenderer.drawText(draw, x + 1, y + 1, text, Colors.RGBA.setAlpha(TEXT_SHADOW_COLOR, (int) (alpha * 255)));
+        textRenderer.drawText(draw, x, y, text, Colors.RGBA.fromFloats(1, 1, 1, alpha));
+    }
+
     /**
      * Draws a string of text centered horizontally at the specified position.
      *

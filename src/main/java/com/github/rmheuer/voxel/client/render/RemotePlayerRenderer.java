@@ -1,4 +1,4 @@
-package com.github.rmheuer.voxel.client;
+package com.github.rmheuer.voxel.client.render;
 
 import com.github.rmheuer.azalea.io.ResourceUtil;
 import com.github.rmheuer.azalea.render.Renderer;
@@ -8,7 +8,8 @@ import com.github.rmheuer.azalea.render.pipeline.PipelineInfo;
 import com.github.rmheuer.azalea.render.shader.ShaderProgram;
 import com.github.rmheuer.azalea.render.texture.Texture2D;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
-import com.github.rmheuer.voxel.client.render.FogInfo;
+import com.github.rmheuer.voxel.client.ClientLevel;
+import com.github.rmheuer.voxel.client.RemotePlayer;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fStack;
 import org.joml.Vector3f;

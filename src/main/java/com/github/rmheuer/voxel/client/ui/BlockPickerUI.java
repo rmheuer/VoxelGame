@@ -1,8 +1,10 @@
 package com.github.rmheuer.voxel.client.ui;
 
+import com.github.rmheuer.azalea.input.keyboard.Key;
 import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.block.Blocks;
+import com.github.rmheuer.voxel.client.VoxelGame;
 import org.joml.Vector2i;
 
 import java.util.function.Consumer;
@@ -28,14 +30,11 @@ public final class BlockPickerUI implements UI {
     private static final int WIDTH = ITEM_SPACING * (9 - 1) + 32;
     private static final int HEIGHT = ITEM_SPACING * (5 - 1) + 48;
 
-    private final Consumer<Byte> blockPickedCallback;
+    private final VoxelGame game;
     private int blocksOriginX, blocksOriginY;
 
-    /**
-     * @param blockPickedCallback function to call when a block is picked
-     */
-    public BlockPickerUI(Consumer<Byte> blockPickedCallback) {
-        this.blockPickedCallback = blockPickedCallback;
+    public BlockPickerUI(VoxelGame game) {
+        this.game = game;
     }
 
     @Override
@@ -84,11 +83,21 @@ public final class BlockPickerUI implements UI {
                         && mousePos.y >= y - 4 && mousePos.y < y + size + 4;
 
                 if (clicked) {
-                    blockPickedCallback.accept(blocksInRow[col]);
+                    game.pickBlock(blocksInRow[col]);
+                    game.setUI(null);
                     return;
                 }
             }
         }
+    }
+
+    @Override
+    public boolean keyPressed(Key key) {
+        if (key == Key.B || key == Key.E || key == Key.ESCAPE) {
+            game.setUI(null);
+            return true;
+        }
+        return false;
     }
 
     @Override
