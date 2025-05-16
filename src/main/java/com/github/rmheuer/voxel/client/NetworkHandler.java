@@ -40,7 +40,7 @@ public final class NetworkHandler implements ServerPacketListener {
     public void tick() {
         if (timeoutTimer.incrementAndGet() >= TIMEOUT_TICKS) {
             System.err.println("Server connection timed out");
-            conn.disconnect();
+            conn.close();
         }
     }
 
@@ -193,7 +193,7 @@ public final class NetworkHandler implements ServerPacketListener {
     @Override
     public void onDisconnect(ServerDisconnectPacket packet) {
         System.out.println("Kicked: " + packet.getReason());
-        conn.disconnect();
+        conn.close();
     }
 
     @Override

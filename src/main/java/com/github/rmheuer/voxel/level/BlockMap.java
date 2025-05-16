@@ -17,6 +17,37 @@ public final class BlockMap {
     private final int blocksX, blocksY, blocksZ;
     private final MapSection[] sections;
 
+    public BlockMap(int sectionsX, int sectionsY, int sectionsZ) {
+        this.sectionsX = sectionsX;
+        this.sectionsY = sectionsY;
+        this.sectionsZ = sectionsZ;
+        blocksX = sectionsX * MapSection.SIZE;
+        blocksY = sectionsY * MapSection.SIZE;
+        blocksZ = sectionsZ * MapSection.SIZE;
+
+        int sectionCount = sectionsX * sectionsY * sectionsZ;
+        sections = new MapSection[sectionCount];
+        for (int i = 0; i < sectionCount; i++) {
+            sections[i] = new MapSection();
+        }
+    }
+
+    // Makes a full copy of the map
+    public BlockMap(BlockMap o) {
+        sectionsX = o.sectionsX;
+        sectionsY = o.sectionsY;
+        sectionsZ = o.sectionsZ;
+        blocksX = o.blocksX;
+        blocksY = o.blocksY;
+        blocksZ = o.blocksZ;
+
+        int sectionCount = sectionsX * sectionsY * sectionsZ;
+        sections = new MapSection[sectionCount];
+        for (int i = 0; i < sectionCount; i++) {
+            sections[i] = new MapSection(o.sections[i]);
+        }
+    }
+
     /**
      * Creates a new map.
      *
@@ -61,6 +92,30 @@ public final class BlockMap {
         long after = System.nanoTime();
 
         System.out.println("Level data unpacking took " + ((after - before) / 1_000_000.0) + " ms");
+    }
+
+    public byte[] packBlockDataForNetwork() {
+        byte[] packed = new byte[blocksX * blocksY * blocksZ];
+
+        for (int sectionY = 0; sectionY < sectionsY; sectionY++) {
+            for (int sectionZ = 0; sectionZ < sectionsZ; sectionZ++) {
+                for (int sectionX = 0; sectionX < sectionsX; sectionX++) {
+                    byte[] sectionData = sections[sectionIndex(sectionX, sectionY, sectionZ)].getBlockData();
+                    int sectionBase = sectionX * 16 + sectionZ * 16 * blocksX + sectionY * 16 * blocksX * blocksZ;
+
+                    for (int blockY = 0; blockY < MapSection.SIZE; blockY++) {
+                        for (int blockZ = 0; blockZ < MapSection.SIZE; blockZ++) {
+                            int sectionOffset = blockZ * blocksX + blockY * blocksX * blocksZ;
+                            int blockBase = blockZ * 16 + blockY * 256;
+
+                            System.arraycopy(sectionData, blockBase, packed, sectionBase + sectionOffset, 16);
+                        }
+                    }
+                }
+            }
+        }
+
+        return packed;
     }
 
     // Gets the index of the section within the sections array

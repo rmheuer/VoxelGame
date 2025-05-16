@@ -1,30 +1,45 @@
 package com.github.rmheuer.voxel.server;
 
+import com.github.rmheuer.voxel.block.Blocks;
+import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.network.PacketDecoder;
 import com.github.rmheuer.voxel.network.PacketEncoder;
 import com.github.rmheuer.voxel.network.PacketMapping;
 import com.github.rmheuer.voxel.network.PacketRegistry;
 import com.github.rmheuer.voxel.network.packet.ClientPacket;
 import com.github.rmheuer.voxel.network.packet.ServerPacket;
+import com.github.rmheuer.voxel.network.packet.ServerSetBlockPacket;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public final class GameServer {
     private final Queue<String> consoleInputQueue;
     private final ConsoleInputThread consoleThread;
 
+    private final Map<Byte, ClientConnection> clients;
+    private final BlockMap map;
+
     private boolean running;
 
     public GameServer(EventLoopGroup bossGroup, EventLoopGroup workerGroup, int port) throws Exception {
         consoleInputQueue = new ConcurrentLinkedQueue<>();
         consoleThread = new ConsoleInputThread(consoleInputQueue);
+
+        clients = new ConcurrentHashMap<>();
+
+        map = new BlockMap(4, 4, 4);
+        for (int z = 0; z < 64; z++) {
+            for (int x = 0; x < 64; x++) {
+                map.setBlockId(x, 0, z, Blocks.ID_GRASS);
+            }
+        }
 
         PacketMapping<ClientPacket, ServerPacket> mapping = PacketRegistry.getServerMapping();
 
@@ -39,15 +54,67 @@ public final class GameServer {
                 ChannelPipeline p = ch.pipeline();
                 p.addLast(new PacketEncoder<>(ServerPacket.class, mapping));
                 p.addLast(new PacketDecoder<>(mapping));
-                p.addLast(new ClientConnection(ch));
+                p.addLast(new ClientConnection(GameServer.this, ch));
             }
         });
         b.option(ChannelOption.SO_BACKLOG, 16);
         b.childOption(ChannelOption.SO_KEEPALIVE, true);
         b.childOption(ChannelOption.TCP_NODELAY, true);
 
-        ChannelFuture f = b.bind(port).sync();
+        b.bind(port).sync();
         System.out.println("Server open on port " + port);
+    }
+
+    public byte addClient(ClientConnection client) {
+        // Try each player ID sequentially until we find an available one
+        // There's probably a better way to do this
+        byte id = 0;
+        while (true) {
+            if (clients.putIfAbsent(id, client) == null) {
+                return id;
+            }
+
+            if (id == 127)
+                id = 0;
+            else
+                id++;
+        }
+    }
+
+    public void removeClient(byte playerId) {
+        clients.remove(playerId);
+    }
+
+    public Collection<ClientConnection> getAllClients() {
+        return clients.values();
+    }
+
+    public void broadcastPacketToAll(ServerPacket packet) {
+        for (ClientConnection client : clients.values()) {
+            client.sendPacket(packet);
+        }
+    }
+
+    public void broadcastPacketToOthers(ServerPacket packet, ClientConnection excluded) {
+        for (ClientConnection client : clients.values()) {
+            if (client == excluded)
+                continue;
+
+            client.sendPacket(packet);
+        }
+    }
+
+    public BlockMap getCopyOfMap() {
+        synchronized (map) {
+            return new BlockMap(map);
+        }
+    }
+
+    public void setBlock(int x, int y, int z, byte blockId) {
+        synchronized (map) {
+            map.setBlockId(x, y, z, blockId);
+            broadcastPacketToAll(new ServerSetBlockPacket((short) x, (short) y, (short) z, blockId));
+        }
     }
 
     private void handleConsoleCommand(String command) {
@@ -56,14 +123,33 @@ public final class GameServer {
         }
     }
 
+    private void tick() {
+        for (ClientConnection client : clients.values()) {
+            client.tick();
+        }
+    }
+
     private void run() {
         consoleThread.start();
+
+        long prevTime = System.nanoTime();
+        double unprocessedTime = 0;
+        double tickInterval = 1 / 20.0;
 
         running = true;
         while (running) {
             String consoleCommand;
             while ((consoleCommand = consoleInputQueue.poll()) != null) {
                 handleConsoleCommand(consoleCommand);
+            }
+
+            long time = System.nanoTime();
+            unprocessedTime += (time - prevTime) / 1_000_000_000.0;
+            prevTime = time;
+            unprocessedTime = Math.min(unprocessedTime, 1.0); // Don't get too far behind
+            while (unprocessedTime > tickInterval) {
+                unprocessedTime -= tickInterval;
+                tick();
             }
 
             // Nothing to do...
@@ -73,6 +159,9 @@ public final class GameServer {
         }
 
         System.out.println("Server shutting down");
+        for (ClientConnection client : clients.values()) {
+            client.kick("Server closed");
+        }
         consoleThread.close();
     }
 
