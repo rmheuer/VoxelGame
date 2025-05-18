@@ -9,12 +9,14 @@ public final class RemotePlayer extends Player {
     private Vector3f smoothedPosition;
     private float smoothedPitch;
     private float smoothedYaw;
+    private float movementScale;
 
     public RemotePlayer(float x, float y, float z, float pitch, float yaw) {
         super(x, y, z, pitch, yaw);
         smoothedPosition = new Vector3f(x, y, z);
         smoothedPitch = pitch;
         smoothedYaw = yaw;
+        movementScale = 0;
     }
 
     private Vector3f smoothPosition(float dt) {
@@ -34,6 +36,7 @@ public final class RemotePlayer extends Player {
         smoothedPosition = smoothPosition(1.0f);
         smoothedPitch = MathUtil.expDecay(smoothedPitch, pitch, SMOOTH_FACTOR, 1.0f);
         smoothedYaw = smoothYawContinuous(1.0f);
+        movementScale = MathUtil.expDecay(movementScale, isMovingHorizontally() ? 1 : 0, SMOOTH_FACTOR, 1.0f);
     }
 
     @Override
@@ -49,7 +52,11 @@ public final class RemotePlayer extends Player {
         return smoothYawContinuous(subtick);
     }
 
-    public boolean isMoving() {
-        return smoothedPosition.distanceSquared(position) > 0.01f;
+    public boolean isMovingHorizontally() {
+        return smoothedPosition.distanceSquared(position.x, smoothedPosition.y, position.z) > 0.01f;
+    }
+
+    public float getMovementScale(float subtick) {
+        return MathUtil.expDecay(movementScale, isMovingHorizontally() ? 1 : 0, SMOOTH_FACTOR, subtick);
     }
 }

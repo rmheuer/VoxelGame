@@ -92,7 +92,7 @@ public final class RemotePlayerRenderer implements SafeCloseable {
         meshCuboid(stack, data, 8, 8, 8, 0, 0, light);
         stack.popMatrix();
 
-        float rotScale = player.isMoving() ? 1 : 0;
+        float rotScale = player.getMovementScale(subtick);
 
         // Legs
         stack.pushMatrix();
