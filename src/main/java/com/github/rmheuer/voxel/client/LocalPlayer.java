@@ -23,9 +23,12 @@ public final class LocalPlayer extends Player {
     private final Vector3f prevPosition;
     private boolean onGround;
 
+    private boolean turned;
+
     public LocalPlayer(float x, float y, float z, float pitch, float yaw) {
         super(x, y, z, pitch, yaw);
         prevPosition = new Vector3f(x, y, z);
+        turned = false;
 
         onGround = false;
     }
@@ -176,5 +179,26 @@ public final class LocalPlayer extends Player {
     @Override
     public Vector3f getSmoothedPosition(float subtick) {
         return new Vector3f(prevPosition).lerp(position, subtick);
+    }
+
+    @Override
+    public void setDirection(float pitch, float yaw) {
+        super.setDirection(pitch, yaw);
+        turned = true;
+    }
+
+    @Override
+    public void turn(float deltaPitch, float deltaYaw) {
+        super.turn(deltaPitch, deltaYaw);
+        if (deltaPitch != 0 || deltaYaw != 0)
+            turned = true;
+    }
+
+    public boolean movedOrTurnedThisTick() {
+        return !position.equals(prevPosition) || turned;
+    }
+
+    public void clearTurned() {
+        turned = false;
     }
 }

@@ -68,6 +68,8 @@ public final class VoxelGame extends BaseGame {
     private static final int CHAT_FADE_TIME = 20;
     private static final int CHAT_MAX_SHOWING = 10;
 
+    private static final int IDLE_POSITION_SEND_INTERVAL = 20;
+
     private static final class ChatMessage {
         public final String message;
         public int age;
@@ -125,6 +127,7 @@ public final class VoxelGame extends BaseGame {
 
     private ServerConnection connection;
     private NetworkHandler networkHandler;
+    private int positionSendTimer;
     private final Map<Byte, RemotePlayer> remotePlayers;
 
     private final List<ChatMessage> chatHistory;
@@ -571,12 +574,17 @@ public final class VoxelGame extends BaseGame {
         }
         localPlayer.tickMovement(level.getBlockMap(), inputForward, inputRight, jump);
 
-        Vector3f pos = localPlayer.getPosition();
-        connection.sendPacket(new BidiPlayerPositionPacket(
-                (byte) -1,
-                pos.x, pos.y + NetworkHandler.POSITION_Y_OFFSET, pos.z,
-                localPlayer.getYaw(), localPlayer.getPitch()
-        ));
+        if (localPlayer.movedOrTurnedThisTick() || positionSendTimer-- <= 0) {
+            localPlayer.clearTurned();
+
+            Vector3f pos = localPlayer.getPosition();
+            connection.sendPacket(new BidiPlayerPositionPacket(
+                    (byte) -1,
+                    pos.x, pos.y + NetworkHandler.POSITION_Y_OFFSET, pos.z,
+                    localPlayer.getYaw(), localPlayer.getPitch()
+            ));
+            positionSendTimer = IDLE_POSITION_SEND_INTERVAL;
+        }
     }
 
     private boolean isCameraInLiquid(Liquid liquid) {

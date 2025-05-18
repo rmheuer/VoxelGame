@@ -65,6 +65,13 @@ public final class RemotePlayerRenderer implements SafeCloseable {
     }
 
     private void meshPlayer(ClientLevel level, RemotePlayer player, MeshData data, float subtick) {
+        int blockX = (int) Math.floor(player.getPosition().x);
+        int blockY = (int) Math.floor(player.getPosition().y);
+        int blockZ = (int) Math.floor(player.getPosition().z);
+        float light = level.getLightMap().isLit(blockX, blockY, blockZ)
+                ? LightingConstants.SHADE_LIT
+                : LightingConstants.SHADE_SHADOW;
+
         Matrix4fStack stack = new Matrix4fStack(10);
         stack.translate(player.getSmoothedPosition(subtick));
         stack.scale(1 / 16.0f);
@@ -74,7 +81,7 @@ public final class RemotePlayerRenderer implements SafeCloseable {
         // Body
         stack.pushMatrix();
         stack.translate(-4, 12, -2);
-        meshCuboid(stack, data, 8, 12, 4, 16, 16);
+        meshCuboid(stack, data, 8, 12, 4, 16, 16, light);
         stack.popMatrix();
 
         // Head
@@ -82,10 +89,10 @@ public final class RemotePlayerRenderer implements SafeCloseable {
         stack.translate(0, 24, 0);
         stack.rotateX(player.getSmoothedPitch(subtick));
         stack.translate(-4, 0, -4);
-        meshCuboid(stack, data, 8, 8, 8, 0, 0);
+        meshCuboid(stack, data, 8, 8, 8, 0, 0, light);
         stack.popMatrix();
 
-        float rotScale = player.isMoving() ? 1 : 0;
+        float rotScale = player.getMovementScale(subtick);
 
         // Legs
         stack.pushMatrix();
@@ -93,13 +100,13 @@ public final class RemotePlayerRenderer implements SafeCloseable {
         stack.pushMatrix();
         stack.rotateX(rotScale * ((float) Math.random() * 2 - 1f) * (float) Math.PI / 2);
         stack.translate(0, -12, -2);
-        meshCuboid(stack, data, 4, 12, 4, 0, 16);
+        meshCuboid(stack, data, 4, 12, 4, 0, 16, light);
         stack.popMatrix();
         stack.translate(4, 0, 0);
         stack.pushMatrix();
         stack.rotateX(rotScale * ((float) Math.random() * 2 - 1f) * (float) Math.PI / 2);
         stack.translate(0, -12, -2);
-        meshCuboid(stack, data, 4, 12, 4, 0, 16);
+        meshCuboid(stack, data, 4, 12, 4, 0, 16, light);
         stack.popMatrix();
         stack.popMatrix();
 
@@ -110,19 +117,19 @@ public final class RemotePlayerRenderer implements SafeCloseable {
         stack.rotateZ(rotScale * (float) -(Math.random() * Math.PI / 2));
         stack.rotateX(rotScale * (float) ((Math.random() * 2 - 1f) * Math.PI / 2));
         stack.translate(-2, -10, -2);
-        meshCuboid(stack, data, 4, 12, 4, 40, 16);
+        meshCuboid(stack, data, 4, 12, 4, 40, 16, light);
         stack.popMatrix();
         stack.translate(12, 0, 0);
         stack.pushMatrix();
         stack.rotateZ(rotScale * (float) (Math.random() * Math.PI / 2));
         stack.rotateX(rotScale * (float) ((Math.random() * 2 - 1f) * Math.PI / 2));
         stack.translate(-2, -10, -2);
-        meshCuboid(stack, data, 4, 12, 4, 40, 16);
+        meshCuboid(stack, data, 4, 12, 4, 40, 16, light);
         stack.popMatrix();
         stack.popMatrix();
     }
 
-    private void meshCuboid(Matrix4fStack stack, MeshData data, int w, int h, int d, int tx, int ty) {
+    private void meshCuboid(Matrix4fStack stack, MeshData data, int w, int h, int d, int tx, int ty, float light) {
         Vector3f nnn = stack.transformPosition(new Vector3f(0, 0, 0));
         Vector3f nnp = stack.transformPosition(new Vector3f(0, 0, d));
         Vector3f npn = stack.transformPosition(new Vector3f(0, h, 0));
@@ -141,16 +148,16 @@ public final class RemotePlayerRenderer implements SafeCloseable {
                 12, 13, 14, 13, 14, 15
         );
 
-        putVertex(data, ppp, tx, ty + d, 1);
-        putVertex(data, pnp, tx, ty + d + h, 1);
-        putVertex(data, ppn, tx + d, ty + d, 1);
-        putVertex(data, pnn, tx + d, ty + d + h, 1);
-        putVertex(data, npn, tx + d + w, ty + d, 1);
-        putVertex(data, nnn, tx + d + w, ty + d + h, 1);
-        putVertex(data, npp, tx + d * 2 + w, ty + d, 1);
-        putVertex(data, nnp, tx + d * 2 + w, ty + d + h, 1);
-        putVertex(data, ppp, tx + (d + w) * 2, ty + d, 1);
-        putVertex(data, pnp, tx + (d + w) * 2, ty + h + d, 1);
+        putVertex(data, ppp, tx, ty + d, light);
+        putVertex(data, pnp, tx, ty + d + h, light);
+        putVertex(data, ppn, tx + d, ty + d, light);
+        putVertex(data, pnn, tx + d, ty + d + h, light);
+        putVertex(data, npn, tx + d + w, ty + d, light);
+        putVertex(data, nnn, tx + d + w, ty + d + h, light);
+        putVertex(data, npp, tx + d * 2 + w, ty + d, light);
+        putVertex(data, nnp, tx + d * 2 + w, ty + d + h, light);
+        putVertex(data, ppp, tx + (d + w) * 2, ty + d, light);
+        putVertex(data, pnp, tx + (d + w) * 2, ty + h + d, light);
         putVertex(data, ppp, tx + d, ty, 1);
         putVertex(data, npp, tx + d + w, ty, 1);
         putVertex(data, nnp, tx + d + w, ty, 1);

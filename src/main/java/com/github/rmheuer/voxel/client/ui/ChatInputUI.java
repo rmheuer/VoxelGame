@@ -26,6 +26,13 @@ public final class ChatInputUI implements UI {
 
         draw.drawRect(1, height - 11, width - 2, 10, BG_COLOR);
         draw.drawText(2, height - 2, input);
+
+        int cursorX = draw.textWidth(input.substring(0, inputCursor)) + 3;
+        if (inputCursor < input.length()) {
+            draw.drawRect(cursorX, height - 10, 1, 8, Colors.RGBA.WHITE);
+        } else {
+            draw.drawRect(cursorX, height - 3, 5, 1, Colors.RGBA.WHITE);
+        }
     }
 
     @Override
@@ -37,29 +44,29 @@ public final class ChatInputUI implements UI {
         switch (key) {
             case ESCAPE:
                 game.setUI(null);
-                return true;
+                break;
             case ENTER:
                 if (!input.isEmpty()) {
                     game.sendChatMessage(input);
                     game.setUI(null);
                 }
-                return true;
+                break;
             case LEFT:
                 if (inputCursor > 0)
                     inputCursor--;
-                return true;
+                break;
             case RIGHT:
                 if (inputCursor < input.length())
                     inputCursor++;
-                return true;
+                break;
             case BACKSPACE:
                 if (inputCursor > 0) {
                     input = input.substring(0, inputCursor - 1) + input.substring(inputCursor);
                     inputCursor--;
                 }
-                return true;
+                break;
         }
-        return false;
+        return true;
     }
 
     @Override

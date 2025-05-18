@@ -11,7 +11,7 @@ import com.github.rmheuer.voxel.client.render.AtlasSprite;
  * Collects UI elements to render.
  */
 public final class UIDrawList implements SafeCloseable {
-    private static final int TEXT_SHADOW_COLOR = Colors.RGBA.fromInts(64, 64, 64);
+    public static final int TEXT_SHADOW_COLOR = Colors.RGBA.fromInts(64, 64, 64);
 
     private static final int BG_COLOR_1 = Colors.RGBA.fromInts(5, 5, 0, 96);
     private static final int BG_COLOR_2 = Colors.RGBA.fromInts(48, 48, 96, 160);
@@ -94,6 +94,10 @@ public final class UIDrawList implements SafeCloseable {
                 blockAtlas,
                 sprite.u1, sprite.v1, sprite.u2, sprite.v2
         );
+    }
+
+    public int textWidth(String text) {
+        return textRenderer.textWidth(text);
     }
 
     /**
