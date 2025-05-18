@@ -131,7 +131,7 @@ public final class VoxelGame extends BaseGame {
 
     private final Queue<Runnable> scheduledTasks;
 
-    public VoxelGame(String username) throws IOException {
+    public VoxelGame(String host, int port, String username) throws IOException {
         super(WINDOW_SETTINGS);
 
         nettyEventLoop = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
@@ -184,7 +184,7 @@ public final class VoxelGame extends BaseGame {
 
         chatHistory = new ArrayList<>();
 
-        beginConnecting("localhost", 25565, username);
+        beginConnecting(host, port, username);
     }
 
     private void beginConnecting(String host, int port, String username) {
@@ -862,9 +862,20 @@ public final class VoxelGame extends BaseGame {
     }
 
     public static void main(String[] args) {
+        String host = "localhost";
+        int port = 25565;
+        String username;
+        if (args.length > 1) {
+            host = args[0];
+            port = Integer.parseInt(args[1]);
+            username = args[2];
+        } else {
+            username = args[0];
+        }
+
         VoxelGame game;
         try {
-            game = new VoxelGame(args[0]);
+            game = new VoxelGame(host, port, username);
         } catch (IOException e) {
             throw new RuntimeException("Failed to load resources", e);
         }
