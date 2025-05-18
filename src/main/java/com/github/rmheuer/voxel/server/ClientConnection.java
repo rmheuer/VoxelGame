@@ -7,6 +7,7 @@ import com.github.rmheuer.voxel.network.ClientPacketListener;
 import com.github.rmheuer.voxel.network.Connection;
 import com.github.rmheuer.voxel.network.packet.*;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandlerContext;
 import org.joml.Vector3f;
 
 import java.io.ByteArrayOutputStream;
@@ -39,7 +40,7 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
 
     public void tick() {
         if (!isConnected()) {
-            System.out.println("Client disconnected");
+            printNamed("Client disconnected");
             close();
 
             server.broadcastPacketToOthers(new ServerDespawnPlayerPacket(playerId), this);
@@ -194,10 +195,29 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
         String msg = username + ": " + packet.getMessage();
         BidiChatMessagePacket broadcast = new BidiChatMessagePacket(playerId, msg);
         server.broadcastPacketToAll(broadcast);
+
+        System.out.println("[CHAT] " + msg);
+    }
+
+    private void printNamed(String message) {
+        String name = username != null ? username : "{unknown}";
+        System.out.println(name + ": " + message);
+    }
+
+    @Override
+    public void sendPacket(ServerPacket packet) {
+        super.sendPacket(packet);
+        printNamed("Sent " + packet);
+    }
+
+    @Override
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        printNamed("Received " + msg);
+        super.channelRead(ctx, msg);
     }
 
     public void kick(String reason) {
-        System.out.println("Kicking for: " + reason);
+        printNamed("Kicking for: " + reason);
         sendPacket(new ServerDisconnectPacket(reason));
         close();
     }

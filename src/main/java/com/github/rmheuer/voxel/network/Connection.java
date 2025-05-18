@@ -20,12 +20,10 @@ public abstract class Connection<I extends Packet, O extends Packet> extends Cha
         @SuppressWarnings("unchecked")
         I packet = (I) msg;
 
-        System.out.println("Received packet: " + packet);
         dispatchPacket(packet);
     }
 
     public void sendPacket(O packet) {
-//        System.out.println("Sent packet: " + packet);
         channel.writeAndFlush(packet).addListener(ChannelFutureListener.FIRE_EXCEPTION_ON_FAILURE);
     }
 
