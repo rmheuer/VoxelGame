@@ -1,6 +1,7 @@
 package com.github.rmheuer.voxel.client.ui;
 
 import com.github.rmheuer.azalea.render.Colors;
+import com.github.rmheuer.voxel.client.VoxelGame;
 import org.joml.Vector2i;
 
 public final class MainMenuUI implements UI {
@@ -18,12 +19,12 @@ public final class MainMenuUI implements UI {
     private final TextInputBox serverAddressInput;
     private final Button joinServerButton;
 
-    public MainMenuUI() {
-        singlePlayerButton = new Button("Singleplayer", () -> {});
+    public MainMenuUI(VoxelGame game) {
+        singlePlayerButton = new Button("Singleplayer", () -> game.setUI(new CreateLevelUI(game, this, false)));
         serverAddressInput = new TextInputBox();
         joinServerButton = new Button("Join Server", () -> {});
 
-        singlePlayerButton.setEnabled(false);
+//        singlePlayerButton.setEnabled(false);
     }
 
     @Override

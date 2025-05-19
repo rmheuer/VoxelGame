@@ -10,6 +10,7 @@ import org.joml.Vector2i;
 public final class CreateLevelUI implements UI {
     private static final String TITLE = "Create Level";
 
+    private final boolean inGame;
     private final Button smallButton;
     private final Button normalButton;
     private final Button largeButton;
@@ -17,13 +18,15 @@ public final class CreateLevelUI implements UI {
 
     /**
      * @param game main game instance
-     * @param pauseMenu pause menu to go back to if cancel is pressed
+     * @param prevUI ui to go back to if cancel is pressed
      */
-    public CreateLevelUI(VoxelGame game, GameMenuUI pauseMenu) {
+    public CreateLevelUI(VoxelGame game, UI prevUI, boolean inGame) {
+        this.inGame = inGame;
+
         smallButton = new Button("Small (128x128)", () -> createLevel(game, 128));
         normalButton = new Button("Normal (256x256)", () -> createLevel(game, 256));
         largeButton = new Button("Large (512x512)", () -> createLevel(game, 512));
-        cancelButton = new Button("Cancel", () -> game.setUI(pauseMenu));
+        cancelButton = new Button("Cancel", () -> game.setUI(prevUI));
     }
 
     private void createLevel(VoxelGame game, int size) {
@@ -44,7 +47,11 @@ public final class CreateLevelUI implements UI {
         largeButton.setPosition(cornerX, cornerY + Button.HEIGHT * 2 + 8);
         cancelButton.setPosition(cornerX, cornerY + Button.HEIGHT * 3 + 36);
 
-        draw.drawGradientBackground(0, 0, draw.getWidth(), draw.getHeight());
+        if (inGame)
+            draw.drawGradientBackground(0, 0, draw.getWidth(), draw.getHeight());
+        else
+            draw.drawDirtBackground(sprites, 0, 0, draw.getWidth(), draw.getHeight());
+
         draw.drawTextCentered(centerX, cornerY - 24, TITLE);
         smallButton.draw(draw, sprites, mousePos);
         normalButton.draw(draw, sprites, mousePos);

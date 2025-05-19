@@ -187,7 +187,7 @@ public final class VoxelGame extends BaseGame {
 
         chatHistory = new ArrayList<>();
 
-        setUI(new MainMenuUI());
+        setUI(new MainMenuUI(this));
 //        beginConnecting(host, port, username);
     }
 
