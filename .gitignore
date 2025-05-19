@@ -41,3 +41,4 @@ build/
 *.iml
 imgui.ini
 *~
+server_level.cw

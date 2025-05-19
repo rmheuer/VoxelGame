@@ -14,9 +14,10 @@ Clone of Minecraft Classic version c0.30_c
 
 ## Building
 
-Requires Azalea, found here: https://github.com/rmheuer/azalea
+Requires Azalea and NBTLib, found at https://github.com/rmheuer/azalea and
+https://github.com/rmheuer/NBTLib.
 
-Azalea is not currently in any Maven repositories, so it must be installed
+They are both not currently in any Maven repositories, so they must be installed
 manually using `mvn install`.
 
 Then VoxelGame can be built using `mvn package`. The resulting JAR will be

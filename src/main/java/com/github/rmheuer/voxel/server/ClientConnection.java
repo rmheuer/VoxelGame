@@ -13,7 +13,6 @@ import org.joml.Vector3f;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.zip.GZIPOutputStream;
 
 public final class ClientConnection extends Connection<ClientPacket, ServerPacket> implements ClientPacketListener {
@@ -114,7 +113,7 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
         long prev = System.nanoTime();
         BlockMap map = server.getCopyOfMap();
         System.out.println(System.nanoTime() - prev);
-        byte[] rawMapData = map.packBlockDataForNetwork();
+        byte[] rawMapData = map.packBlockData();
 
         ByteArrayOutputStream b = new ByteArrayOutputStream();
         try (GZIPOutputStream gzip = new GZIPOutputStream(b)) {

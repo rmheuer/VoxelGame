@@ -2,6 +2,7 @@ package com.github.rmheuer.voxel.server;
 
 import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.level.BlockMap;
+import com.github.rmheuer.voxel.level.MapSection;
 import com.github.rmheuer.voxel.network.PacketDecoder;
 import com.github.rmheuer.voxel.network.PacketEncoder;
 import com.github.rmheuer.voxel.network.PacketMapping;
@@ -16,15 +17,20 @@ import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public final class GameServer {
+    private static final String LEVEL_FILE = "server_level.cw";
+
     private final Queue<String> consoleInputQueue;
     private final ConsoleInputThread consoleThread;
 
     private final Map<Byte, ClientConnection> clients;
+    private final ClassicWorldFile levelFile;
     private final BlockMap map;
 
     private boolean running;
@@ -35,12 +41,39 @@ public final class GameServer {
 
         clients = new ConcurrentHashMap<>();
 
-        map = new BlockMap(4, 4, 4);
-        for (int z = 0; z < 64; z++) {
-            for (int x = 0; x < 64; x++) {
-                map.setBlockId(x, 0, z, Blocks.ID_GRASS);
+        ClassicWorldFile levelFile;
+        BlockMap map;
+        try {
+            levelFile = ClassicWorldFile.loadFromFile(LEVEL_FILE);
+            map = new BlockMap(
+                    levelFile.getSizeX() / MapSection.SIZE,
+                    levelFile.getSizeY() / MapSection.SIZE,
+                    levelFile.getSizeZ() / MapSection.SIZE,
+                    levelFile.getBlockData()
+            );
+        } catch (FileNotFoundException e) {
+            System.err.println("Level file " + LEVEL_FILE + " not found, generating new level");
+
+            map = new BlockMap(4, 4, 4);
+            for (int z = 0; z < 64; z++) {
+                for (int x = 0; x < 64; x++) {
+                    map.setBlockId(x, 0, z, Blocks.ID_GRASS);
+                }
             }
+
+            levelFile = new ClassicWorldFile(
+                    "Server Level",
+                    UUID.randomUUID(),
+                    (short) map.getBlocksX(),
+                    (short) map.getBlocksY(),
+                    (short) map.getBlocksZ(),
+                    null,
+                    new ClassicWorldFile.GeneratorInfo("VoxelGame", "default"),
+                    new ClassicWorldFile.SpawnInfo(32, 32, 32, 0, 0)
+            );
         }
+        this.levelFile = levelFile;
+        this.map = map;
 
         PacketMapping<ClientPacket, ServerPacket> mapping = PacketRegistry.getServerMapping();
 
@@ -109,6 +142,10 @@ public final class GameServer {
         broadcastPacketToAll(new BidiChatMessagePacket((byte) -1, message));
     }
 
+    public ClassicWorldFile.SpawnInfo getSpawnInfo() {
+        return levelFile.getSpawnInfo();
+    }
+
     public BlockMap getCopyOfMap() {
         synchronized (map) {
             return new BlockMap(map);
@@ -164,10 +201,27 @@ public final class GameServer {
         }
 
         System.out.println("Server shutting down");
+
+        System.out.println("Disconnecting clients");
         for (ClientConnection client : clients.values()) {
             client.kick("Server closed");
         }
+
+        System.out.println("Saving level");
+        levelFile.markAccessed();
+        saveLevel();
+
         consoleThread.close();
+    }
+
+    private void saveLevel() {
+        levelFile.setBlockData(map.packBlockData());
+        try {
+            levelFile.saveToFile(LEVEL_FILE);
+        } catch (IOException e) {
+            System.err.println("Failed to save level!");
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) throws Exception {

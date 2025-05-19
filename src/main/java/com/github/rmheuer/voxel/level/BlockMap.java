@@ -94,7 +94,7 @@ public final class BlockMap {
         System.out.println("Level data unpacking took " + ((after - before) / 1_000_000.0) + " ms");
     }
 
-    public byte[] packBlockDataForNetwork() {
+    public byte[] packBlockData() {
         byte[] packed = new byte[blocksX * blocksY * blocksZ];
 
         for (int sectionY = 0; sectionY < sectionsY; sectionY++) {
