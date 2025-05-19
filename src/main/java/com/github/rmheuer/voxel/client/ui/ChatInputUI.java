@@ -31,7 +31,7 @@ public final class ChatInputUI implements UI {
         if (inputCursor < input.length()) {
             draw.drawRect(cursorX, height - 10, 1, 8, Colors.RGBA.WHITE);
         } else {
-            draw.drawRect(cursorX, height - 3, 5, 1, Colors.RGBA.WHITE);
+            draw.drawRect(cursorX, height - 2, 5, 1, Colors.RGBA.WHITE);
         }
     }
 

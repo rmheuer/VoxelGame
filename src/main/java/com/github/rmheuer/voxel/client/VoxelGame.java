@@ -80,6 +80,8 @@ public final class VoxelGame extends BaseGame {
         }
     }
 
+    private final String username;
+
     private final EventLoopGroup nettyEventLoop;
     private final FixedRateExecutor ticker;
     private final Renderer2D renderer2D;
@@ -134,8 +136,9 @@ public final class VoxelGame extends BaseGame {
 
     private final Queue<Runnable> scheduledTasks;
 
-    public VoxelGame(String host, int port, String username) throws IOException {
+    public VoxelGame(String username, InetSocketAddress immediateServer) throws IOException {
         super(WINDOW_SETTINGS);
+        this.username = username;
 
         nettyEventLoop = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
         ticker = new FixedRateExecutor(1 / 20.0f, this::fixedTick);
@@ -187,16 +190,17 @@ public final class VoxelGame extends BaseGame {
 
         chatHistory = new ArrayList<>();
 
-        setUI(new MainMenuUI(this));
-//        beginConnecting(host, port, username);
+        if (immediateServer == null)
+            setUI(new MainMenuUI(this));
+        else
+            beginConnecting(immediateServer);
     }
 
-    private void beginConnecting(String host, int port, String username) {
+    public void beginConnecting(InetSocketAddress address) {
         ConnectingToServerUI connectingUI = new ConnectingToServerUI();
         setUI(connectingUI);
 
-        InetSocketAddress addr = new InetSocketAddress(host, port);
-        ChannelFuture connectFuture = ServerConnection.connectToServer(nettyEventLoop, addr);
+        ChannelFuture connectFuture = ServerConnection.connectToServer(nettyEventLoop, address);
         connectFuture.addListener((future) -> {
             if (future.isSuccess()) {
                 System.out.println("Socket connected");
@@ -871,20 +875,16 @@ public final class VoxelGame extends BaseGame {
     }
 
     public static void main(String[] args) {
-        String host = "localhost";
-        int port = 25565;
-        String username;
-        if (args.length > 1) {
-            host = args[0];
-            port = Integer.parseInt(args[1]);
-            username = args[2];
-        } else {
-            username = args[0];
+        String username = args[0];
+
+        InetSocketAddress immediateServer = null;
+        if (args.length >= 3) {
+            immediateServer = new InetSocketAddress(args[1], Integer.parseInt(args[2]));
         }
 
         VoxelGame game;
         try {
-            game = new VoxelGame(host, port, username);
+            game = new VoxelGame(username, immediateServer);
         } catch (IOException e) {
             throw new RuntimeException("Failed to load resources", e);
         }
