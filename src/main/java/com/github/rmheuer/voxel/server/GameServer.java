@@ -20,11 +20,13 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public final class GameServer {
     private static final String LEVEL_FILE = "server_level.cw";
+    private static final int AUTOSAVE_INTERVAL_TICKS = 60 * 20;
 
     private final Queue<String> consoleInputQueue;
     private final ConsoleInputThread consoleThread;
@@ -34,6 +36,9 @@ public final class GameServer {
     private final BlockMap map;
 
     private boolean running;
+
+    private CompletableFuture<Void> autosaveFuture;
+    private int autosaveTimer;
 
     public GameServer(EventLoopGroup bossGroup, EventLoopGroup workerGroup, int port) throws Exception {
         consoleInputQueue = new ConcurrentLinkedQueue<>();
@@ -117,6 +122,7 @@ public final class GameServer {
 
     public void removeClient(byte playerId) {
         clients.remove(playerId);
+        levelFile.markAccessed();
     }
 
     public Collection<ClientConnection> getAllClients() {
@@ -169,6 +175,11 @@ public final class GameServer {
         for (ClientConnection client : clients.values()) {
             client.tick();
         }
+
+        if (autosaveTimer++ >= AUTOSAVE_INTERVAL_TICKS) {
+            autosaveTimer = 0;
+            startAutosave();
+        }
     }
 
     private void run() {
@@ -207,16 +218,35 @@ public final class GameServer {
             client.kick("Server closed");
         }
 
-        System.out.println("Saving level");
         levelFile.markAccessed();
-        saveLevel();
+        if (autosaveFuture != null)
+            autosaveFuture.join();
+        saveLevel(map);
 
         consoleThread.close();
     }
 
-    private void saveLevel() {
+    private void startAutosave() {
+        // If previous one hasn't finished, don't start another
+        if (autosaveFuture != null && !autosaveFuture.isDone())
+            return;
+
+        if (!clients.isEmpty())
+            levelFile.markAccessed();
+        BlockMap mapCopy = getCopyOfMap();
+
+        autosaveFuture = new CompletableFuture<>();
+        new Thread(() -> {
+            saveLevel(mapCopy);
+            autosaveFuture.complete(null);
+        }).start();
+    }
+
+    private void saveLevel(BlockMap map) {
         levelFile.setBlockData(map.packBlockData());
+
         try {
+            System.out.println("Saving level");
             levelFile.saveToFile(LEVEL_FILE);
         } catch (IOException e) {
             System.err.println("Failed to save level!");
