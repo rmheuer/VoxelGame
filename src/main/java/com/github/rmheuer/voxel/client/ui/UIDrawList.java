@@ -51,6 +51,13 @@ public final class UIDrawList implements SafeCloseable {
         draw.fillRect(x, y, w, h, color);
     }
 
+    public void drawRectOutline(int x, int y, int w, int h, int color) {
+        draw.fillRect(x, y, w, 1, color);
+        draw.fillRect(x, y, 1, h, color);
+        draw.fillRect(x, y + h - 1, w, 1, color);
+        draw.fillRect(x + w - 1, y, 1, h, color);
+    }
+
     /**
      * Draws a rectangle containing a vertical linear gradient with the
      * specified position and size.

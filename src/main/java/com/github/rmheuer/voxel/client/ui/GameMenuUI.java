@@ -9,8 +9,8 @@ import org.joml.Vector2i;
 /**
  * UI for when the game is paused.
  */
-public final class PauseMenuUI implements UI {
-    private static final String TITLE = "Game Paused";
+public final class GameMenuUI implements UI {
+    private static final String TITLE = "Game Menu";
 
     private final VoxelGame game;
 
@@ -22,7 +22,7 @@ public final class PauseMenuUI implements UI {
     /**
      * @param game main game instance
      */
-    public PauseMenuUI(VoxelGame game) {
+    public GameMenuUI(VoxelGame game) {
         this.game = game;
 
         backToGameButton = new Button("Back to Game", () -> game.setUI(null));

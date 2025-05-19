@@ -187,7 +187,8 @@ public final class VoxelGame extends BaseGame {
 
         chatHistory = new ArrayList<>();
 
-        beginConnecting(host, port, username);
+        setUI(new MainMenuUI());
+//        beginConnecting(host, port, username);
     }
 
     private void beginConnecting(String host, int port, String username) {
@@ -302,7 +303,7 @@ public final class VoxelGame extends BaseGame {
         switch (key) {
             case ESCAPE:
                 if (ui == null)
-                    setUI(new PauseMenuUI(this));
+                    setUI(new GameMenuUI(this));
                 break;
 
             case F1:
@@ -482,7 +483,7 @@ public final class VoxelGame extends BaseGame {
         }
 
         if (!getWindow().isFocused() && ui == null)
-            setUI(new PauseMenuUI(this));
+            setUI(new GameMenuUI(this));
 
         if (level != null) {
             Vector3f pos = camera.getTransform().position;

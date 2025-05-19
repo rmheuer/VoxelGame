@@ -10,6 +10,7 @@ public class Button {
     public static final int HEIGHT = 20;
 
     private String label;
+    private boolean enabled;
     private final Runnable onClick;
     private int x, y;
 
@@ -20,10 +21,15 @@ public class Button {
     public Button(String label, Runnable onClick) {
         this.label = label;
         this.onClick = onClick;
+        enabled = true;
     }
 
     public void setLabel(String label) {
         this.label = label;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
     /**
@@ -50,9 +56,15 @@ public class Button {
      * @param mousePos current mouse position
      */
     public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
-        UISprite sprite = mouseOver(mousePos)
-            ? sprites.getButtonHighlight()
-            : sprites.getButton();
+        UISprite sprite;
+        if (enabled) {
+            if (mouseOver(mousePos))
+                sprite = sprites.getButtonHighlight();
+            else
+                sprite = sprites.getButton();
+        } else {
+            sprite = sprites.getButtonGray();
+        }
 
         draw.drawSprite(x, y, sprite);
         draw.drawTextCentered(x + WIDTH / 2, y + HEIGHT / 2 + 3, label);
@@ -68,7 +80,7 @@ public class Button {
      * @param mousePos position the mouse was clicked
      */
     public void mouseClicked(Vector2i mousePos) {
-        if (mouseOver(mousePos)) {
+        if (enabled && mouseOver(mousePos)) {
             clicked();
         }
     }

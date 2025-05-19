@@ -1,7 +1,6 @@
 package com.github.rmheuer.voxel.client.ui;
 
 import com.github.rmheuer.voxel.client.VoxelGame;
-import com.github.rmheuer.voxel.level.MapSection;
 
 import org.joml.Vector2i;
 
@@ -20,7 +19,7 @@ public final class CreateLevelUI implements UI {
      * @param game main game instance
      * @param pauseMenu pause menu to go back to if cancel is pressed
      */
-    public CreateLevelUI(VoxelGame game, PauseMenuUI pauseMenu) {
+    public CreateLevelUI(VoxelGame game, GameMenuUI pauseMenu) {
         smallButton = new Button("Small (128x128)", () -> createLevel(game, 128));
         normalButton = new Button("Normal (256x256)", () -> createLevel(game, 256));
         largeButton = new Button("Large (512x512)", () -> createLevel(game, 512));
