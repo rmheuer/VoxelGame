@@ -1,7 +1,10 @@
 package com.github.rmheuer.voxel.server;
 
+import com.github.rmheuer.azalea.math.CubeFace;
+import com.github.rmheuer.voxel.block.Block;
 import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.level.BlockMap;
+import com.github.rmheuer.voxel.level.LevelAccess;
 import com.github.rmheuer.voxel.level.MapSection;
 import com.github.rmheuer.voxel.network.PacketDecoder;
 import com.github.rmheuer.voxel.network.PacketEncoder;
@@ -24,9 +27,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-public final class GameServer {
+public final class GameServer implements LevelAccess {
     private static final String LEVEL_FILE = "server_level.cw";
     private static final int AUTOSAVE_INTERVAL_TICKS = 60 * 20;
+
+    private static CubeFace[] FACES = CubeFace.values();
 
     private final Queue<String> consoleInputQueue;
     private final ConsoleInputThread consoleThread;
@@ -158,11 +163,59 @@ public final class GameServer {
         }
     }
 
-    public void setBlock(int x, int y, int z, byte blockId) {
+    @Override
+    public byte getBlockId(int x, int y, int z) {
         synchronized (map) {
-            map.setBlockId(x, y, z, blockId);
-            broadcastPacketToAll(new ServerSetBlockPacket((short) x, (short) y, (short) z, blockId));
+            return map.getBlockId(x, y, z);
         }
+    }
+
+    @Override
+    public void setBlockId(int x, int y, int z, byte blockId) {
+        synchronized (map) {
+            byte prev = map.setBlockId(x, y, z, blockId);
+            if (blockId == prev)
+                return;
+
+            broadcastPacketToAll(new ServerSetBlockPacket((short) x, (short) y, (short) z, blockId));
+
+            Block placed = Blocks.getBlock(blockId);
+            if (placed.getNeighborUpdateBehavior() != null)
+                placed.getNeighborUpdateBehavior().doAction(this, x, y, z, blockId);
+
+            updateNeighbors(x, y, z);
+        }
+    }
+
+    @Override
+    public void setBlockIdNoNeighborUpdates(int x, int y, int z, byte blockId) {
+        synchronized (map) {
+            byte prev = map.setBlockId(x, y, z, blockId);
+            if (blockId != prev)
+                broadcastPacketToAll(new ServerSetBlockPacket((short) x, (short) y, (short) z, blockId));
+        }
+    }
+
+    @Override
+    public void updateNeighbors(int x, int y, int z) {
+        synchronized (map) {
+            for (CubeFace face : FACES) {
+                int nx = x + face.x;
+                int ny = y + face.y;
+                int nz = z + face.z;
+                if (map.isBlockInBounds(nx, ny, nz)) {
+                    byte neighborId = map.getBlockId(nx, ny, nz);
+                    Block neighbor = Blocks.getBlock(neighborId);
+                    if (neighbor.getNeighborUpdateBehavior() != null)
+                        neighbor.getNeighborUpdateBehavior().doAction(this, nx, ny, nz, neighborId);
+                }
+            }
+        }
+    }
+
+    public void placeBlock(int x, int y, int z, byte blockId) {
+        Block block = Blocks.getBlock(blockId);
+        block.getPlacementBehavior().doAction(this, x, y, z, blockId);
     }
 
     private void handleConsoleCommand(String command) {

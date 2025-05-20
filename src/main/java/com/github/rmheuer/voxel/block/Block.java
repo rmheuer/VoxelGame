@@ -2,6 +2,7 @@ package com.github.rmheuer.voxel.block;
 
 import com.github.rmheuer.azalea.math.AABB;
 import com.github.rmheuer.azalea.math.CubeFace;
+import com.github.rmheuer.voxel.level.LevelAccess;
 
 /**
  * Properties of each block type
@@ -18,6 +19,8 @@ public final class Block {
     private boolean lightBlocking;
     private Liquid liquid;
     private float particleGravityScale;
+    private BlockBehavior placementBehavior;
+    private BlockBehavior neighborUpdateBehavior;
 
     /**
      * Creates a new block with the provided shape and default properties.
@@ -37,6 +40,9 @@ public final class Block {
         lightBlocking = true;
         liquid = null;
         particleGravityScale = 1;
+
+        placementBehavior = LevelAccess::setBlockId;
+        neighborUpdateBehavior = null;
     }
 
     /**
@@ -129,6 +135,16 @@ public final class Block {
         return this;
     }
 
+    public Block setPlacementBehavior(BlockBehavior placementBehavior) {
+        this.placementBehavior = placementBehavior;
+        return this;
+    }
+
+    public Block setNeighborUpdateBehavior(BlockBehavior neighborUpdateBehavior) {
+        this.neighborUpdateBehavior = neighborUpdateBehavior;
+        return this;
+    }
+
     public byte getId() {
         return id;
     }
@@ -167,6 +183,14 @@ public final class Block {
 
     public float getParticleGravityScale() {
         return particleGravityScale;
+    }
+
+    public BlockBehavior getPlacementBehavior() {
+        return placementBehavior;
+    }
+
+    public BlockBehavior getNeighborUpdateBehavior() {
+        return neighborUpdateBehavior;
     }
 
     /**

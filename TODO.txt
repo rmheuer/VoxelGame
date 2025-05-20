@@ -21,11 +21,6 @@ To Do:
   [x] Hotbar
   [x] Menu
 [x] Make pick block on double slab give single slab
-[/ Skipped, this is server responsibility /] Block behaviors:
-  [/] Liquid spreading (water, lava)
-  [/] Grass growing/dying
-  [/] Sand/gravel falling
-  [/] Saplings growing into trees
 [x] Fog:
   [x] Land fog
   [x] Underwater fog
@@ -36,3 +31,19 @@ To Do:
 [x] Pause menu:
   [x] Text rendering
   [x] Buttons
+
+Fix occlusion culling expanding slightly too far
+Fix chat failing when message is too long
+[x] Block placement behavior system for slabs
+Block behaviors:
+  Liquid spreading
+  Grass growing/dying
+  [x] Sand/gravel falling
+  Saplings growing into trees
+Bring back singleplayer
+Move UISprites into UIDrawList
+Proper player animation
+Implement all Classic Protocol Extensions
+External server list support:
+  - ClassiCube
+  - Betacraft

@@ -19,7 +19,11 @@ public final class TextInputBox {
     private int cursor;
 
     public TextInputBox() {
-        input = "";
+        this("");
+    }
+
+    public TextInputBox(String initialInput) {
+        input = initialInput;
         onChange = null;
         onConfirm = null;
         cursor = -1;

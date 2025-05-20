@@ -27,6 +27,11 @@ public final class CreateLevelUI implements UI {
         normalButton = new Button("Normal (256x256)", () -> createLevel(game, 256));
         largeButton = new Button("Large (512x512)", () -> createLevel(game, 512));
         cancelButton = new Button("Cancel", () -> game.setUI(prevUI));
+
+        // TODO: Re-enable once singleplayer is implemented
+        smallButton.setEnabled(false);
+        normalButton.setEnabled(false);
+        largeButton.setEnabled(false);
     }
 
     private void createLevel(VoxelGame game, int size) {

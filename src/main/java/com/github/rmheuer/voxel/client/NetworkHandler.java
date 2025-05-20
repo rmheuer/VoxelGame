@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPInputStream;
 
 public final class NetworkHandler implements ServerPacketListener {
-    public static final float POSITION_Y_OFFSET = 0.6f;
+    public static final float POSITION_Y_OFFSET = 1.6f;
     private static final int TIMEOUT_TICKS = 10 * 20;
 
     private final VoxelGame client;

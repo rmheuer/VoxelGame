@@ -136,9 +136,9 @@ public final class VoxelGame extends BaseGame {
 
     private final Queue<Runnable> scheduledTasks;
 
-    public VoxelGame(String username, InetSocketAddress immediateServer) throws IOException {
+    public VoxelGame(String initialUsername, InetSocketAddress immediateServer) throws IOException {
         super(WINDOW_SETTINGS);
-        this.username = username;
+        this.username = initialUsername;
 
         nettyEventLoop = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
         ticker = new FixedRateExecutor(1 / 20.0f, this::fixedTick);
@@ -191,12 +191,12 @@ public final class VoxelGame extends BaseGame {
         chatHistory = new ArrayList<>();
 
         if (immediateServer == null)
-            setUI(new MainMenuUI(this));
+            setUI(new MainMenuUI(this, initialUsername));
         else
-            beginConnecting(immediateServer);
+            beginConnecting(immediateServer, initialUsername);
     }
 
-    public void beginConnecting(InetSocketAddress address) {
+    public void beginConnecting(InetSocketAddress address, String username) {
         ConnectingToServerUI connectingUI = new ConnectingToServerUI();
         setUI(connectingUI);
 
@@ -435,34 +435,22 @@ public final class VoxelGame extends BaseGame {
 
                 Vector3i placePos = new Vector3i(raycastResult.blockPos)
                             .add(raycastResult.hitFace.getDirection());
-                byte toPlace = held;
 
                 Block replacing = Blocks.getBlock(level.getBlockMap().getBlockId(placePos.x, placePos.y, placePos.z));
                 if (!replacing.isReplaceable())
                     return;
 
-                if (toPlace == Blocks.ID_SLAB && placePos.y > 0 && level.getBlockMap().getBlockId(placePos.x, placePos.y - 1, placePos.z) == Blocks.ID_SLAB) {
-                    toPlace = Blocks.ID_DOUBLE_SLAB;
-
-                    // Bug in original, but needed to be consistent with server behavior
-                    setBlock(placePos, Blocks.ID_AIR);
-                    placePos.y--;
-                }
-
-                Block toPlaceBlock = Blocks.getBlock(toPlace);
+                Block toPlaceBlock = Blocks.getBlock(held);
                 if (toPlaceBlock.getBoundingBox() != null) {
                     AABB blockAABB = toPlaceBlock.getBoundingBox().translate(placePos.x, placePos.y, placePos.z);
                     AABB playerAABB = localPlayer.getBoundingBox();
                     if (blockAABB.intersects(playerAABB))
                         return;
                 }
-                setBlock(placePos, toPlace);
+                setBlock(placePos, held);
 
-                short packetY = (short) placePos.y;
-                if (toPlace == Blocks.ID_DOUBLE_SLAB)
-                    packetY++;
                 connection.sendPacket(new ClientSetBlockPacket(
-                        (short) placePos.x, packetY, (short) placePos.z,
+                        (short) placePos.x, (short) placePos.y, (short) placePos.z,
                         ClientSetBlockPacket.Mode.PLACED,
                         held
                 ));
@@ -875,7 +863,12 @@ public final class VoxelGame extends BaseGame {
     }
 
     public static void main(String[] args) {
-        String username = args[0];
+        String username;
+        if (args.length >= 1) {
+            username = args[0];
+        } else {
+            username = "Player" + (int) (Math.random() * 10000);
+        }
 
         InetSocketAddress immediateServer = null;
         if (args.length >= 3) {

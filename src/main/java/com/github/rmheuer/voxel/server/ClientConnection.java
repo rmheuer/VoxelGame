@@ -142,10 +142,11 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
 
     @Override
     public void onSetBlock(ClientSetBlockPacket packet) {
-        byte newId = packet.getMode() == ClientSetBlockPacket.Mode.PLACED
-                ? packet.getBlockId()
-                : Blocks.ID_AIR;
-        server.setBlock(packet.getX(), packet.getY(), packet.getZ(), newId);
+        if (packet.getMode() == ClientSetBlockPacket.Mode.PLACED) {
+            server.placeBlock(packet.getX(), packet.getY(), packet.getZ(), packet.getBlockId());
+        } else {
+            server.setBlockId(packet.getX(), packet.getY(), packet.getZ(), Blocks.ID_AIR);
+        }
     }
 
     @Override

@@ -14,23 +14,29 @@ public final class MainMenuUI implements UI {
 
     private final Button singlePlayerButton;
     private final TextInputBox serverAddressInput;
+    private final TextInputBox usernameInput;
     private final Button joinServerButton;
 
-    public MainMenuUI(VoxelGame game) {
+    public MainMenuUI(VoxelGame game, String initialUsername) {
         this.game = game;
 
         singlePlayerButton = new Button("Singleplayer", () -> game.setUI(new CreateLevelUI(game, this, false)));
         serverAddressInput = new TextInputBox();
+        usernameInput = new TextInputBox(initialUsername);
         joinServerButton = new Button("Join Server", () -> doJoinServer(serverAddressInput.getInput()));
 
         joinServerButton.setEnabled(false);
-        serverAddressInput.setOnChange((address) -> joinServerButton.setEnabled(isValidAddress(address)));
+        usernameInput.setOnChange((username) -> joinServerButton.setEnabled(areServerParametersValid()));
+        serverAddressInput.setOnChange((address) -> joinServerButton.setEnabled(areServerParametersValid()));
         serverAddressInput.setOnConfirm(this::doJoinServer);
     }
 
-    private boolean isValidAddress(String address) {
+    private boolean areServerParametersValid() {
+        if (usernameInput.getInput().isEmpty())
+            return false;
+
         try {
-            return parseAddress(address) != null;
+            return parseAddress(serverAddressInput.getInput()) != null;
         } catch (Exception e) {
             return false;
         }
@@ -72,6 +78,9 @@ public final class MainMenuUI implements UI {
     }
 
     private void doJoinServer(String address) {
+        if (usernameInput.getInput().isEmpty())
+            return;
+
         InetSocketAddress addr;
         try {
             addr = parseAddress(address);
@@ -81,7 +90,7 @@ public final class MainMenuUI implements UI {
             return;
         }
 
-        game.beginConnecting(addr);
+        game.beginConnecting(addr, usernameInput.getInput());
     }
 
     @Override
@@ -89,16 +98,19 @@ public final class MainMenuUI implements UI {
         int centerX = draw.getWidth() / 2;
         int centerY = draw.getHeight() / 2;
         int cornerX = centerX - Button.WIDTH / 2;
-        int cornerY = centerY - (5 * Button.HEIGHT + 4 * 4) / 2;
+        int cornerY = centerY - (6 * Button.HEIGHT + 4 * 4 + 16) / 2;
 
         singlePlayerButton.setPosition(cornerX, cornerY);
         serverAddressInput.setPosition(cornerX, cornerY + Button.HEIGHT * 3 + 12);
-        joinServerButton.setPosition(cornerX, cornerY + Button.HEIGHT * 4 + 16);
+        usernameInput.setPosition(cornerX, cornerY + Button.HEIGHT * 4 + 16 + 16);
+        joinServerButton.setPosition(cornerX, cornerY + Button.HEIGHT * 5 + 20 + 16);
 
         draw.drawDirtBackground(sprites, 0, 0, draw.getWidth(), draw.getHeight());
         singlePlayerButton.draw(draw, sprites, mousePos);
         draw.drawTextColored(cornerX + 1, cornerY + Button.HEIGHT * 3 + 8, "Enter server address:", LABEL_COLOR);
         serverAddressInput.draw(draw);
+        draw.drawTextColored(cornerX + 1, cornerY + Button.HEIGHT * 4 + 12 + 16, "Enter username:", LABEL_COLOR);
+        usernameInput.draw(draw);
         joinServerButton.draw(draw, sprites, mousePos);
     }
 
@@ -106,17 +118,20 @@ public final class MainMenuUI implements UI {
     public void mouseClicked(Vector2i mousePos) {
         singlePlayerButton.mouseClicked(mousePos);
         serverAddressInput.mouseClicked(mousePos);
+        usernameInput.mouseClicked(mousePos);
         joinServerButton.mouseClicked(mousePos);
     }
 
     @Override
     public boolean keyPressed(Key key) {
-        return serverAddressInput.keyPressed(key);
+        return serverAddressInput.keyPressed(key)
+                || usernameInput.keyPressed(key);
     }
 
     @Override
     public void charTyped(char c) {
         serverAddressInput.charTyped(c);
+        usernameInput.charTyped(c);
     }
 
     @Override

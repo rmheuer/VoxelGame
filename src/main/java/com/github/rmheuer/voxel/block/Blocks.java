@@ -82,8 +82,32 @@ public final class Blocks {
                 .setSolid(false)
                 .setReplaceable(true)
                 .setInteractable(false));
-        register(new Block(ID_SAND, CubeShape.all(new AtlasSprite(2, 1))));
-        register(new Block(ID_GRAVEL, CubeShape.all(new AtlasSprite(3, 1))));
+
+        BlockBehavior fallBehavior = (level, x, y, z, id) -> {
+            int fallToY;
+            for (fallToY = y; fallToY > 0; fallToY--) {
+                Block below = Blocks.getBlock(level.getBlockId(x, fallToY - 1, z));
+                if (!below.isReplaceable())
+                    break;
+            }
+
+            System.out.println("Block at " + x + ", " + y + ", " + z + " falling to y=" + fallToY);
+            if (fallToY != y) {
+                level.setBlockIdNoNeighborUpdates(x, y, z, ID_AIR);
+                level.setBlockIdNoNeighborUpdates(x, fallToY, z, id);
+
+                // Neighbors must be updated after to prevent something else
+                // from being placed into where this block is falling due to
+                // updates from setting the air
+                level.updateNeighbors(x, fallToY, z);
+                level.updateNeighbors(x, y, z);
+            }
+        };
+        register(new Block(ID_SAND, CubeShape.all(new AtlasSprite(2, 1)))
+                .setNeighborUpdateBehavior(fallBehavior));
+        register(new Block(ID_GRAVEL, CubeShape.all(new AtlasSprite(3, 1)))
+                .setNeighborUpdateBehavior(fallBehavior));
+
         register(new Block(ID_GOLD_ORE, CubeShape.all(new AtlasSprite(0, 2))));
         register(new Block(ID_IRON_ORE, CubeShape.all(new AtlasSprite(1, 2))));
         register(new Block(ID_COAL_ORE, CubeShape.all(new AtlasSprite(2, 2))));
@@ -116,7 +140,15 @@ public final class Blocks {
         register(new Block(ID_IRON_BLOCK, new CubeShape(new AtlasSprite(7, 1), new AtlasSprite(7, 2), new AtlasSprite(7, 3))));
         register(new Block(ID_DOUBLE_SLAB, CubeShape.column(new AtlasSprite(6, 0), new AtlasSprite(5, 0)))
                 .setItemId(ID_SLAB));
-        register(new Block(ID_SLAB, new SlabShape(new AtlasSprite(6, 0), new AtlasSprite(5, 0))));
+        register(new Block(ID_SLAB, new SlabShape(new AtlasSprite(6, 0), new AtlasSprite(5, 0)))
+                .setPlacementBehavior((level, x, y, z, id) -> {
+                    if (y > 0 && level.getBlockId(x, y - 1, z) == ID_SLAB) {
+                        level.setBlockId(x, y, z, ID_AIR);
+                        level.setBlockId(x, y - 1, z, ID_DOUBLE_SLAB);
+                    } else {
+                        level.setBlockId(x, y, z, ID_SLAB);
+                    }
+                }));
         register(new Block(ID_BRICKS, CubeShape.all(new AtlasSprite(7, 0))));
         register(new Block(ID_TNT, new CubeShape(new AtlasSprite(9, 0), new AtlasSprite(8, 0), new AtlasSprite(10, 0))));
         register(new Block(ID_BOOKSHELF, CubeShape.column(new AtlasSprite(4, 0), new AtlasSprite(3, 2))));
