@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public final class GameServer implements LevelAccess {
-    private static final String LEVEL_FILE = "server_level.cw";
+    private static final String SERVER_LEVEL_FILE = "server_level.cw";
     private static final int AUTOSAVE_INTERVAL_TICKS = 60 * 20;
 
     private static CubeFace[] FACES = CubeFace.values();
@@ -40,8 +40,10 @@ public final class GameServer implements LevelAccess {
     private NetworkConnectionHandler networkConnectionHandler;
     private LocalConnectionHandler localConnectionHandler;
 
-    private final Map<Byte, ClientConnection> clients;
+    private final String levelFileName;
     private final ClassicWorldFile levelFile;
+
+    private final Map<Byte, ClientConnection> clients;
     private final BlockMap map;
 
     private volatile boolean running;
@@ -49,7 +51,9 @@ public final class GameServer implements LevelAccess {
     private CompletableFuture<Void> autosaveFuture;
     private int autosaveTimer;
 
-    public GameServer() throws Exception {
+    public GameServer(String levelFileName) throws Exception {
+        this.levelFileName = levelFileName;
+
         consoleInputQueue = new ConcurrentLinkedQueue<>();
         consoleThread = new ConsoleInputThread(consoleInputQueue);
 
@@ -58,7 +62,7 @@ public final class GameServer implements LevelAccess {
         ClassicWorldFile levelFile;
         BlockMap map;
         try {
-            levelFile = ClassicWorldFile.loadFromFile(LEVEL_FILE);
+            levelFile = ClassicWorldFile.loadFromFile(levelFileName);
             map = new BlockMap(
                     levelFile.getSizeX() / MapSection.SIZE,
                     levelFile.getSizeY() / MapSection.SIZE,
@@ -66,7 +70,7 @@ public final class GameServer implements LevelAccess {
                     levelFile.getBlockData()
             );
         } catch (FileNotFoundException e) {
-            System.err.println("Level file " + LEVEL_FILE + " not found, generating new level");
+            System.err.println("Level file " + levelFileName + " not found, generating new level");
 
             map = LevelGenerator.generateLevel(128 / 16);
 
@@ -292,7 +296,7 @@ public final class GameServer implements LevelAccess {
 
         try {
             System.out.println("Saving level");
-            levelFile.saveToFile(LEVEL_FILE);
+            levelFile.saveToFile(levelFileName);
         } catch (IOException e) {
             System.err.println("Failed to save level!");
             e.printStackTrace();
@@ -308,7 +312,7 @@ public final class GameServer implements LevelAccess {
         if (args.length > 0)
             port = Integer.parseInt(args[0]);
 
-        GameServer server = new GameServer();
+        GameServer server = new GameServer(SERVER_LEVEL_FILE);
         server.openToNetwork(port);
         server.run();
     }

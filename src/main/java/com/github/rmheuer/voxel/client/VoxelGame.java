@@ -231,7 +231,7 @@ public final class VoxelGame extends BaseGame {
         LocalAddress addr = new LocalAddress("localserver");
 
         try {
-            singleplayerServer = new GameServer();
+            singleplayerServer = new GameServer("singleplayer_level.cw");
             singleplayerServer.openLocally(addr);
             new Thread(singleplayerServer::run).start();
         } catch (Exception e) {
