@@ -195,10 +195,16 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
     @Override
     public void onChatMessage(BidiChatMessagePacket packet) {
         String msg = username + ": " + packet.getMessage();
-        BidiChatMessagePacket broadcast = new BidiChatMessagePacket(playerId, msg);
-        server.broadcastPacketToAll(broadcast);
-
         System.out.println("[CHAT] " + msg);
+
+        if (msg.length() > 64) {
+            String firstPart = msg.substring(0, 64);
+            String secondPart = msg.substring(64);
+            server.broadcastPacketToAll(new BidiChatMessagePacket(playerId, firstPart));
+            server.broadcastPacketToAll(new BidiChatMessagePacket(playerId, secondPart));
+        } else {
+            server.broadcastPacketToAll(new BidiChatMessagePacket(playerId, msg));
+        }
     }
 
     private void printNamed(String message) {

@@ -33,7 +33,7 @@ To Do:
   [x] Buttons
 
 Fix occlusion culling expanding slightly too far
-Fix chat failing when message is too long
+[x] Fix chat failing when message is too long
 [x] Block placement behavior system for slabs
 Block behaviors:
   Liquid spreading
