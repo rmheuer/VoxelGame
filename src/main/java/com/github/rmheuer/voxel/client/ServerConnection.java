@@ -5,6 +5,8 @@ import com.github.rmheuer.voxel.network.packet.ClientPacket;
 import com.github.rmheuer.voxel.network.packet.ServerPacket;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
+import io.netty.channel.local.LocalAddress;
+import io.netty.channel.local.LocalChannel;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 
@@ -28,6 +30,21 @@ public final class ServerConnection extends Connection<ServerPacket, ClientPacke
                 p.addLast(new PacketEncoder<>(ClientPacket.class, mapping));
                 p.addLast(new PacketDecoder<>(mapping));
                 p.addLast(new ServerConnection(ch));
+            }
+        });
+
+        return b.connect();
+    }
+
+    public static ChannelFuture connectLocally(EventLoopGroup eventLoop, LocalAddress address) {
+        Bootstrap b = new Bootstrap();
+        b.group(eventLoop);
+        b.channel(LocalChannel.class);
+        b.remoteAddress(address);
+        b.handler(new ChannelInitializer<LocalChannel>() {
+            @Override
+            protected void initChannel(LocalChannel ch) throws Exception {
+                ch.pipeline().addLast(new ServerConnection(ch));
             }
         });
 

@@ -39,15 +39,17 @@ import com.github.rmheuer.voxel.network.packet.BidiChatMessagePacket;
 import com.github.rmheuer.voxel.network.packet.BidiPlayerPositionPacket;
 import com.github.rmheuer.voxel.network.packet.ClientSetBlockPacket;
 import com.github.rmheuer.voxel.physics.Raycast;
+import com.github.rmheuer.voxel.server.GameServer;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.local.LocalAddress;
+import io.netty.channel.local.LocalIoHandler;
 import io.netty.channel.nio.NioIoHandler;
 import org.joml.*;
 
 import java.io.IOException;
 import java.lang.Math;
-import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -82,7 +84,8 @@ public final class VoxelGame extends BaseGame {
 
     private final String username;
 
-    private final EventLoopGroup nettyEventLoop;
+    private final EventLoopGroup nioEventLoop;
+    private final EventLoopGroup localEventLoop;
     private final FixedRateExecutor ticker;
     private final Renderer2D renderer2D;
 
@@ -136,11 +139,14 @@ public final class VoxelGame extends BaseGame {
 
     private final Queue<Runnable> scheduledTasks;
 
+    private GameServer singleplayerServer;
+
     public VoxelGame(String initialUsername, ServerAddress immediateServer) throws IOException {
         super(WINDOW_SETTINGS);
         this.username = initialUsername;
 
-        nettyEventLoop = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
+        nioEventLoop = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
+        localEventLoop = new MultiThreadIoEventLoopGroup(LocalIoHandler.newFactory());
         ticker = new FixedRateExecutor(1 / 20.0f, this::fixedTick);
         renderer2D = new Renderer2D(getRenderer());
 
@@ -193,18 +199,15 @@ public final class VoxelGame extends BaseGame {
         if (immediateServer == null)
             setUI(new MainMenuUI(this, initialUsername));
         else
-            beginConnecting(immediateServer, initialUsername);
+            beginMultiPlayer(immediateServer, initialUsername);
     }
 
-    public void beginConnecting(ServerAddress address, String username) {
+    private void beginConnecting(String username, ChannelFuture connectFuture) {
         ConnectingToServerUI connectingUI = new ConnectingToServerUI();
         setUI(connectingUI);
 
-        ChannelFuture connectFuture = ServerConnection.connectToServer(nettyEventLoop, address);
         connectFuture.addListener((future) -> {
             if (future.isSuccess()) {
-                System.out.println("Socket connected");
-
                 runOnMainThread(() -> {
                     connectingUI.setState(ConnectingToServerUI.State.LOGGING_IN);
 
@@ -217,6 +220,26 @@ public final class VoxelGame extends BaseGame {
                 runOnMainThread(this::stop);
             }
         });
+    }
+
+    public void beginMultiPlayer(ServerAddress address, String username) {
+        ChannelFuture connectFuture = ServerConnection.connectToServer(nioEventLoop, address);
+        beginConnecting(username, connectFuture);
+    }
+
+    public void beginSinglePlayer() {
+        LocalAddress addr = new LocalAddress("localserver");
+
+        try {
+            singleplayerServer = new GameServer();
+            singleplayerServer.openLocally(addr);
+            new Thread(singleplayerServer::run).start();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to start singleplayer server", e);
+        }
+
+        ChannelFuture connectFuture = ServerConnection.connectLocally(localEventLoop, addr);
+        beginConnecting(username, connectFuture);
     }
 
     public Player getPlayer(byte playerId) {
@@ -850,6 +873,8 @@ public final class VoxelGame extends BaseGame {
     protected void cleanUp() {
         if (level != null)
             level.close();
+        if (singleplayerServer != null)
+            singleplayerServer.stop();
 
         environmentRenderer.close();
         levelRenderer.close();
@@ -859,7 +884,8 @@ public final class VoxelGame extends BaseGame {
         uiSprites.close();
         atlasTexture.close();
         renderer2D.close();
-        nettyEventLoop.shutdownGracefully();
+        nioEventLoop.shutdownGracefully();
+        localEventLoop.shutdownGracefully();
     }
 
     public static void main(String[] args) {

@@ -16,6 +16,7 @@ import com.github.rmheuer.voxel.network.packet.ServerPacket;
 import com.github.rmheuer.voxel.network.packet.ServerSetBlockPacket;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
+import io.netty.channel.local.LocalAddress;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -36,16 +37,19 @@ public final class GameServer implements LevelAccess {
     private final Queue<String> consoleInputQueue;
     private final ConsoleInputThread consoleThread;
 
+    private NetworkConnectionHandler networkConnectionHandler;
+    private LocalConnectionHandler localConnectionHandler;
+
     private final Map<Byte, ClientConnection> clients;
     private final ClassicWorldFile levelFile;
     private final BlockMap map;
 
-    private boolean running;
+    private volatile boolean running;
 
     private CompletableFuture<Void> autosaveFuture;
     private int autosaveTimer;
 
-    public GameServer(EventLoopGroup bossGroup, EventLoopGroup workerGroup, int port) throws Exception {
+    public GameServer() throws Exception {
         consoleInputQueue = new ConcurrentLinkedQueue<>();
         consoleThread = new ConsoleInputThread(consoleInputQueue);
 
@@ -79,29 +83,14 @@ public final class GameServer implements LevelAccess {
         }
         this.levelFile = levelFile;
         this.map = map;
+    }
 
-        PacketMapping<ClientPacket, ServerPacket> mapping = PacketRegistry.getServerMapping();
+    public void openToNetwork(int port) throws Exception {
+        networkConnectionHandler = new NetworkConnectionHandler(this, port);
+    }
 
-        ServerBootstrap b = new ServerBootstrap();
-        b.group(bossGroup, workerGroup);
-        b.channel(NioServerSocketChannel.class);
-        b.childHandler(new ChannelInitializer<SocketChannel>() {
-            @Override
-            protected void initChannel(SocketChannel ch) {
-                System.out.println("Client has connected");
-
-                ChannelPipeline p = ch.pipeline();
-                p.addLast(new PacketEncoder<>(ServerPacket.class, mapping));
-                p.addLast(new PacketDecoder<>(mapping));
-                p.addLast(new ClientConnection(GameServer.this, ch));
-            }
-        });
-        b.option(ChannelOption.SO_BACKLOG, 16);
-        b.childOption(ChannelOption.SO_KEEPALIVE, true);
-        b.childOption(ChannelOption.TCP_NODELAY, true);
-
-        b.bind(port).sync();
-        System.out.println("Server open on port " + port);
+    public void openLocally(LocalAddress addr) throws Exception {
+        localConnectionHandler = new LocalConnectionHandler(this, addr);
     }
 
     public byte addClient(ClientConnection client) {
@@ -238,7 +227,7 @@ public final class GameServer implements LevelAccess {
         }
     }
 
-    private void run() {
+    public void run() {
         consoleThread.start();
 
         long prevTime = System.nanoTime();
@@ -268,6 +257,10 @@ public final class GameServer implements LevelAccess {
         }
 
         System.out.println("Server shutting down");
+        if (networkConnectionHandler != null)
+            networkConnectionHandler.close();
+        if (localConnectionHandler != null)
+            localConnectionHandler.close();
 
         System.out.println("Disconnecting clients");
         for (ClientConnection client : clients.values()) {
@@ -310,19 +303,17 @@ public final class GameServer implements LevelAccess {
         }
     }
 
+    public void stop() {
+        running = false;
+    }
+
     public static void main(String[] args) throws Exception {
         int port = 25565;
         if (args.length > 0)
             port = Integer.parseInt(args[0]);
 
-        EventLoopGroup bossGroup = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
-        EventLoopGroup workerGroup = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
-
-        try {
-            new GameServer(bossGroup, workerGroup, port).run();
-        } finally {
-            workerGroup.shutdownGracefully();
-            bossGroup.shutdownGracefully();
-        }
+        GameServer server = new GameServer();
+        server.openToNetwork(port);
+        server.run();
     }
 }

@@ -6,8 +6,6 @@ import com.github.rmheuer.voxel.client.ServerAddress;
 import com.github.rmheuer.voxel.client.VoxelGame;
 import org.joml.Vector2i;
 
-import java.net.InetSocketAddress;
-
 public final class MainMenuUI implements UI {
     private static final int LABEL_COLOR = Colors.RGBA.fromInts(192, 192, 192);
 
@@ -21,7 +19,8 @@ public final class MainMenuUI implements UI {
     public MainMenuUI(VoxelGame game, String initialUsername) {
         this.game = game;
 
-        singlePlayerButton = new Button("Singleplayer", () -> game.setUI(new CreateLevelUI(game, this, false)));
+//        singlePlayerButton = new Button("Singleplayer", () -> game.setUI(new CreateLevelUI(game, this, false)));
+        singlePlayerButton = new Button("Singleplayer", game::beginSinglePlayer);
         serverAddressInput = new TextInputBox();
         usernameInput = new TextInputBox(initialUsername);
         joinServerButton = new Button("Join Server", () -> doJoinServer(serverAddressInput.getInput()));
@@ -91,7 +90,7 @@ public final class MainMenuUI implements UI {
             return;
         }
 
-        game.beginConnecting(addr, usernameInput.getInput());
+        game.beginMultiPlayer(addr, usernameInput.getInput());
     }
 
     @Override
