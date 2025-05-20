@@ -136,7 +136,7 @@ public final class VoxelGame extends BaseGame {
 
     private final Queue<Runnable> scheduledTasks;
 
-    public VoxelGame(String initialUsername, InetSocketAddress immediateServer) throws IOException {
+    public VoxelGame(String initialUsername, ServerAddress immediateServer) throws IOException {
         super(WINDOW_SETTINGS);
         this.username = initialUsername;
 
@@ -196,7 +196,7 @@ public final class VoxelGame extends BaseGame {
             beginConnecting(immediateServer, initialUsername);
     }
 
-    public void beginConnecting(InetSocketAddress address, String username) {
+    public void beginConnecting(ServerAddress address, String username) {
         ConnectingToServerUI connectingUI = new ConnectingToServerUI();
         setUI(connectingUI);
 
@@ -870,9 +870,9 @@ public final class VoxelGame extends BaseGame {
             username = "Player" + (int) (Math.random() * 10000);
         }
 
-        InetSocketAddress immediateServer = null;
+        ServerAddress immediateServer = null;
         if (args.length >= 3) {
-            immediateServer = new InetSocketAddress(args[1], Integer.parseInt(args[2]));
+            immediateServer = new ServerAddress(args[1], Integer.parseInt(args[2]));
         }
 
         VoxelGame game;

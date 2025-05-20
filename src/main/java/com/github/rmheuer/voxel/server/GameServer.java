@@ -64,12 +64,7 @@ public final class GameServer implements LevelAccess {
         } catch (FileNotFoundException e) {
             System.err.println("Level file " + LEVEL_FILE + " not found, generating new level");
 
-            map = new BlockMap(4, 4, 4);
-            for (int z = 0; z < 64; z++) {
-                for (int x = 0; x < 64; x++) {
-                    map.setBlockId(x, 0, z, Blocks.ID_GRASS);
-                }
-            }
+            map = LevelGenerator.generateLevel(128 / 16);
 
             levelFile = new ClassicWorldFile(
                     "Server Level",
@@ -79,7 +74,7 @@ public final class GameServer implements LevelAccess {
                     (short) map.getBlocksZ(),
                     null,
                     new ClassicWorldFile.GeneratorInfo("VoxelGame", "default"),
-                    new ClassicWorldFile.SpawnInfo(32, 32, 32, 0, 0)
+                    new ClassicWorldFile.SpawnInfo(map.getBlocksX() / 2f, 64, map.getBlocksZ() / 2f, 0, 0)
             );
         }
         this.levelFile = levelFile;
@@ -216,6 +211,14 @@ public final class GameServer implements LevelAccess {
     public void placeBlock(int x, int y, int z, byte blockId) {
         Block block = Blocks.getBlock(blockId);
         block.getPlacementBehavior().doAction(this, x, y, z, blockId);
+    }
+
+    public void breakBlock(int x, int y, int z) {
+        if (y >= 29 && y < 32 && (x == 0 || x == map.getBlocksX() - 1 || z == 0 || z == map.getBlocksZ() - 1)) {
+            setBlockId(x, y, z, Blocks.ID_STILL_WATER);
+        } else {
+            setBlockId(x, y, z, Blocks.ID_AIR);
+        }
     }
 
     private void handleConsoleCommand(String command) {

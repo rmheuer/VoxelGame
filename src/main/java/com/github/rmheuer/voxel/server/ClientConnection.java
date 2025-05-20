@@ -90,12 +90,14 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
         playerId = server.addClient(this);
         sendPacket(new ServerIdPacket((short) 7, "Test Server", "", true));
 
-        position = new Vector3f(32, 32, 32);
-        yaw = 0;
-        pitch = 0;
+        ClassicWorldFile.SpawnInfo spawn = server.getSpawnInfo();
+
+        position = new Vector3f(spawn.x, spawn.y, spawn.z);
+        yaw = spawn.yaw;
+        pitch = spawn.pitch;
 
         // Tell client about itself
-        sendPacket(new ServerSpawnPlayerPacket((byte) -1, packet.getUsername(), 32, 32, 32, 0, 0));
+        sendPacket(new ServerSpawnPlayerPacket((byte) -1, packet.getUsername(), spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.pitch));
 
         // Tell client about the other players on the server
         for (ClientConnection client : server.getAllClients()) {
@@ -135,9 +137,9 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
             int percent = (100 * (start + section.length)) / mapData.length;
             sendPacket(new ServerLevelDataChunkPacket(section, (short) percent));
         }
-        sendPacket(new ServerLevelFinalizePacket((short) 64, (short) 64, (short) 64));
+        sendPacket(new ServerLevelFinalizePacket((short) map.getBlocksX(), (short) map.getBlocksY(), (short) map.getBlocksZ()));
 
-        sendPacket(new BidiPlayerPositionPacket((byte) -1, 32, 32, 32, 0, 0));
+        sendPacket(new BidiPlayerPositionPacket((byte) -1, spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.pitch));
     }
 
     @Override
@@ -145,7 +147,7 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
         if (packet.getMode() == ClientSetBlockPacket.Mode.PLACED) {
             server.placeBlock(packet.getX(), packet.getY(), packet.getZ(), packet.getBlockId());
         } else {
-            server.setBlockId(packet.getX(), packet.getY(), packet.getZ(), Blocks.ID_AIR);
+            server.breakBlock(packet.getX(), packet.getY(), packet.getZ());
         }
     }
 

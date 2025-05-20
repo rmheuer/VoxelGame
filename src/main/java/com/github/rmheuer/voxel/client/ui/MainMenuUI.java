@@ -2,6 +2,7 @@ package com.github.rmheuer.voxel.client.ui;
 
 import com.github.rmheuer.azalea.input.keyboard.Key;
 import com.github.rmheuer.azalea.render.Colors;
+import com.github.rmheuer.voxel.client.ServerAddress;
 import com.github.rmheuer.voxel.client.VoxelGame;
 import org.joml.Vector2i;
 
@@ -42,13 +43,13 @@ public final class MainMenuUI implements UI {
         }
     }
 
-    private InetSocketAddress parseAddress(String address) {
+    private ServerAddress parseAddress(String address) {
         if (address.isEmpty())
             return null;
 
         int lastColon = address.lastIndexOf(':');
         if (lastColon < 0)
-            return new InetSocketAddress(address, 25565);
+            return new ServerAddress(address, 25565);
 
         String host;
         if (address.charAt(0) == '[') {
@@ -64,7 +65,7 @@ public final class MainMenuUI implements UI {
             int firstColon = address.indexOf(':');
             if (firstColon != lastColon) {
                 // Probably an IPv6 address
-                return new InetSocketAddress(address, 25565);
+                return new ServerAddress(address, 25565);
             }
 
             host = address.substring(0, lastColon);
@@ -74,14 +75,14 @@ public final class MainMenuUI implements UI {
         if (port < 0 || port > 65535)
             return null;
 
-        return new InetSocketAddress(host, port);
+        return new ServerAddress(host, port);
     }
 
     private void doJoinServer(String address) {
         if (usernameInput.getInput().isEmpty())
             return;
 
-        InetSocketAddress addr;
+        ServerAddress addr;
         try {
             addr = parseAddress(address);
             if (addr == null)
