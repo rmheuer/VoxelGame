@@ -52,18 +52,17 @@ public class Button {
      * Draws the button into the draw list.
      *
      * @param draw draw list to draw into
-     * @param sprites access to UI sprites
      * @param mousePos current mouse position
      */
-    public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
+    public void draw(UIDrawList draw, Vector2i mousePos) {
         UISprite sprite;
         if (enabled) {
             if (mouseOver(mousePos))
-                sprite = sprites.getButtonHighlight();
+                sprite = draw.getSprites().getButtonHighlight();
             else
-                sprite = sprites.getButton();
+                sprite = draw.getSprites().getButton();
         } else {
-            sprite = sprites.getButtonGray();
+            sprite = draw.getSprites().getButtonGray();
         }
 
         draw.drawSprite(x, y, sprite);

@@ -38,7 +38,7 @@ public final class BlockPickerUI implements UI {
     }
 
     @Override
-    public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
+    public void draw(UIDrawList draw, Vector2i mousePos) {
         int cornerX = draw.getWidth() / 2 - WIDTH / 2;
         int cornerY = (int) ((draw.getHeight() - HEIGHT) * 0.3);
 

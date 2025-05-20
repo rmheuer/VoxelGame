@@ -40,7 +40,7 @@ public final class CreateLevelUI implements UI {
     }
 
     @Override
-    public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
+    public void draw(UIDrawList draw, Vector2i mousePos) {
         int centerX = draw.getWidth() / 2;
         int centerY = draw.getHeight() / 2;
         
@@ -55,13 +55,13 @@ public final class CreateLevelUI implements UI {
         if (inGame)
             draw.drawGradientBackground(0, 0, draw.getWidth(), draw.getHeight());
         else
-            draw.drawDirtBackground(sprites, 0, 0, draw.getWidth(), draw.getHeight());
+            draw.drawDirtBackground(0, 0, draw.getWidth(), draw.getHeight());
 
         draw.drawTextCentered(centerX, cornerY - 24, TITLE);
-        smallButton.draw(draw, sprites, mousePos);
-        normalButton.draw(draw, sprites, mousePos);
-        largeButton.draw(draw, sprites, mousePos);
-        cancelButton.draw(draw, sprites, mousePos);
+        smallButton.draw(draw, mousePos);
+        normalButton.draw(draw, mousePos);
+        largeButton.draw(draw, mousePos);
+        cancelButton.draw(draw, mousePos);
     }
 
     @Override

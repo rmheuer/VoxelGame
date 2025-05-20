@@ -21,14 +21,12 @@ public final class ConnectingToServerUI implements UI {
     }
 
     @Override
-    public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
+    public void draw(UIDrawList draw, Vector2i mousePos) {
         int width = draw.getWidth();
         int height = draw.getHeight();
 
-        draw.drawDirtBackground(sprites, 0, 0, width, height);
+        draw.drawDirtBackground(0, 0, width, height);
         draw.drawTextCentered(width / 2, height / 2 - 12, state.message);
-
-//        draw.drawRect(draw.getWidth() / 2 - 50, draw.getHeight() / 2 + 12, 100, 2, Colors.RGBA.fromInts(128, 255, 128));
     }
 
     @Override

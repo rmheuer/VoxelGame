@@ -21,6 +21,7 @@ public final class UIDrawList implements SafeCloseable {
     private final int width, height;
     private final DrawList2D draw;
     private final Texture2D blockAtlas;
+    private final UISprites sprites;
     private final TextRenderer textRenderer;
 
     /**
@@ -29,10 +30,11 @@ public final class UIDrawList implements SafeCloseable {
      * @param blockAtlas block atlas texture
      * @param textRenderer text renderer for drawing text
      */
-    public UIDrawList(int width, int height, Texture2D blockAtlas, TextRenderer textRenderer) {
+    public UIDrawList(int width, int height, Texture2D blockAtlas, UISprites sprites, TextRenderer textRenderer) {
         this.width = width;
         this.height = height;
         this.blockAtlas = blockAtlas;
+        this.sprites = sprites;
         this.textRenderer = textRenderer;
 
         draw = new DrawList2D();
@@ -146,8 +148,7 @@ public final class UIDrawList implements SafeCloseable {
         drawRectVGradient(x, y, w, h, BG_COLOR_1, BG_COLOR_2);
     }
 
-    // TODO: Hold reference to sprites in this
-    public void drawDirtBackground(UISprites sprites, int x, int y, int w, int h) {
+    public void drawDirtBackground(int x, int y, int w, int h) {
         draw.drawImage(
                 x, y, w, h,
                 sprites.getDirtTexture(), DIRT_BG_TINT,
@@ -161,6 +162,10 @@ public final class UIDrawList implements SafeCloseable {
 
     public int getHeight() {
         return height;
+    }
+
+    public UISprites getSprites() {
+        return sprites;
     }
 
     public DrawList2D getDrawList() {

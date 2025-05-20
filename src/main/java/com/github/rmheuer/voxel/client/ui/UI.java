@@ -11,10 +11,9 @@ public interface UI {
      * Draws the UI into a draw list.
      *
      * @param draw draw list to draw into
-     * @param sprites access to UI sprites
      * @param mousePos current position of mouse
      */
-    void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos);
+    void draw(UIDrawList draw, Vector2i mousePos);
 
     /**
      * Handles when the mouse is clicked.

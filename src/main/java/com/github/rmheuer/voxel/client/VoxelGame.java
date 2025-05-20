@@ -827,12 +827,12 @@ public final class VoxelGame extends BaseGame {
 
         int uiWidth = MathUtil.ceilDiv(windowSize.x, guiScale);
         int uiHeight = MathUtil.ceilDiv(windowSize.y, guiScale);
-        try (UIDrawList uiDraw = new UIDrawList(uiWidth, uiHeight, atlasTexture, textRenderer)) {
+        try (UIDrawList uiDraw = new UIDrawList(uiWidth, uiHeight, atlasTexture, uiSprites, textRenderer)) {
             if (levelRender != null)
                 renderInGameUI(uiDraw, levelRender);
 
             if (ui != null)
-                ui.draw(uiDraw, uiSprites, uiMousePos);
+                ui.draw(uiDraw, uiMousePos);
 
             renderer2D.draw(uiDraw.getDrawList(), new Matrix4f().ortho(0, (float) windowSize.x / guiScale, (float) windowSize.y / guiScale, 0, -1, 1));
         }

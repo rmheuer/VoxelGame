@@ -41,7 +41,7 @@ Block behaviors:
   [x] Sand/gravel falling
   Saplings growing into trees
 Bring back singleplayer
-Move UISprites into UIDrawList
+[x] Move UISprites into UIDrawList
 Proper player animation
 Implement all Classic Protocol Extensions
 External server list support:

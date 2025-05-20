@@ -32,7 +32,7 @@ public final class GameMenuUI implements UI {
     }
 
     @Override
-    public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
+    public void draw(UIDrawList draw, Vector2i mousePos) {
         int centerX = draw.getWidth() / 2;
         int centerY = draw.getHeight() / 2;
         
@@ -46,10 +46,10 @@ public final class GameMenuUI implements UI {
 
         draw.drawGradientBackground(0, 0, draw.getWidth(), draw.getHeight());
         draw.drawTextCentered(centerX, cornerY - 24, TITLE);
-        backToGameButton.draw(draw, sprites, mousePos);
-        renderDistanceButton.draw(draw, sprites, mousePos);
-//        resetLevelButton.draw(draw, sprites, mousePos);
-        quitGameButton.draw(draw, sprites, mousePos);
+        backToGameButton.draw(draw, mousePos);
+        renderDistanceButton.draw(draw, mousePos);
+//        resetLevelButton.draw(draw, mousePos);
+        quitGameButton.draw(draw, mousePos);
     }
 
     @Override

@@ -95,7 +95,7 @@ public final class MainMenuUI implements UI {
     }
 
     @Override
-    public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
+    public void draw(UIDrawList draw, Vector2i mousePos) {
         int centerX = draw.getWidth() / 2;
         int centerY = draw.getHeight() / 2;
         int cornerX = centerX - Button.WIDTH / 2;
@@ -106,13 +106,13 @@ public final class MainMenuUI implements UI {
         usernameInput.setPosition(cornerX, cornerY + Button.HEIGHT * 4 + 16 + 16);
         joinServerButton.setPosition(cornerX, cornerY + Button.HEIGHT * 5 + 20 + 16);
 
-        draw.drawDirtBackground(sprites, 0, 0, draw.getWidth(), draw.getHeight());
-        singlePlayerButton.draw(draw, sprites, mousePos);
+        draw.drawDirtBackground(0, 0, draw.getWidth(), draw.getHeight());
+        singlePlayerButton.draw(draw, mousePos);
         draw.drawTextColored(cornerX + 1, cornerY + Button.HEIGHT * 3 + 8, "Enter server address:", LABEL_COLOR);
         serverAddressInput.draw(draw);
         draw.drawTextColored(cornerX + 1, cornerY + Button.HEIGHT * 4 + 12 + 16, "Enter username:", LABEL_COLOR);
         usernameInput.draw(draw);
-        joinServerButton.draw(draw, sprites, mousePos);
+        joinServerButton.draw(draw, mousePos);
     }
 
     @Override

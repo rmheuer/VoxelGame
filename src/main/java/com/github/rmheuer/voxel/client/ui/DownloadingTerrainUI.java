@@ -14,11 +14,11 @@ public final class DownloadingTerrainUI implements UI {
     }
 
     @Override
-    public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
+    public void draw(UIDrawList draw, Vector2i mousePos) {
         int width = draw.getWidth();
         int height = draw.getHeight();
 
-        draw.drawDirtBackground(sprites, 0, 0, width, height);
+        draw.drawDirtBackground(0, 0, width, height);
         draw.drawTextCentered(width / 2, height / 2 - 12, "Downloading terrain...");
 
         draw.drawRect(width/2 - 50, height/2 + 12, 100, 2, BAR_BG);

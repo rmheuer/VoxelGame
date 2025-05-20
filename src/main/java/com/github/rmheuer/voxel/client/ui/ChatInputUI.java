@@ -20,7 +20,7 @@ public final class ChatInputUI implements UI {
     }
 
     @Override
-    public void draw(UIDrawList draw, UISprites sprites, Vector2i mousePos) {
+    public void draw(UIDrawList draw, Vector2i mousePos) {
         int width = draw.getWidth();
         int height = draw.getHeight();
 
