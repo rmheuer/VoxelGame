@@ -157,10 +157,7 @@ public final class GameServer implements LevelAccess {
     @Override
     public void setBlockId(int x, int y, int z, byte blockId) {
         synchronized (map) {
-            byte prev = map.setBlockId(x, y, z, blockId);
-            if (blockId == prev)
-                return;
-
+            map.setBlockId(x, y, z, blockId);
             broadcastPacketToAll(new ServerSetBlockPacket((short) x, (short) y, (short) z, blockId));
 
             Block placed = Blocks.getBlock(blockId);
@@ -174,9 +171,8 @@ public final class GameServer implements LevelAccess {
     @Override
     public void setBlockIdNoNeighborUpdates(int x, int y, int z, byte blockId) {
         synchronized (map) {
-            byte prev = map.setBlockId(x, y, z, blockId);
-            if (blockId != prev)
-                broadcastPacketToAll(new ServerSetBlockPacket((short) x, (short) y, (short) z, blockId));
+            map.setBlockId(x, y, z, blockId);
+            broadcastPacketToAll(new ServerSetBlockPacket((short) x, (short) y, (short) z, blockId));
         }
     }
 
