@@ -36,6 +36,7 @@ Fix occlusion culling expanding slightly too far
 Fix world disappearing when above top of level
 [x] Fix chat failing when message is too long
 [x] Block placement behavior system for slabs
+Ability to open singleplayer world for multiplayer
 Block behaviors:
   Liquid spreading
   Grass growing/dying
