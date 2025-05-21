@@ -388,6 +388,11 @@ public final class VoxelGame extends BaseGame {
     }
 
     private void charTyped(CharTypeEvent event) {
+        // Checked before calling char type so that the / gets typed
+        if (ui == null && event.getChar() == '/') {
+            setUI(new ChatInputUI(this));
+        }
+
         if (ui != null) {
             ui.charTyped(event.getChar());
         }

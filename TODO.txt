@@ -33,6 +33,7 @@ To Do:
   [x] Buttons
 
 Fix occlusion culling expanding slightly too far
+Fix world disappearing when above top of level
 [x] Fix chat failing when message is too long
 [x] Block placement behavior system for slabs
 Block behaviors:
@@ -40,10 +41,14 @@ Block behaviors:
   Grass growing/dying
   [x] Sand/gravel falling
   Saplings growing into trees
-Bring back singleplayer
+[x] Bring back singleplayer
 [x] Move UISprites into UIDrawList
 Proper player animation
 Implement all Classic Protocol Extensions
 External server list support:
   - ClassiCube
+    - Server list
+    - Authentication
   - Betacraft
+    - [x] Server List
+    - Authentication
