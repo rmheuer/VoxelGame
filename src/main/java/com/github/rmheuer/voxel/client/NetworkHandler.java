@@ -74,7 +74,10 @@ public final class NetworkHandler implements ServerPacketListener {
     public void onLevelDataChunk(ServerLevelDataChunkPacket packet) {
         resetTimeout();
         receivedLevelChunks.add(packet.getChunkData());
-        client.runOnMainThread(() -> downloadingTerrainUI.setPercentReceived(packet.getPercentComplete()));
+
+        // Local copy so it doesn't get replaced with null in onLevelFinalize()
+        final DownloadingTerrainUI ui = downloadingTerrainUI;
+        client.runOnMainThread(() -> ui.setPercentReceived(packet.getPercentComplete()));
     }
 
     @Override
@@ -128,7 +131,7 @@ public final class NetworkHandler implements ServerPacketListener {
     public void onSpawnPlayer(ServerSpawnPlayerPacket packet) {
         if (packet.getPlayerId() == -1) {
             client.runOnMainThread(() -> client.resetLocalPlayer(
-                    packet.getX(), packet.getY() - POSITION_Y_OFFSET, packet.getZ(),
+                    packet.getX(), packet.getY() - POSITION_Y_OFFSET + 1, packet.getZ(),
                     packet.getPitch(), packet.getYaw()
             ));
         } else {
@@ -146,6 +149,11 @@ public final class NetworkHandler implements ServerPacketListener {
     public void onPlayerPosition(BidiPlayerPositionPacket packet) {
         client.runOnMainThread(() -> {
             Player player = client.getPlayer(packet.getPlayerId());
+            if (player == null) {
+                System.err.println("Received position for unknown player " + packet.getPlayerId());
+                return;
+            }
+
             player.teleport(packet.getX(), packet.getY() - POSITION_Y_OFFSET, packet.getZ());
             player.setDirection(packet.getPitch(), packet.getYaw());
         });
@@ -155,6 +163,11 @@ public final class NetworkHandler implements ServerPacketListener {
     public void onRelativeMoveAndLook(ServerRelativeMoveAndLookPacket packet) {
         client.runOnMainThread(() -> {
             Player player = client.getPlayer(packet.getPlayerId());
+            if (player == null) {
+                System.err.println("Received movement for unknown player " + packet.getPlayerId());
+                return;
+            }
+
             player.move(packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
             player.setDirection(packet.getPitch(), packet.getYaw());
         });
@@ -164,6 +177,11 @@ public final class NetworkHandler implements ServerPacketListener {
     public void onRelativeMove(ServerRelativeMovePacket packet) {
         client.runOnMainThread(() -> {
             Player player = client.getPlayer(packet.getPlayerId());
+            if (player == null) {
+                System.err.println("Received movement for unknown player " + packet.getPlayerId());
+                return;
+            }
+
             player.move(packet.getDeltaX(), packet.getDeltaY(), packet.getDeltaZ());
         });
     }
@@ -172,6 +190,11 @@ public final class NetworkHandler implements ServerPacketListener {
     public void onLook(ServerLookPacket packet) {
         client.runOnMainThread(() -> {
             Player player = client.getPlayer(packet.getPlayerId());
+            if (player == null) {
+                System.err.println("Received movement for unknown player " + packet.getPlayerId());
+                return;
+            }
+
             player.setDirection(packet.getPitch(), packet.getYaw());
         });
     }
