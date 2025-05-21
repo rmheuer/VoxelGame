@@ -2,6 +2,7 @@ package com.github.rmheuer.voxel.client.ui;
 
 import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.azalea.render.texture.Texture2D;
+import com.github.rmheuer.azalea.render.texture.Texture2DRegion;
 import com.github.rmheuer.azalea.render2d.DrawList2D;
 import com.github.rmheuer.azalea.utils.SafeCloseable;
 import com.github.rmheuer.voxel.block.Block;
@@ -19,6 +20,7 @@ public final class UIDrawList implements SafeCloseable {
     private static final int DIRT_BG_TINT = Colors.RGBA.fromInts(64, 64, 64);
 
     private final int width, height;
+    private final int screenHeight, scale;
     private final DrawList2D draw;
     private final Texture2D blockAtlas;
     private final UISprites sprites;
@@ -30,14 +32,20 @@ public final class UIDrawList implements SafeCloseable {
      * @param blockAtlas block atlas texture
      * @param textRenderer text renderer for drawing text
      */
-    public UIDrawList(int width, int height, Texture2D blockAtlas, UISprites sprites, TextRenderer textRenderer) {
+    public UIDrawList(int width, int height, int screenHeight, int scale, Texture2D blockAtlas, UISprites sprites, TextRenderer textRenderer) {
         this.width = width;
         this.height = height;
+        this.screenHeight = screenHeight;
+        this.scale = scale;
         this.blockAtlas = blockAtlas;
         this.sprites = sprites;
         this.textRenderer = textRenderer;
 
         draw = new DrawList2D();
+    }
+
+    public void setClipRect(int x, int y, int w, int h) {
+        draw.setClipRect(x * scale, screenHeight - (y + h) * scale, w * scale, h * scale);
     }
 
     /**
@@ -84,6 +92,23 @@ public final class UIDrawList implements SafeCloseable {
      */
     public void drawSprite(int x, int y, UISprite sprite) {
         draw.drawImage(x, y, sprite.getWidth(), sprite.getHeight(), sprite.getTexture());
+    }
+
+    public void drawSpriteNineSlice(int x, int y, int w, int h, UISprite sprite, int border) {
+        float invW = 1.0f / sprite.getWidth();
+        float invH = 1.0f / sprite.getHeight();
+        Texture2DRegion region = sprite.getTexture();
+
+        // FIXME: Something is wrong...
+        draw.drawImage(x, y, border, border, region, 0, 0, border * invW, border * invH);
+        draw.drawImage(x, y + border, border, h - 2*border, region, 0, border * invH, border * invW, 1 - border * invH);
+        draw.drawImage(x, y + h - border, border, border, region, 0, 1 - border * invH, border * invW, 1);
+        draw.drawImage(x + border, y, w - 2*border, border, region, border * invW, 0, 1 - border * invW, border * invH);
+        draw.drawImage(x + border, y + border, w - 2*border, h - 2*border, region, border * invW, border * invH, 1 - border * invW, 1 - border * invH);
+        draw.drawImage(x + border, y + h - border, w - 2*border, border, region, border * invW, 1 - border * invH, 1 - border * invW, 1);
+        draw.drawImage(x + w - border, y, border, border, region, 1 - border * invW, 0, 1, border * invH);
+        draw.drawImage(x + w - border, y + border, border, h - 2*border, region, 1 - border * invW, border * invH, 1, 1 - border * invH);
+        draw.drawImage(x + w - border, y + h - border, border, border, region, 1 - border * invW, 1 - border * invH, 1, 1);
     }
 
     /**

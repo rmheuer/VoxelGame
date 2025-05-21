@@ -196,6 +196,7 @@ public final class VoxelGame extends BaseGame {
 
         chatHistory = new ArrayList<>();
 
+//        setUI(new ServerListUI());
         if (immediateServer == null)
             setUI(new MainMenuUI(this, initialUsername));
         else
@@ -844,13 +845,14 @@ public final class VoxelGame extends BaseGame {
         guiScale = Math.min(guiScaleX, guiScaleY);
         if (guiScale < 1)
             guiScale = 1;
+        guiScale = 4;
 
         Vector2d mousePos = getWindow().getMouse().getCursorPos();
         Vector2i uiMousePos = new Vector2i((int) (mousePos.x / guiScale), (int) (mousePos.y / guiScale));
 
         int uiWidth = MathUtil.ceilDiv(windowSize.x, guiScale);
         int uiHeight = MathUtil.ceilDiv(windowSize.y, guiScale);
-        try (UIDrawList uiDraw = new UIDrawList(uiWidth, uiHeight, atlasTexture, uiSprites, textRenderer)) {
+        try (UIDrawList uiDraw = new UIDrawList(uiWidth, uiHeight, windowSize.y, guiScale, atlasTexture, uiSprites, textRenderer)) {
             if (levelRender != null)
                 renderInGameUI(uiDraw, levelRender);
 

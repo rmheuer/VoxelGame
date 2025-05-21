@@ -65,7 +65,8 @@ public class Button {
             sprite = draw.getSprites().getButtonGray();
         }
 
-        draw.drawSprite(x, y, sprite);
+        draw.drawSpriteNineSlice(x, y, 100, 12, sprite, 3);
+//        draw.drawSprite(x, y, sprite);
         draw.drawTextCentered(x + WIDTH / 2, y + HEIGHT / 2 + 3, label);
     }
 
