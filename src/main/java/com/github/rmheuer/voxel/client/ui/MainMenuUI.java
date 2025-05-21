@@ -12,17 +12,32 @@ public final class MainMenuUI implements UI {
     private final VoxelGame game;
 
     private final Button singlePlayerButton;
-    private final TextInputBox serverAddressInput;
     private final TextInputBox usernameInput;
+    private final Button serverListButton;
+    private final TextInputBox serverAddressInput;
     private final Button joinServerButton;
+
+    /*
+     * [Singleplayer]
+     *
+     * Enter username:
+     * [username text box]
+     *
+     * [Server List]
+     *
+     * Enter direct connect address:
+     * [address box]
+     * [Join Server]
+     */
 
     public MainMenuUI(VoxelGame game, String initialUsername) {
         this.game = game;
 
 //        singlePlayerButton = new Button("Singleplayer", () -> game.setUI(new CreateLevelUI(game, this, false)));
         singlePlayerButton = new Button("Singleplayer", game::beginSinglePlayer);
-        serverAddressInput = new TextInputBox();
         usernameInput = new TextInputBox(initialUsername);
+        serverListButton = new Button("Server List", () -> game.setUI(new ServerListUI(game, this)));
+        serverAddressInput = new TextInputBox();
         joinServerButton = new Button("Join Server", () -> doJoinServer(serverAddressInput.getInput()));
 
         joinServerButton.setEnabled(false);
@@ -35,62 +50,14 @@ public final class MainMenuUI implements UI {
         if (usernameInput.getInput().isEmpty())
             return false;
 
-        try {
-            return parseAddress(serverAddressInput.getInput()) != null;
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private ServerAddress parseAddress(String address) {
-        if (address.isEmpty())
-            return null;
-
-        int lastColon = address.lastIndexOf(':');
-        if (lastColon < 0)
-            return new ServerAddress(address, 25565);
-
-        String host;
-        if (address.charAt(0) == '[') {
-            int close = address.indexOf(']');
-            if (close < 0)
-                return null;
-
-            if (lastColon != close + 1)
-                return null;
-
-            host = address.substring(1, close);
-        } else {
-            int firstColon = address.indexOf(':');
-            if (firstColon != lastColon) {
-                // Probably an IPv6 address
-                return new ServerAddress(address, 25565);
-            }
-
-            host = address.substring(0, lastColon);
-        }
-
-        int port = Integer.parseInt(address.substring(lastColon + 1));
-        if (port < 0 || port > 65535)
-            return null;
-
-        return new ServerAddress(host, port);
+        return ServerAddress.isValid(serverAddressInput.getInput());
     }
 
     private void doJoinServer(String address) {
         if (usernameInput.getInput().isEmpty())
             return;
 
-        ServerAddress addr;
-        try {
-            addr = parseAddress(address);
-            if (addr == null)
-                return;
-        } catch (Exception e) {
-            return;
-        }
-
-        game.beginMultiPlayer(addr, usernameInput.getInput());
+        game.beginMultiPlayer(address, usernameInput.getInput());
     }
 
     @Override
@@ -98,27 +65,31 @@ public final class MainMenuUI implements UI {
         int centerX = draw.getWidth() / 2;
         int centerY = draw.getHeight() / 2;
         int cornerX = centerX - Button.WIDTH / 2;
-        int cornerY = centerY - (6 * Button.HEIGHT + 4 * 4 + 16) / 2;
+        int cornerY = centerY - (7 * Button.HEIGHT + 5 * 4 + 16) / 2;
 
+        // Maybe sometime I'll add a better layout system than making up numbers
         singlePlayerButton.setPosition(cornerX, cornerY);
-        serverAddressInput.setPosition(cornerX, cornerY + Button.HEIGHT * 3 + 12);
-        usernameInput.setPosition(cornerX, cornerY + Button.HEIGHT * 4 + 16 + 16);
-        joinServerButton.setPosition(cornerX, cornerY + Button.HEIGHT * 5 + 20 + 16);
+        usernameInput.setPosition(cornerX, cornerY + Button.HEIGHT * 2 + 12);
+        serverListButton.setPosition(cornerX, cornerY + Button.HEIGHT * 4 + 4 + 4);
+        serverAddressInput.setPosition(cornerX, cornerY + Button.HEIGHT * 5 + 16 + 16 + 4);
+        joinServerButton.setPosition(cornerX, cornerY + Button.HEIGHT * 6 + 20 + 16 + 4);
 
         draw.drawDirtBackground(0, 0, draw.getWidth(), draw.getHeight());
         singlePlayerButton.draw(draw, mousePos);
-        draw.drawTextColored(cornerX + 1, cornerY + Button.HEIGHT * 3 + 8, "Enter server address:", LABEL_COLOR);
-        serverAddressInput.draw(draw);
-        draw.drawTextColored(cornerX + 1, cornerY + Button.HEIGHT * 4 + 12 + 16, "Enter username:", LABEL_COLOR);
+        draw.drawTextColored(cornerX + 1, cornerY + Button.HEIGHT * 2 + 8, "Enter username:", LABEL_COLOR);
         usernameInput.draw(draw);
+        serverListButton.draw(draw, mousePos);
+        draw.drawTextColored(cornerX + 1, cornerY + Button.HEIGHT * 5 + 16 + 16, "Enter direct connect address:", LABEL_COLOR);
+        serverAddressInput.draw(draw);
         joinServerButton.draw(draw, mousePos);
     }
 
     @Override
     public void mouseClicked(Vector2i mousePos) {
         singlePlayerButton.mouseClicked(mousePos);
-        serverAddressInput.mouseClicked(mousePos);
         usernameInput.mouseClicked(mousePos);
+        serverAddressInput.mouseClicked(mousePos);
+        serverListButton.mouseClicked(mousePos);
         joinServerButton.mouseClicked(mousePos);
     }
 

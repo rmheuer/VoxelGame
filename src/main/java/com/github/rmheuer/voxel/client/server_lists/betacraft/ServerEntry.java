@@ -5,12 +5,14 @@ public final class ServerEntry {
     public final String name;
     public final int playerCount, maxPlayers;
     public final String address;
+    public final boolean onlineMode;
 
-    public ServerEntry(String name, int playerCount, int maxPlayers, String address) {
+    public ServerEntry(String name, int playerCount, int maxPlayers, String address, boolean onlineMode) {
         this.name = name;
         this.playerCount = playerCount;
         this.maxPlayers = maxPlayers;
         this.address = address;
+        this.onlineMode = onlineMode;
     }
 
     @Override
@@ -20,6 +22,7 @@ public final class ServerEntry {
                 ", playerCount=" + playerCount +
                 ", maxPlayers=" + maxPlayers +
                 ", address='" + address + '\'' +
+                ", onlineMode=" + onlineMode +
                 '}';
     }
 }

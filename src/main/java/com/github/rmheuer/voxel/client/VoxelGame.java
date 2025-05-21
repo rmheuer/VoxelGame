@@ -196,7 +196,7 @@ public final class VoxelGame extends BaseGame {
 
         chatHistory = new ArrayList<>();
 
-//        setUI(new ServerListUI());
+//        setUI(new ServerListUI(this));
         if (immediateServer == null)
             setUI(new MainMenuUI(this, initialUsername));
         else
@@ -223,7 +223,22 @@ public final class VoxelGame extends BaseGame {
         });
     }
 
-    public void beginMultiPlayer(ServerAddress address, String username) {
+    public void beginMultiPlayer(String address) {
+        beginMultiPlayer(address, username);
+    }
+
+    public void beginMultiPlayer(String address, String username) {
+        ServerAddress addr = ServerAddress.parse(address);
+        if (addr == null) {
+            System.err.println("Invalid address: " + address);
+            stop();
+            return;
+        }
+
+        beginMultiPlayer(addr, username);
+    }
+
+    private void beginMultiPlayer(ServerAddress address, String username) {
         ChannelFuture connectFuture = ServerConnection.connectToServer(nioEventLoop, address);
         beginConnecting(username, connectFuture);
     }
@@ -845,7 +860,6 @@ public final class VoxelGame extends BaseGame {
         guiScale = Math.min(guiScaleX, guiScaleY);
         if (guiScale < 1)
             guiScale = 1;
-        guiScale = 4;
 
         Vector2d mousePos = getWindow().getMouse().getCursorPos();
         Vector2i uiMousePos = new Vector2i((int) (mousePos.x / guiScale), (int) (mousePos.y / guiScale));

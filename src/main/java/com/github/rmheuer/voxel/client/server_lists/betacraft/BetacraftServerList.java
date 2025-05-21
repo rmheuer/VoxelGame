@@ -40,8 +40,9 @@ public final class BetacraftServerList {
                 int playerCount = entry.get("online_players").getAsInt();
                 int maxPlayers = entry.get("max_players").getAsInt();
                 String address = entry.get("socket").getAsString();
+                boolean onlineMode = entry.get("online_mode").getAsBoolean();
 
-                entries.add(new ServerEntry(name, playerCount, maxPlayers, address));
+                entries.add(new ServerEntry(name, playerCount, maxPlayers, address, onlineMode));
             }
         } catch (NullPointerException | ClassCastException e) {
             throw new IOException("Malformed Betacraft server list response", e);

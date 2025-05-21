@@ -95,20 +95,27 @@ public final class UIDrawList implements SafeCloseable {
     }
 
     public void drawSpriteNineSlice(int x, int y, int w, int h, UISprite sprite, int border) {
-        float invW = 1.0f / sprite.getWidth();
-        float invH = 1.0f / sprite.getHeight();
+        if (w == sprite.getWidth()) {
+            drawNineSliceVerticalColumn(x, y, w, h, sprite, border, 0, 1);
+        } else {
+            float invW = 1.0f / sprite.getWidth();
+            drawNineSliceVerticalColumn(x, y, border, h, sprite, border, 0, border * invW);
+            drawNineSliceVerticalColumn(x + border, y, w - 2 * border, h, sprite, border, border * invW, (w - border) * invW);
+            drawNineSliceVerticalColumn(x + w - border, y, border, h, sprite, border, 1 - border * invW, 1);
+        }
+    }
+
+    private void drawNineSliceVerticalColumn(int x, int y, int w, int h, UISprite sprite, int border, float u1, float u2) {
         Texture2DRegion region = sprite.getTexture();
 
-        // FIXME: Something is wrong...
-        draw.drawImage(x, y, border, border, region, 0, 0, border * invW, border * invH);
-        draw.drawImage(x, y + border, border, h - 2*border, region, 0, border * invH, border * invW, 1 - border * invH);
-        draw.drawImage(x, y + h - border, border, border, region, 0, 1 - border * invH, border * invW, 1);
-        draw.drawImage(x + border, y, w - 2*border, border, region, border * invW, 0, 1 - border * invW, border * invH);
-        draw.drawImage(x + border, y + border, w - 2*border, h - 2*border, region, border * invW, border * invH, 1 - border * invW, 1 - border * invH);
-        draw.drawImage(x + border, y + h - border, w - 2*border, border, region, border * invW, 1 - border * invH, 1 - border * invW, 1);
-        draw.drawImage(x + w - border, y, border, border, region, 1 - border * invW, 0, 1, border * invH);
-        draw.drawImage(x + w - border, y + border, border, h - 2*border, region, 1 - border * invW, border * invH, 1, 1 - border * invH);
-        draw.drawImage(x + w - border, y + h - border, border, border, region, 1 - border * invW, 1 - border * invH, 1, 1);
+        if (h == sprite.getHeight()) {
+            draw.drawImage(x, y, w, h, region, u1, 0, u2, 1);
+        } else {
+            float invH = 1.0f / sprite.getHeight();
+            draw.drawImage(x, y, w, border, region, u1, 0, u2, border * invH);
+            draw.drawImage(x, y + border, w, h - 2 * border, region, u1, border * invH, u2, (h - border) * invH);
+            draw.drawImage(x, y + h - border, w, border, region, u1, 1 - border * invH, u2, 1);
+        }
     }
 
     /**

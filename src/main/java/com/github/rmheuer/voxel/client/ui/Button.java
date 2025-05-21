@@ -13,6 +13,7 @@ public class Button {
     private boolean enabled;
     private final Runnable onClick;
     private int x, y;
+    private int width, height;
 
     /**
      * @param label label for the button
@@ -22,6 +23,8 @@ public class Button {
         this.label = label;
         this.onClick = onClick;
         enabled = true;
+        width = WIDTH;
+        height = HEIGHT;
     }
 
     public void setLabel(String label) {
@@ -43,9 +46,14 @@ public class Button {
         this.y = y;
     }
 
+    public void setSize(int width, int height) {
+        this.width = width;
+        this.height = height;
+    }
+
     private boolean mouseOver(Vector2i mousePos) {
-        return mousePos.x >= x && mousePos.x < x + WIDTH
-            && mousePos.y >= y && mousePos.y < y + HEIGHT;
+        return mousePos.x >= x && mousePos.x < x + width
+            && mousePos.y >= y && mousePos.y < y + height;
     }
 
     /**
@@ -65,9 +73,9 @@ public class Button {
             sprite = draw.getSprites().getButtonGray();
         }
 
-        draw.drawSpriteNineSlice(x, y, 100, 12, sprite, 3);
+        draw.drawSpriteNineSlice(x, y, width, height, sprite, 3);
 //        draw.drawSprite(x, y, sprite);
-        draw.drawTextCentered(x + WIDTH / 2, y + HEIGHT / 2 + 3, label);
+        draw.drawTextCentered(x + width / 2, y + height / 2 + 3, label);
     }
 
     protected void clicked() {
