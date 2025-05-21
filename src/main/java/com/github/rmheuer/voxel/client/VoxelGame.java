@@ -282,7 +282,7 @@ public final class VoxelGame extends BaseGame {
 
         level = new ClientLevel(sizeX, sizeY, sizeZ, blockData);
 
-        environmentRenderer.updateLevelSize(sizeX, sizeZ);
+        environmentRenderer.updateLevelSize(sizeX, sizeY, sizeZ);
     }
 
     public void clearLevel() {

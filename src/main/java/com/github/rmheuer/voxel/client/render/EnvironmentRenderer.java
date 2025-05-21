@@ -20,7 +20,6 @@ import java.io.IOException;
  * Renders the environment outside the level (the sky and surrounding ocean).
  */
 public final class EnvironmentRenderer implements SafeCloseable {
-    private static final int WATER_LEVEL = 32;
     private static final int WATER_DEPTH = 3;
     private static final int DISTANCE = 2048;
 
@@ -39,6 +38,7 @@ public final class EnvironmentRenderer implements SafeCloseable {
     private final Mesh bedrockMesh, waterMesh;
     private final Mesh skyMesh, cloudsMesh;
 
+    private int blocksY;
     private int tickCount;
 
     /**
@@ -76,16 +76,19 @@ public final class EnvironmentRenderer implements SafeCloseable {
      * rendered.
      *
      * @param blocksX size of the level along the X axis
+     * @param blocksY size of the level along the Y axis
      * @param blocksZ size of the level along the Z axis
      */
-    public void updateLevelSize(int blocksX, int blocksZ) {
-        try (MeshData data = createBedrockMesh(blocksX, blocksZ)) {
+    public void updateLevelSize(int blocksX, int blocksY, int blocksZ) {
+        this.blocksY = blocksY;
+
+        try (MeshData data = createBedrockMesh(blocksX, blocksY, blocksZ)) {
             bedrockMesh.setData(data, DataUsage.STATIC);
         }
-        try (MeshData data = createWaterMesh(blocksX, blocksZ)) {
+        try (MeshData data = createWaterMesh(blocksX, blocksY, blocksZ)) {
             waterMesh.setData(data, DataUsage.STATIC);
         }
-        try (MeshData data = createSkyMesh()) {
+        try (MeshData data = createSkyMesh(blocksY)) {
             skyMesh.setData(data, DataUsage.STATIC);
         }
     }
@@ -111,13 +114,13 @@ public final class EnvironmentRenderer implements SafeCloseable {
         putQuad(data, -s, y, -s, w, y, -s, w, y, 0, -s, y, 0, w + s, s, shade);
     }
 
-    private MeshData createBedrockMesh(int w, int d) {
+    private MeshData createBedrockMesh(int w, int blocksY, int d) {
         MeshData data = new MeshData(VERTEX_LAYOUT, PrimitiveType.TRIANGLES);
 
         // Bottom
         putQuad(data, 0, 0, 0, w, 0, 0, w, 0, d, 0, 0, d, w, d, LightingConstants.SHADE_UP);
 
-        int h = WATER_LEVEL - WATER_DEPTH;
+        int h = blocksY / 2 - WATER_DEPTH;
 
         // Sides
         putQuad(data, w, h, 0, w, h, d, w, 0, d, w, 0, 0, d, h, LightingConstants.SHADE_LEFT_RIGHT);
@@ -130,16 +133,18 @@ public final class EnvironmentRenderer implements SafeCloseable {
         return data;
     }
 
-    private MeshData createWaterMesh(int blocksX, int blocksZ) {
+    private MeshData createWaterMesh(int blocksX, int blocksY, int blocksZ) {
+        int y = blocksY / 2;
+
         MeshData data = new MeshData(VERTEX_LAYOUT, PrimitiveType.TRIANGLES);
-        createTopSurface(data, blocksX, blocksZ, WATER_LEVEL - 1 + LiquidShape.LIQUID_SURFACE_HEIGHT, LightingConstants.SHADE_LIT);
+        createTopSurface(data, blocksX, blocksZ, y - 1 + LiquidShape.LIQUID_SURFACE_HEIGHT, LightingConstants.SHADE_LIT);
         return data;
     }
 
-    private MeshData createSkyMesh() {
+    private MeshData createSkyMesh(int blocksY) {
         MeshData data = new MeshData(VERTEX_LAYOUT, PrimitiveType.TRIANGLES);
 
-        int y = 74;
+        int y = blocksY + 10;
         data.putIndices(0, 1, 2, 0, 2, 3);
         data.putVec3(-2048, y, -2048); data.putVec2(0, 0); data.putFloat(1);
         data.putVec3(-2048, y, +2048); data.putVec2(0, 0); data.putFloat(1);
@@ -153,7 +158,7 @@ public final class EnvironmentRenderer implements SafeCloseable {
         MeshData data = new MeshData(VERTEX_LAYOUT, PrimitiveType.TRIANGLES);
 
         // FIXME: For some reason the clouds move slightly jittery, not sure why
-        int y = 66;
+        int y = blocksY + 2;
         float scroll = ((tickCount + subtick) * 0.025f) % 4096;
 
         data.putIndices(0, 1, 2, 0, 2, 3);
