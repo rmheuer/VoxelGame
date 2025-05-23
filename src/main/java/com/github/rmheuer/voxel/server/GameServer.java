@@ -93,8 +93,17 @@ public final class GameServer implements LevelAccess {
         networkConnectionHandler = new NetworkConnectionHandler(this, port);
     }
 
+    public int openToNetworkRandomPort() throws Exception {
+        networkConnectionHandler = new NetworkConnectionHandler(this, 0);
+        return networkConnectionHandler.getPort();
+    }
+
     public void openLocally(LocalAddress addr) throws Exception {
         localConnectionHandler = new LocalConnectionHandler(this, addr);
+    }
+
+    public boolean isOpenToNetwork() {
+        return networkConnectionHandler != null;
     }
 
     public byte addClient(ClientConnection client) {

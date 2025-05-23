@@ -16,7 +16,8 @@ public final class GameMenuUI implements UI {
 
     private final Button backToGameButton;
     private final CycleButton<RenderDistance> renderDistanceButton;
-//    private final Button resetLevelButton;
+    private final Button resetLevelButton;
+    private final Button openToLANButton;
     private final Button quitGameButton;
 
     /**
@@ -27,8 +28,15 @@ public final class GameMenuUI implements UI {
 
         backToGameButton = new Button("Back to Game", () -> game.setUI(null));
         renderDistanceButton = new CycleButton<>("Render Distance: ", RenderDistance.values(), game.getRenderDistance().ordinal(), game::setRenderDistance);
-//        resetLevelButton = new Button("Create New Level...", () -> game.setUI(new CreateLevelUI(game, this)));
+        resetLevelButton = new Button("Create New Level...", () -> game.setUI(new CreateLevelUI(game, this, true)));
+        openToLANButton = new Button("Open to LAN", () -> {
+            game.openSinglePlayerServerToLAN();
+            game.setUI(null);
+        });
         quitGameButton = new Button("Quit Game", game::stop);
+
+        resetLevelButton.setEnabled(false); // FIXME: Currently does not work
+        openToLANButton.setEnabled(game.isPlayingSingleplayer());
     }
 
     @Override
@@ -37,18 +45,20 @@ public final class GameMenuUI implements UI {
         int centerY = draw.getHeight() / 2;
         
         int cornerX = centerX - Button.WIDTH / 2;
-        int cornerY = centerY - (4 * Button.HEIGHT + 36) / 2;
+        int cornerY = centerY - (5 * Button.HEIGHT + 40) / 2;
         
         backToGameButton.setPosition(cornerX, cornerY);
         renderDistanceButton.setPosition(cornerX, cornerY + Button.HEIGHT + 4);
-//        resetLevelButton.setPosition(cornerX, cornerY + Button.HEIGHT * 2 + 8);
-        quitGameButton.setPosition(cornerX, cornerY + Button.HEIGHT * 3 + 36);
+        resetLevelButton.setPosition(cornerX, cornerY + Button.HEIGHT * 2 + 8);
+        openToLANButton.setPosition(cornerX, cornerY + Button.HEIGHT * 3 + 12);
+        quitGameButton.setPosition(cornerX, cornerY + Button.HEIGHT * 4 + 40);
 
         draw.drawGradientBackground(0, 0, draw.getWidth(), draw.getHeight());
         draw.drawTextCentered(centerX, cornerY - 24, TITLE);
         backToGameButton.draw(draw, mousePos);
         renderDistanceButton.draw(draw, mousePos);
-//        resetLevelButton.draw(draw, mousePos);
+        resetLevelButton.draw(draw, mousePos);
+        openToLANButton.draw(draw, mousePos);
         quitGameButton.draw(draw, mousePos);
     }
 
@@ -56,7 +66,8 @@ public final class GameMenuUI implements UI {
     public void mouseClicked(Vector2i mousePos) {
         backToGameButton.mouseClicked(mousePos);
         renderDistanceButton.mouseClicked(mousePos);
-//        resetLevelButton.mouseClicked(mousePos);
+        resetLevelButton.mouseClicked(mousePos);
+        openToLANButton.mouseClicked(mousePos);
         quitGameButton.mouseClicked(mousePos);
     }
 

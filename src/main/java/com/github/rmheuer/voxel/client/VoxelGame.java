@@ -258,6 +258,20 @@ public final class VoxelGame extends BaseGame {
         beginConnecting(username, connectFuture);
     }
 
+    public void openSinglePlayerServerToLAN() {
+        try {
+            int port = singleplayerServer.openToNetworkRandomPort();
+            addChatMessage("Local game opened on port " + port);
+        } catch (Exception e) {
+            addChatMessage("Failed to open game to LAN");
+            e.printStackTrace();
+        }
+    }
+
+    public boolean isPlayingSingleplayer() {
+        return singleplayerServer != null && !singleplayerServer.isOpenToNetwork();
+    }
+
     public Player getPlayer(byte playerId) {
         if (playerId == -1)
             return localPlayer;

@@ -1,5 +1,6 @@
 package com.github.rmheuer.voxel.client.ui;
 
+import com.github.rmheuer.azalea.render.Colors;
 import org.joml.Vector2i;
 
 /**
@@ -8,6 +9,8 @@ import org.joml.Vector2i;
 public class Button {
     public static final int WIDTH = 200;
     public static final int HEIGHT = 20;
+
+    private static final int DISABLED_TEXT_COLOR = Colors.RGBA.fromInts(192, 192, 192);
 
     private String label;
     private boolean enabled;
@@ -64,18 +67,21 @@ public class Button {
      */
     public void draw(UIDrawList draw, Vector2i mousePos) {
         UISprite sprite;
+        int color;
         if (enabled) {
             if (mouseOver(mousePos))
                 sprite = draw.getSprites().getButtonHighlight();
             else
                 sprite = draw.getSprites().getButton();
+
+            color = Colors.RGBA.WHITE;
         } else {
             sprite = draw.getSprites().getButtonGray();
+            color = DISABLED_TEXT_COLOR;
         }
 
         draw.drawSpriteNineSlice(x, y, width, height, sprite, 3);
-//        draw.drawSprite(x, y, sprite);
-        draw.drawTextCentered(x + width / 2, y + height / 2 + 3, label);
+        draw.drawTextCenteredColored(x + width / 2, y + height / 2 + 3, label, color);
     }
 
     protected void clicked() {

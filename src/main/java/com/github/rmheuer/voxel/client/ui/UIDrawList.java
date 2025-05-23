@@ -176,6 +176,11 @@ public final class UIDrawList implements SafeCloseable {
         drawText(x - w / 2, y, text);
     }
 
+    public void drawTextCenteredColored(int x, int y, String text, int color) {
+        int w = textRenderer.textWidth(text);
+        drawTextColored(x - w / 2, y, text, color);
+    }
+
     public void drawGradientBackground(int x, int y, int w, int h) {
         drawRectVGradient(x, y, w, h, BG_COLOR_1, BG_COLOR_2);
     }

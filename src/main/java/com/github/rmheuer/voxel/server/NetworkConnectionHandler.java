@@ -13,10 +13,15 @@ import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
+import java.net.InetSocketAddress;
+
 public final class NetworkConnectionHandler implements SafeCloseable {
     private final EventLoopGroup bossGroup;
     private final EventLoopGroup workerGroup;
 
+    private final int port;
+
+    // If port is 0, random port will be assigned
     public NetworkConnectionHandler(GameServer server, int port) throws Exception {
         bossGroup = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
         workerGroup = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
@@ -43,16 +48,24 @@ public final class NetworkConnectionHandler implements SafeCloseable {
             b.childOption(ChannelOption.SO_KEEPALIVE, true);
             b.childOption(ChannelOption.TCP_NODELAY, true);
 
-            b.bind(port).sync();
+            ChannelFuture f = b.bind(port).sync();
+
+            // Get the actual port the server was opened on
+            InetSocketAddress boundAddr = (InetSocketAddress) f.channel().localAddress();
+            this.port = boundAddr.getPort();
 
             success = true;
-            System.out.println("Server open on port " + port);
+            System.out.println("Server open on port " + this.port);
         } finally {
             if (!success) {
                 bossGroup.shutdownGracefully();
                 workerGroup.shutdownGracefully();
             }
         }
+    }
+
+    public int getPort() {
+        return port;
     }
 
     @Override

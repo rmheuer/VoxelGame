@@ -36,7 +36,7 @@ Fix occlusion culling expanding slightly too far
 Fix world disappearing when above top of level
 [x] Fix chat failing when message is too long
 [x] Block placement behavior system for slabs
-Ability to open singleplayer world for multiplayer
+[x] Ability to open singleplayer world for multiplayer
 Support levels that are not multiple of 16 in dimensions
 [x] Make sky be at correct height for different level heights
 Block behaviors:
