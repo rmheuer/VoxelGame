@@ -43,4 +43,6 @@ Occlusion culling: https://tomcc.github.io/2014/08/31/visibility-1.html
 
 Multiplayer protocol: https://web.archive.org/web/20240516115242/https://wiki.vg/Classic_Protocol
 
+Protocol extensions: https://web.archive.org/web/20240516115200/https://wiki.vg/Classic_Protocol_Extension
+
 Viewing OpenGL calls by the original game using apitrace: https://apitrace.github.io/

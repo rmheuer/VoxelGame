@@ -4,6 +4,7 @@ import com.github.rmheuer.azalea.math.MathUtil;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.network.ClientPacketListener;
 import com.github.rmheuer.voxel.network.Connection;
+import com.github.rmheuer.voxel.network.cpe.CPEExtensions;
 import com.github.rmheuer.voxel.network.packet.*;
 import com.github.rmheuer.voxel.network.cpe.packet.BidiExtEntryPacket;
 import com.github.rmheuer.voxel.network.cpe.packet.BidiExtInfoPacket;
@@ -14,6 +15,7 @@ import org.joml.Vector3f;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
 public final class ClientConnection extends Connection<ClientPacket, ServerPacket> implements ClientPacketListener {
@@ -22,6 +24,10 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
     private final GameServer server;
     private byte playerId;
     private String username;
+
+    private final CPEExtensions.ExtensionSet receivedClientExtensions;
+    private int extEntryPacketsRemaining;
+    private CPEExtensions extensions;
 
     private Vector3f position;
     private float pitch, yaw;
@@ -34,6 +40,8 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
         this.server = server;
         playerId = -1;
         username = null;
+
+        receivedClientExtensions = new CPEExtensions.ExtensionSet();
 
         pingTimer = PING_INTERVAL;
     }
@@ -71,11 +79,47 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
     }
 
     @Override
+    public void onPlayerId(ClientPlayerIdPacket packet) {
+        System.out.println("Client username is " + packet.getUsername());
+        username = packet.getUsername();
+
+        if (packet.getProtocolVersion() != 7) {
+            kick("Protocol version mismatch");
+            return;
+        }
+
+        if (packet.getPadding() == CPEExtensions.HANDSHAKE_MAGIC_VALUE) {
+            // Start CPE
+            System.out.println("Client started CPE negotiation");
+
+            List<CPEExtensions.ExtensionInfo> extensions = CPEExtensions.ALL_SUPPORTED;
+            sendPacket(new BidiExtInfoPacket("VoxelGame", (short) extensions.size()));
+            for (CPEExtensions.ExtensionInfo info : extensions) {
+                sendPacket(new BidiExtEntryPacket(info.name, info.version));
+            }
+        } else {
+            initPlayer();
+        }
+    }
+
+    @Override
     public void onExtInfo(BidiExtInfoPacket packet) {
+        System.out.println("Client CPE response");
+        System.out.println("Client software: " + packet.getAppName());
+
+        extEntryPacketsRemaining = packet.getExtensionCount();
+        if (extEntryPacketsRemaining == 0)
+            initPlayer();
     }
 
     @Override
     public void onExtEntry(BidiExtEntryPacket packet) {
+        System.out.println("Client supports extension: " + packet.getExtName() + " version " + packet.getVersion());
+        receivedClientExtensions.add(packet.getExtName(), packet.getVersion());
+
+        extEntryPacketsRemaining--;
+        if (extEntryPacketsRemaining == 0)
+            initPlayer();
     }
 
     private ServerSpawnPlayerPacket makeSpawnPlayerPacket() {
@@ -86,17 +130,8 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
         );
     }
 
-    @Override
-    public void onPlayerId(ClientPlayerIdPacket packet) {
-        System.out.println("Client username is " + packet.getUsername());
-        username = packet.getUsername();
-
-        if (packet.getProtocolVersion() != 7) {
-            kick("Protocol version mismatch");
-            return;
-        }
-
-        playerId = server.addClient(this);
+    private void initPlayer() {
+        extensions = new CPEExtensions(receivedClientExtensions);
         sendPacket(new ServerIdPacket((short) 7, "Test Server", "", true));
 
         ClassicWorldFile.SpawnInfo spawn = server.getSpawnInfo();
@@ -106,19 +141,16 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
         pitch = spawn.pitch;
 
         // Tell client about itself
-        sendPacket(new ServerSpawnPlayerPacket((byte) -1, packet.getUsername(), spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.pitch));
+        sendPacket(new ServerSpawnPlayerPacket((byte) -1, username, spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.pitch));
 
         // Tell client about the other players on the server
         for (ClientConnection client : server.getAllClients()) {
-            if (client == this)
-                continue;
-
             sendPacket(client.makeSpawnPlayerPacket());
         }
 
         // Tell others that we joined
+        playerId = server.addClient(this);
         server.broadcastPacketToOthers(makeSpawnPlayerPacket(), this);
-
         server.broadcastSystemMessage(username + " joined the game");
 
         long prev = System.nanoTime();
