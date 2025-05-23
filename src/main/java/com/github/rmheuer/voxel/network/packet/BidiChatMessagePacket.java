@@ -1,13 +1,10 @@
 package com.github.rmheuer.voxel.network.packet;
 
-import com.github.rmheuer.voxel.network.ClientPacketListener;
-import com.github.rmheuer.voxel.network.PacketDataInput;
-import com.github.rmheuer.voxel.network.PacketDataOutput;
-import com.github.rmheuer.voxel.network.ServerPacketListener;
+import com.github.rmheuer.voxel.network.*;
 
 import java.io.IOException;
 
-public final class BidiChatMessagePacket implements ClientPacket, ServerPacket {
+public final class BidiChatMessagePacket implements BidiPacket {
     private byte playerId;
     private String message;
 
@@ -31,12 +28,7 @@ public final class BidiChatMessagePacket implements ClientPacket, ServerPacket {
     }
 
     @Override
-    public void handleClient(ClientPacketListener listener) {
-        listener.onChatMessage(this);
-    }
-
-    @Override
-    public void handleServer(ServerPacketListener listener) {
+    public void handle(BidiPacketListener listener) {
         listener.onChatMessage(this);
     }
 

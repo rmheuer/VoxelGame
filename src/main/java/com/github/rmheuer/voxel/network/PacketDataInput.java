@@ -14,6 +14,8 @@ public interface PacketDataInput {
 
     float readFShort();
 
+    int readInt();
+
     String readString();
 
     byte[] readBytes(int count);

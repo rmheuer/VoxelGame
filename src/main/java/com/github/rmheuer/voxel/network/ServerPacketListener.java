@@ -2,7 +2,7 @@ package com.github.rmheuer.voxel.network;
 
 import com.github.rmheuer.voxel.network.packet.*;
 
-public interface ServerPacketListener {
+public interface ServerPacketListener extends BidiPacketListener {
     void onServerId(ServerIdPacket packet);
 
     void onPing();
@@ -17,8 +17,6 @@ public interface ServerPacketListener {
 
     void onSpawnPlayer(ServerSpawnPlayerPacket packet);
 
-    void onPlayerPosition(BidiPlayerPositionPacket packet);
-
     void onRelativeMoveAndLook(ServerRelativeMoveAndLookPacket packet);
 
     void onRelativeMove(ServerRelativeMovePacket packet);
@@ -26,8 +24,6 @@ public interface ServerPacketListener {
     void onLook(ServerLookPacket packet);
 
     void onDespawnPlayer(ServerDespawnPlayerPacket packet);
-
-    void onChatMessage(BidiChatMessagePacket packet);
 
     void onDisconnect(ServerDisconnectPacket packet);
 

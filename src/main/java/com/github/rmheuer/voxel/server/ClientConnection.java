@@ -1,11 +1,12 @@
 package com.github.rmheuer.voxel.server;
 
 import com.github.rmheuer.azalea.math.MathUtil;
-import com.github.rmheuer.voxel.block.Blocks;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.network.ClientPacketListener;
 import com.github.rmheuer.voxel.network.Connection;
 import com.github.rmheuer.voxel.network.packet.*;
+import com.github.rmheuer.voxel.network.cpe.packet.BidiExtEntryPacket;
+import com.github.rmheuer.voxel.network.cpe.packet.BidiExtInfoPacket;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.joml.Vector3f;
@@ -67,6 +68,14 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
     @Override
     protected void dispatchPacket(ClientPacket packet) {
         packet.handleClient(this);
+    }
+
+    @Override
+    public void onExtInfo(BidiExtInfoPacket packet) {
+    }
+
+    @Override
+    public void onExtEntry(BidiExtEntryPacket packet) {
     }
 
     private ServerSpawnPlayerPacket makeSpawnPlayerPacket() {

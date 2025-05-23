@@ -3,6 +3,9 @@ package com.github.rmheuer.voxel.client;
 import com.github.rmheuer.voxel.client.ui.DownloadingTerrainUI;
 import com.github.rmheuer.voxel.network.ServerPacketListener;
 import com.github.rmheuer.voxel.network.packet.*;
+import com.github.rmheuer.voxel.network.cpe.packet.BidiExtEntryPacket;
+import com.github.rmheuer.voxel.network.cpe.packet.BidiExtInfoPacket;
+import com.github.rmheuer.voxel.network.cpe.CPEExtensions;
 import org.joml.Vector3i;
 
 import java.io.ByteArrayInputStream;
@@ -20,6 +23,10 @@ public final class NetworkHandler implements ServerPacketListener {
     private final VoxelGame client;
     private final ServerConnection conn;
 
+    private final CPEExtensions.ExtensionSet receivedServerExtensions;
+    private int extEntryPacketsRemaining;
+    private CPEExtensions extensions;
+
     private DownloadingTerrainUI downloadingTerrainUI;
     private final List<byte[]> receivedLevelChunks;
 
@@ -29,10 +36,11 @@ public final class NetworkHandler implements ServerPacketListener {
         this.client = client;
         this.conn = conn;
 
+        receivedServerExtensions = new CPEExtensions.ExtensionSet();
         receivedLevelChunks = new ArrayList<>();
 
         conn.setPacketListener(this);
-        conn.sendPacket(new ClientPlayerIdPacket((short) 7, username, ""));
+        conn.sendPacket(new ClientPlayerIdPacket((short) 7, username, "", CPEExtensions.HANDSHAKE_MAGIC_VALUE));
 
         timeoutTimer = new AtomicInteger(0);
     }
@@ -49,9 +57,49 @@ public final class NetworkHandler implements ServerPacketListener {
     }
 
     @Override
+    public void onExtInfo(BidiExtInfoPacket packet) {
+        System.out.println("Server started CPE negotiation");
+        System.out.println("Server software: " + packet.getAppName());
+
+        extEntryPacketsRemaining = packet.getExtensionCount();
+        if (extEntryPacketsRemaining == 0)
+            sendCPEReply();
+    }
+
+    @Override
+    public void onExtEntry(BidiExtEntryPacket packet) {
+        System.out.println("Server supports extension: " + packet.getExtName() + " version " + packet.getVersion());
+
+        receivedServerExtensions.add(packet.getExtName(), packet.getVersion());
+
+        extEntryPacketsRemaining--;
+        if (extEntryPacketsRemaining == 0)
+            sendCPEReply();
+    }
+
+    private void sendCPEReply() {
+        List<CPEExtensions.ExtensionInfo> extensions = CPEExtensions.ALL_SUPPORTED;
+
+        conn.sendPacket(new BidiExtInfoPacket(
+                "VoxelGame",
+                (short) extensions.size()
+        ));
+        for (CPEExtensions.ExtensionInfo info : extensions) {
+            conn.sendPacket(new BidiExtEntryPacket(info.name, info.version));
+        }
+
+        this.extensions = new CPEExtensions(receivedServerExtensions);
+        System.out.println("CPE negotiation finished");
+    }
+
+    @Override
     public void onServerId(ServerIdPacket packet) {
         System.out.println("Server name: " + packet.getServerName());
         System.out.println("Server MOTD: " + packet.getServerMotd());
+
+        // If no CPE negotiation happened, no extensions are supported
+        if (extensions == null)
+            extensions = new CPEExtensions(new CPEExtensions.ExtensionSet());
     }
 
     @Override
@@ -222,5 +270,9 @@ public final class NetworkHandler implements ServerPacketListener {
     @Override
     public void onUpdateOp(ServerUpdateOpPacket packet) {
 
+    }
+
+    public CPEExtensions getExtensions() {
+        return extensions;
     }
 }

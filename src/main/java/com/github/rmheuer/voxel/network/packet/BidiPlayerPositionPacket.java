@@ -1,13 +1,12 @@
 package com.github.rmheuer.voxel.network.packet;
 
-import com.github.rmheuer.voxel.network.ClientPacketListener;
+import com.github.rmheuer.voxel.network.BidiPacketListener;
 import com.github.rmheuer.voxel.network.PacketDataInput;
 import com.github.rmheuer.voxel.network.PacketDataOutput;
-import com.github.rmheuer.voxel.network.ServerPacketListener;
 
 import java.io.IOException;
 
-public final class BidiPlayerPositionPacket implements ClientPacket, ServerPacket {
+public final class BidiPlayerPositionPacket implements BidiPacket {
     private byte playerId;
     private float x, y, z;
     private float yaw;
@@ -45,12 +44,7 @@ public final class BidiPlayerPositionPacket implements ClientPacket, ServerPacke
     }
 
     @Override
-    public void handleClient(ClientPacketListener listener) {
-        listener.onPlayerPosition(this);
-    }
-
-    @Override
-    public void handleServer(ServerPacketListener listener) {
+    public void handle(BidiPacketListener listener) {
         listener.onPlayerPosition(this);
     }
 

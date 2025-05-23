@@ -64,14 +64,14 @@ public final class ServerConnection extends Connection<ServerPacket, ClientPacke
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        System.out.println("Received " + msg);
+//        System.out.println("Received " + msg);
         super.channelRead(ctx, msg);
     }
 
     @Override
     public void sendPacket(ClientPacket packet) {
         super.sendPacket(packet);
-        System.out.println("Sent " + packet);
+//        System.out.println("Sent " + packet);
     }
 
     public void setPacketListener(ServerPacketListener listener) {

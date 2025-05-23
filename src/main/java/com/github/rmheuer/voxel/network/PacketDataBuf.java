@@ -80,6 +80,16 @@ public final class PacketDataBuf implements PacketDataInput, PacketDataOutput {
     }
 
     @Override
+    public int readInt() {
+        return buf.readInt();
+    }
+
+    @Override
+    public void writeInt(int val) {
+        buf.writeInt(val);
+    }
+
+    @Override
     public String readString() {
         byte[] data = readBytes(MAX_STRING_LEN);
         String str = new String(data, StandardCharsets.US_ASCII);

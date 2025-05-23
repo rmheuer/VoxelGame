@@ -10,12 +10,15 @@ public final class ChatInputUI implements UI {
     private static final int BG_COLOR = Colors.RGBA.fromInts(5, 5, 0, 96);
 
     private final VoxelGame game;
+    private final boolean limitLength;
 
     private String input;
     private int inputCursor;
 
-    public ChatInputUI(VoxelGame game) {
+    public ChatInputUI(VoxelGame game, boolean limitLength) {
         this.game = game;
+        this.limitLength = limitLength;
+
         input = "";
     }
 
@@ -74,7 +77,7 @@ public final class ChatInputUI implements UI {
         if (c < ' ' || c > '~' || c == '&')
             return;
 
-        if (input.length() < PacketDataBuf.MAX_STRING_LEN) {
+        if (!limitLength || input.length() < PacketDataBuf.MAX_STRING_LEN) {
             input = input.substring(0, inputCursor) + c + input.substring(inputCursor);
             inputCursor++;
         }

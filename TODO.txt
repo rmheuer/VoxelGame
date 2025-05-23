@@ -47,6 +47,7 @@ Block behaviors:
 [x] Bring back singleplayer
 [x] Move UISprites into UIDrawList
 Proper player animation
+Color codes in chat
 Implement all Classic Protocol Extensions
 External server list support:
   - ClassiCube
@@ -55,3 +56,47 @@ External server list support:
   - Betacraft
     - [x] Server List
     - Authentication
+
+
+
+Server software: MCGalaxy 1.9.5.3
+EnvMapAppearance version 1
+ClickDistance version 1
+CustomBlocks version 1
+HeldBlock version 1
+TextHotKey version 1
+ExtPlayerList version 2
+EnvColors version 1
+SelectionCuboid version 1
+BlockPermissions version 1
+ChangeModel version 1
+EnvMapAppearance version 2
+EnvWeatherType version 1
+HackControl version 1
+EmoteFix version 1
+MessageTypes version 1
+LongerMessages version 1
+FullCP437 version 1
+BlockDefinitions version 1
+BlockDefinitionsExt version 2
+TextColors version 1
+BulkBlockUpdate version 1
+EnvMapAspect version 2
+PlayerClick version 1
+EntityProperty version 1
+ExtEntityPositions version 1
+TwoWayPing version 1
+InventoryOrder version 1
+InstantMOTD version 1
+FastMap version 1
+ExtendedTextures version 1
+SetHotbar version 1
+SetSpawnpoint version 1
+VelocityControl version 1
+CustomParticles version 1
+CustomModels version 2
+PluginMessages version 1
+ExtEntityTeleport version 1
+LightingMode version 1
+CinematicGui version 1
+NotifyAction version 1

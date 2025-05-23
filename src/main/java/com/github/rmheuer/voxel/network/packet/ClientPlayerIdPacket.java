@@ -10,13 +10,15 @@ public final class ClientPlayerIdPacket implements ClientPacket {
     private short protocolVersion;
     private String username;
     private String verificationKey;
+    private byte padding;
 
     public ClientPlayerIdPacket() {}
 
-    public ClientPlayerIdPacket(short protocolVersion, String username, String verificationKey) {
+    public ClientPlayerIdPacket(short protocolVersion, String username, String verificationKey, byte padding) {
         this.protocolVersion = protocolVersion;
         this.username = username;
         this.verificationKey = verificationKey;
+        this.padding = padding;
     }
 
     @Override
@@ -24,7 +26,7 @@ public final class ClientPlayerIdPacket implements ClientPacket {
         protocolVersion = in.readUByte();
         username = in.readString();
         verificationKey = in.readString();
-        in.readUByte(); // Unused padding
+        padding = in.readSByte();
     }
 
     @Override
@@ -32,7 +34,7 @@ public final class ClientPlayerIdPacket implements ClientPacket {
         out.writeUByte(protocolVersion);
         out.writeString(username);
         out.writeString(verificationKey);
-        out.writeUByte(0x00); // Unused padding
+        out.writeSByte(padding);
     }
 
     @Override
@@ -52,12 +54,17 @@ public final class ClientPlayerIdPacket implements ClientPacket {
         return verificationKey;
     }
 
+    public byte getPadding() {
+        return padding;
+    }
+
     @Override
     public String toString() {
-        return "ClientPlayerIdPacket{"
-            + "protocolVersion=" + protocolVersion + ", "
-            + "username='" + username + "', "
-            + "verificationKey='" + verificationKey + "'"
-            + "}";
+        return "ClientPlayerIdPacket{" +
+                "protocolVersion=" + protocolVersion +
+                ", username='" + username + '\'' +
+                ", verificationKey='" + verificationKey + '\'' +
+                ", padding=" + padding +
+                '}';
     }
 }

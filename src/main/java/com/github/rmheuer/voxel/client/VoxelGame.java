@@ -35,6 +35,7 @@ import com.github.rmheuer.voxel.client.ui.*;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.level.LightMap;
 import com.github.rmheuer.voxel.level.MapSection;
+import com.github.rmheuer.voxel.network.PacketDataBuf;
 import com.github.rmheuer.voxel.network.packet.BidiChatMessagePacket;
 import com.github.rmheuer.voxel.network.packet.BidiPlayerPositionPacket;
 import com.github.rmheuer.voxel.network.packet.ClientSetBlockPacket;
@@ -313,8 +314,23 @@ public final class VoxelGame extends BaseGame {
     }
 
     public void sendChatMessage(String message) {
-        if (connection != null)
-            connection.sendPacket(new BidiChatMessagePacket((byte) -1, message));
+        if (connection != null) {
+            if (networkHandler.getExtensions().longerMessages) {
+                for (int i = 0; i < message.length(); i += PacketDataBuf.MAX_STRING_LEN) {
+                    int endOfPart = i + PacketDataBuf.MAX_STRING_LEN;
+                    if (endOfPart < message.length()) {
+                        connection.sendPacket(new BidiChatMessagePacket((byte) 1, message.substring(i, endOfPart)));
+                    } else {
+                        connection.sendPacket(new BidiChatMessagePacket((byte) 0, message.substring(i)));
+                    }
+                }
+            } else {
+                if (message.length() > PacketDataBuf.MAX_STRING_LEN)
+                    message = message.substring(0, PacketDataBuf.MAX_STRING_LEN);
+
+                connection.sendPacket(new BidiChatMessagePacket((byte) -1, message));
+            }
+        }
     }
 
     public void runOnMainThread(Runnable fn) {
@@ -401,10 +417,14 @@ public final class VoxelGame extends BaseGame {
         }
     }
 
+    private boolean shouldLimitChatMessageLen() {
+        return connection != null && !networkHandler.getExtensions().longerMessages;
+    }
+
     private void charTyped(CharTypeEvent event) {
         // Checked before calling char type so that the / gets typed
         if (ui == null && event.getChar() == '/') {
-            setUI(new ChatInputUI(this));
+            setUI(new ChatInputUI(this, shouldLimitChatMessageLen()));
         }
 
         if (ui != null) {
@@ -414,7 +434,7 @@ public final class VoxelGame extends BaseGame {
         // Checked here instead of keyPressed() to prevent the t from being
         // immediately typed into the chat
         if (ui == null && Character.toLowerCase(event.getChar()) == 't') {
-            setUI(new ChatInputUI(this));
+            setUI(new ChatInputUI(this, shouldLimitChatMessageLen()));
         }
     }
 
@@ -429,7 +449,7 @@ public final class VoxelGame extends BaseGame {
     }
 
     private void mouseMoved(MouseMoveEvent event) {
-        if (!mouseCaptured)
+        if (!mouseCaptured || localPlayer == null)
             return;
 
         final float sensitivity = 0.0025f;
@@ -469,7 +489,7 @@ public final class VoxelGame extends BaseGame {
             return;
         }
 
-        if (!mouseCaptured || level == null)
+        if (!mouseCaptured || level == null || localPlayer == null)
             return;
 
         if (event.getButton() == MouseButton.LEFT) {
@@ -600,7 +620,7 @@ public final class VoxelGame extends BaseGame {
         if (networkHandler != null)
             networkHandler.tick();
 
-        if (level == null)
+        if (level == null || localPlayer == null)
             return;
 
         particleSystem.tickParticles(level.getBlockMap());
@@ -667,7 +687,7 @@ public final class VoxelGame extends BaseGame {
 
     private LevelRenderer.PreparedRender renderLevel(Renderer renderer, Vector2i windowSize) {
         if (localPlayer == null)
-            throw new IllegalStateException("No player!");
+            return null;
 
         float subtick = ticker.getSubtickPercent();
         if (capturedCameraPos == null) {

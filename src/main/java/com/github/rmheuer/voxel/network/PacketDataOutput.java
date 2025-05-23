@@ -15,6 +15,8 @@ public interface PacketDataOutput {
 
     void writeFShort(float val);
 
+    void writeInt(int val);
+
     void writeString(String val) throws IOException;
 
     void writeBytes(byte[] data);
