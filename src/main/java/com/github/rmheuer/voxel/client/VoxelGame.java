@@ -871,7 +871,7 @@ public final class VoxelGame extends BaseGame {
             int y = draw.getHeight() - 48 - 10 * i;
             float alpha = showAll ? 1 : Math.min(1, MathUtil.map(msg.age, CHAT_FADE_START, CHAT_FADE_START + CHAT_FADE_TIME, 1, 0));
 
-            draw.drawTextAlpha(2, y, msg.message, alpha);
+            draw.drawTextWithFormattingCodesAlpha(2, y, msg.message, alpha);
         }
     }
 

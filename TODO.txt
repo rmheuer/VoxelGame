@@ -47,7 +47,7 @@ Block behaviors:
 [x] Bring back singleplayer
 [x] Move UISprites into UIDrawList
 Proper player animation
-Color codes in chat
+[x] Color codes in chat
 Implement all Classic Protocol Extensions
 External server list support:
   - ClassiCube

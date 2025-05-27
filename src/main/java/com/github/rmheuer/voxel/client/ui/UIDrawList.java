@@ -154,7 +154,7 @@ public final class UIDrawList implements SafeCloseable {
     }
 
     public void drawTextColored(int x, int y, String text, int color) {
-        int shadowColor = Colors.RGBA.lerp(Colors.RGBA.BLACK, color, 0.25f);
+        int shadowColor = Colors.RGBA.fromInts(Colors.RGBA.getRed(color) / 4, Colors.RGBA.getGreen(color) / 4, Colors.RGBA.getBlue(color) / 4, Colors.RGBA.getAlpha(color));
         textRenderer.drawText(draw, x + 1, y + 1, text, shadowColor);
         textRenderer.drawText(draw, x, y, text, color);
     }
@@ -179,6 +179,30 @@ public final class UIDrawList implements SafeCloseable {
     public void drawTextCenteredColored(int x, int y, String text, int color) {
         int w = textRenderer.textWidth(text);
         drawTextColored(x - w / 2, y, text, color);
+    }
+
+    public void drawTextWithFormattingCodesAlpha(int x, int y, String text, float alpha) {
+        int color = Colors.RGBA.WHITE;
+        int startIndex = 0;
+        int formatIndex;
+        while (startIndex < text.length() && (formatIndex = text.indexOf('&', startIndex)) >= 0) {
+            if (startIndex != formatIndex) {
+                String part = text.substring(startIndex, formatIndex);
+                drawTextColored(x, y, part, color);
+
+                x += textRenderer.textWidth(part) + 1;
+            }
+
+            Integer newColor = ChatColors.getColorForFormatChar(text.charAt(formatIndex + 1));
+            if (newColor != null)
+                color = Colors.RGBA.setAlpha(newColor, (int) (alpha * 255));
+
+            startIndex = formatIndex + 2;
+        }
+
+        if (startIndex < text.length()) {
+            drawTextColored(x, y, text.substring(startIndex), color);
+        }
     }
 
     public void drawGradientBackground(int x, int y, int w, int h) {
