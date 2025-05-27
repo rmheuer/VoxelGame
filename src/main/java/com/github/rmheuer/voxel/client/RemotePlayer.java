@@ -40,6 +40,25 @@ public final class RemotePlayer extends Player {
     }
 
     @Override
+    public void teleportInstantly(float x, float y, float z) {
+        super.teleportInstantly(x, y, z);
+        smoothedPosition.set(position);
+    }
+
+    @Override
+    public void moveInstantly(float dx, float dy, float dz) {
+        super.moveInstantly(dx, dy, dz);
+        smoothedPosition.set(position);
+    }
+
+    @Override
+    public void setDirectionInstantly(float pitch, float yaw) {
+        super.setDirectionInstantly(pitch, yaw);
+        smoothedPitch = pitch;
+        smoothedYaw = yaw;
+    }
+
+    @Override
     public Vector3f getSmoothedPosition(float subtick) {
         return smoothPosition(subtick);
     }

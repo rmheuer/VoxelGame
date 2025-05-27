@@ -1,5 +1,6 @@
 package com.github.rmheuer.voxel.network;
 
+import com.github.rmheuer.voxel.network.cpe.packet.ServerExtEntityTeleportPacket;
 import com.github.rmheuer.voxel.network.cpe.packet.ServerSetTextColorPacket;
 import com.github.rmheuer.voxel.network.packet.*;
 import com.github.rmheuer.voxel.network.cpe.packet.ServerBulkBlockUpdatePacket;
@@ -39,4 +40,6 @@ public interface ServerPacketListener extends BidiPacketListener {
     void onSetTextColor(ServerSetTextColorPacket packet);
 
     void onSetClickDistance(ServerSetClickDistancePacket packet);
+
+    void onExtEntityTeleport(ServerExtEntityTeleportPacket packet);
 }

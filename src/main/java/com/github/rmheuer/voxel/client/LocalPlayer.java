@@ -194,6 +194,18 @@ public final class LocalPlayer extends Player {
             turned = true;
     }
 
+    @Override
+    public void teleportInstantly(float x, float y, float z) {
+        super.teleportInstantly(x, y, z);
+        prevPosition.set(position);
+    }
+
+    @Override
+    public void moveInstantly(float dx, float dy, float dz) {
+        super.moveInstantly(dx, dy, dz);
+        prevPosition.set(position);
+    }
+
     public boolean movedOrTurnedThisTick() {
         return !position.equals(prevPosition) || turned;
     }

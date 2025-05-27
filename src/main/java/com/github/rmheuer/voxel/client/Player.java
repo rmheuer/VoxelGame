@@ -29,13 +29,25 @@ public abstract class Player {
         position.set(x, y, z);
     }
 
+    public void teleportInstantly(float x, float y, float z) {
+        teleport(x, y, z);
+    }
+
     public void move(float dx, float dy, float dz) {
         position.add(dx, dy, dz);
+    }
+
+    public void moveInstantly(float dx, float dy, float dz) {
+        move(dx, dy, dz);
     }
 
     public void setDirection(float pitch, float yaw) {
         this.pitch = MathUtil.wrap(pitch, -(float) Math.PI, (float) Math.PI);;
         this.yaw = yaw;
+    }
+
+    public void setDirectionInstantly(float pitch, float yaw) {
+        setDirection(pitch, yaw);
     }
 
     /**

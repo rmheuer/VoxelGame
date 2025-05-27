@@ -41,6 +41,7 @@ public final class PacketRegistry {
         registerServer(0x12, ServerSetClickDistancePacket.class, ServerSetClickDistancePacket::new);
         registerServer(0x26, ServerBulkBlockUpdatePacket.class, ServerBulkBlockUpdatePacket::new);
         registerServer(0x27, ServerSetTextColorPacket.class, ServerSetTextColorPacket::new);
+        registerServer(0x36, ServerExtEntityTeleportPacket.class, ServerExtEntityTeleportPacket::new);
     }
 
     private static <P extends ClientPacket> void registerClient(int id, Class<P> packetClass, Supplier<P> constructor) {

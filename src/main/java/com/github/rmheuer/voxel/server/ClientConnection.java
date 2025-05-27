@@ -306,12 +306,12 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
     @Override
     public void sendPacket(ServerPacket packet) {
         super.sendPacket(packet);
-        printNamed("Sent " + packet);
+//        printNamed("Sent " + packet);
     }
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        printNamed("Received " + msg);
+//        printNamed("Received " + msg);
         super.channelRead(ctx, msg);
     }
 

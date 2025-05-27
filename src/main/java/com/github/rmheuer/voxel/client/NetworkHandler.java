@@ -232,6 +232,41 @@ public final class NetworkHandler implements ServerPacketListener {
     }
 
     @Override
+    public void onExtEntityTeleport(ServerExtEntityTeleportPacket packet) {
+        client.runOnMainThread(() -> {
+            Player player = client.getPlayer(packet.getEntityId());
+            if (player == null) {
+                System.err.println("Received teleport for unknown player " + packet.getEntityId());
+                return;
+            }
+
+            switch (packet.getMoveMode()) {
+                case ABSOLUTE_INSTANT:
+                    player.teleportInstantly(packet.getX(), packet.getY(), packet.getZ());
+                    break;
+                case ABSOLUTE_SMOOTH:
+                    player.teleport(packet.getX(), packet.getY(), packet.getZ());
+                    break;
+                case RELATIVE_INSTANT:
+                    player.moveInstantly(packet.getX(), packet.getY(), packet.getZ());
+                    break;
+                case RELATIVE_SMOOTH:
+                    player.move(packet.getX(), packet.getY(), packet.getZ());
+                    break;
+            }
+
+            switch (packet.getLookMode()) {
+                case INSTANT:
+                    player.setDirectionInstantly(packet.getPitch(), packet.getYaw());
+                    break;
+                case SMOOTH:
+                    player.setDirection(packet.getPitch(), packet.getYaw());
+                    break;
+            }
+        });
+    }
+
+    @Override
     public void onRelativeMoveAndLook(ServerRelativeMoveAndLookPacket packet) {
         client.runOnMainThread(() -> {
             Player player = client.getPlayer(packet.getPlayerId());
