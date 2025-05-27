@@ -17,8 +17,10 @@ public interface PacketDataInput {
     int readInt();
 
     String readString();
-
+    
     byte[] readBytes(int count);
 
+    int[] readInts(int count);
+    
     void skipBytes(int count);
 }

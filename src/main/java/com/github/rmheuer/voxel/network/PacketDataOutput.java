@@ -20,4 +20,8 @@ public interface PacketDataOutput {
     void writeString(String val) throws IOException;
 
     void writeBytes(byte[] data);
+
+    void writeInts(int[] data);
+
+    void writeZeros(int count);
 }

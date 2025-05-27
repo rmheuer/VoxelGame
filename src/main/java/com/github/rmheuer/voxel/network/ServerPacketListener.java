@@ -1,6 +1,7 @@
 package com.github.rmheuer.voxel.network;
 
 import com.github.rmheuer.voxel.network.packet.*;
+import com.github.rmheuer.voxel.network.cpe.packet.ServerBulkBlockUpdatePacket;
 
 public interface ServerPacketListener extends BidiPacketListener {
     void onServerId(ServerIdPacket packet);
@@ -14,6 +15,8 @@ public interface ServerPacketListener extends BidiPacketListener {
     void onLevelFinalize(ServerLevelFinalizePacket packet);
 
     void onSetBlock(ServerSetBlockPacket packet);
+
+    void onBulkBlockUpdate(ServerBulkBlockUpdatePacket packet);
 
     void onSpawnPlayer(ServerSpawnPlayerPacket packet);
 

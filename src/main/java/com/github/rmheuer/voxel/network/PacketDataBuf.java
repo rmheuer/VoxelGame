@@ -123,7 +123,28 @@ public final class PacketDataBuf implements PacketDataInput, PacketDataOutput {
     }
 
     @Override
+    public int[] readInts(int count) {
+        int[] ints = new int[count];
+        for (int i = 0; i < count; i++) {
+            ints[i] = buf.readInt();
+        }
+        return ints;
+    }
+
+    @Override
+    public void writeInts(int[] ints) {
+        for (int i : ints) {
+            buf.writeInt(i);
+        }
+    }
+
+    @Override
     public void skipBytes(int count) {
         buf.skipBytes(count);
+    }
+
+    @Override
+    public void writeZeros(int count) {
+        buf.writeZero(count);
     }
 }

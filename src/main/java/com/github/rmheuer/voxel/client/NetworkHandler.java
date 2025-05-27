@@ -1,10 +1,12 @@
 package com.github.rmheuer.voxel.client;
 
 import com.github.rmheuer.voxel.client.ui.DownloadingTerrainUI;
+import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.network.ServerPacketListener;
 import com.github.rmheuer.voxel.network.packet.*;
 import com.github.rmheuer.voxel.network.cpe.packet.BidiExtEntryPacket;
 import com.github.rmheuer.voxel.network.cpe.packet.BidiExtInfoPacket;
+import com.github.rmheuer.voxel.network.cpe.packet.ServerBulkBlockUpdatePacket;
 import com.github.rmheuer.voxel.network.cpe.CPEExtensions;
 import org.joml.Vector3i;
 
@@ -172,6 +174,29 @@ public final class NetworkHandler implements ServerPacketListener {
     public void onSetBlock(ServerSetBlockPacket packet) {
         client.runOnMainThread(() -> {
             client.setBlock(new Vector3i(packet.getX(), packet.getY(), packet.getZ()), packet.getBlockId());
+        });
+    }
+
+    @Override
+    public void onBulkBlockUpdate(ServerBulkBlockUpdatePacket packet) {
+        int[] indices = packet.getIndices();
+        byte[] blocks = packet.getBlocks();
+        client.runOnMainThread(() -> {
+            BlockMap map = client.getLevel().getBlockMap();
+            int blocksX = map.getBlocksX();
+            int blocksZ = map.getBlocksZ();
+
+            Vector3i pos = new Vector3i();
+            for (int i = 0; i < indices.length; i++) {
+                int idx = indices[i];
+                
+                int x = idx % blocksX;
+                int z = (idx / blocksX) % blocksZ;
+                int y = idx / blocksX / blocksZ;
+                pos.set(x, y, z);
+
+                client.setBlock(pos, blocks[i]);
+            }
         });
     }
 

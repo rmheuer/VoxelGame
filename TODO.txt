@@ -80,7 +80,7 @@ FullCP437 version 1
 BlockDefinitions version 1
 BlockDefinitionsExt version 2
 TextColors version 1
-BulkBlockUpdate version 1
+[x] BulkBlockUpdate version 1
 EnvMapAspect version 2
 PlayerClick version 1
 EntityProperty version 1

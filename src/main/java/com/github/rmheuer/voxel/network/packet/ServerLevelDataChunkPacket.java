@@ -40,7 +40,7 @@ public final class ServerLevelDataChunkPacket implements ServerPacket {
 
         // Padding
         if (chunkData.length < MAX_SIZE)
-            out.writeBytes(new byte[MAX_SIZE - chunkData.length]);
+            out.writeZeros(MAX_SIZE - chunkData.length);
 
         out.writeUByte(percentComplete);
     }

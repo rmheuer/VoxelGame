@@ -924,6 +924,10 @@ public final class VoxelGame extends BaseGame {
         this.renderDistance = renderDistance;
     }
 
+    public ClientLevel getLevel() {
+        return level;
+    }
+
     @Override
     protected void cleanUp() {
         if (level != null)
