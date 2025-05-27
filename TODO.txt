@@ -75,7 +75,7 @@ EnvWeatherType version 1
 HackControl version 1
 EmoteFix version 1
 MessageTypes version 1
-LongerMessages version 1
+[x] LongerMessages version 1
 FullCP437 version 1
 BlockDefinitions version 1
 BlockDefinitionsExt version 2

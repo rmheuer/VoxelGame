@@ -4,6 +4,7 @@ import com.github.rmheuer.azalea.math.MathUtil;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.network.ClientPacketListener;
 import com.github.rmheuer.voxel.network.Connection;
+import com.github.rmheuer.voxel.network.PacketDataBuf;
 import com.github.rmheuer.voxel.network.cpe.CPEExtensions;
 import com.github.rmheuer.voxel.network.packet.*;
 import com.github.rmheuer.voxel.network.cpe.packet.BidiExtEntryPacket;
@@ -29,6 +30,8 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
     private int extEntryPacketsRemaining;
     private CPEExtensions extensions;
 
+    private final StringBuilder partialChatMessage;
+    
     private Vector3f position;
     private float pitch, yaw;
 
@@ -42,6 +45,8 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
         username = null;
 
         receivedClientExtensions = new CPEExtensions.ExtensionSet();
+
+        partialChatMessage = new StringBuilder();
 
         pingTimer = PING_INTERVAL;
     }
@@ -233,18 +238,35 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
         yaw = packet.getYaw();
     }
 
-    @Override
-    public void onChatMessage(BidiChatMessagePacket packet) {
-        String msg = username + ": " + packet.getMessage();
+    private void dispatchChatMessage(String message) {
+        String msg = username + ": " + message;
         System.out.println("[CHAT] " + msg);
 
-        if (msg.length() > 64) {
-            String firstPart = msg.substring(0, 64);
-            String secondPart = msg.substring(64);
-            server.broadcastPacketToAll(new BidiChatMessagePacket(playerId, firstPart));
-            server.broadcastPacketToAll(new BidiChatMessagePacket(playerId, secondPart));
+        int partLen = PacketDataBuf.MAX_STRING_LEN;
+        
+        int partIndex = 0;
+        while (partIndex + partLen < msg.length()) {
+            String part = msg.substring(partIndex, partIndex + partLen);
+            server.broadcastPacketToAll(new BidiChatMessagePacket(playerId, part));
+            partIndex += partLen;
+        }
+
+        if (partIndex < msg.length()) {
+            server.broadcastPacketToAll(new BidiChatMessagePacket(playerId, msg.substring(partIndex)));
+        }
+    }
+
+    @Override
+    public void onChatMessage(BidiChatMessagePacket packet) {
+        if (extensions.longerMessages) {
+            partialChatMessage.append(packet.getMessage());
+            if (packet.getPlayerId() == 1)
+                return;
+
+            dispatchChatMessage(partialChatMessage.toString());
+            partialChatMessage.setLength(0);
         } else {
-            server.broadcastPacketToAll(new BidiChatMessagePacket(playerId, msg));
+            dispatchChatMessage(packet.getMessage());
         }
     }
 
