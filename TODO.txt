@@ -89,7 +89,7 @@ EntityProperty version 1
 ExtEntityPositions version 1
 TwoWayPing version 1
 InventoryOrder version 1
-InstantMOTD version 1
+[x] InstantMOTD version 1
 FastMap version 1
 ExtendedTextures version 1
 SetHotbar version 1

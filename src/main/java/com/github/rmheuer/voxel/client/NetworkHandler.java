@@ -38,6 +38,8 @@ public final class NetworkHandler implements ServerPacketListener {
         this.conn = conn;
 
         receivedServerExtensions = new CPEExtensions.ExtensionSet();
+        extensions = CPEExtensions.NONE;
+
         receivedLevelChunks = new ArrayList<>();
 
         conn.setPacketListener(this);
@@ -95,12 +97,10 @@ public final class NetworkHandler implements ServerPacketListener {
 
     @Override
     public void onServerId(ServerIdPacket packet) {
+        // If InstantMOTD extension is enabled, this could be received at any time
+
         System.out.println("Server name: " + packet.getServerName());
         System.out.println("Server MOTD: " + packet.getServerMotd());
-
-        // If no CPE negotiation happened, no extensions are supported
-        if (extensions == null)
-            extensions = new CPEExtensions(new CPEExtensions.ExtensionSet());
     }
 
     @Override

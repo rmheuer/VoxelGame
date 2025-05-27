@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 public final class CPEExtensions {
+    public static final CPEExtensions NONE = new CPEExtensions(new ExtensionSet());
+
     public static final class ExtensionInfo {
         public final String name;
         public final int version;
@@ -38,6 +40,7 @@ public final class CPEExtensions {
             new ExtensionInfo("LongerMessages", 1),
             new ExtensionInfo("BulkBlockUpdate", 1),
             new ExtensionInfo("TextColors", 1),
+            new ExtensionInfo("InstantMOTD", 1),
             new ExtensionInfo("ExtEntityTeleport", 1)
     );
 
@@ -45,6 +48,7 @@ public final class CPEExtensions {
     public final boolean longerMessages;
     public final boolean bulkBlockUpdate;
     public final boolean textColors;
+    public final boolean instantMotd;
     public final boolean extEntityTeleport;
 
     public CPEExtensions(ExtensionSet extensions) {
@@ -52,6 +56,7 @@ public final class CPEExtensions {
         longerMessages = extensions.has("LongerMessages", 1);
         bulkBlockUpdate = extensions.has("BulkBlockUpdate", 1);
         textColors = extensions.has("TextColors", 1);
+        instantMotd = extensions.has("InstantMotd", 1);
         extEntityTeleport = extensions.has("ExtEntityTeleport", 1);
     }
 }
