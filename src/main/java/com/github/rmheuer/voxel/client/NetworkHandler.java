@@ -7,6 +7,7 @@ import com.github.rmheuer.voxel.network.packet.*;
 import com.github.rmheuer.voxel.network.cpe.packet.BidiExtEntryPacket;
 import com.github.rmheuer.voxel.network.cpe.packet.BidiExtInfoPacket;
 import com.github.rmheuer.voxel.network.cpe.packet.ServerBulkBlockUpdatePacket;
+import com.github.rmheuer.voxel.network.cpe.packet.ServerSetClickDistancePacket;
 import com.github.rmheuer.voxel.network.cpe.CPEExtensions;
 import org.joml.Vector3i;
 
@@ -295,6 +296,14 @@ public final class NetworkHandler implements ServerPacketListener {
     @Override
     public void onUpdateOp(ServerUpdateOpPacket packet) {
 
+    }
+
+    @Override
+    public void onSetClickDistance(ServerSetClickDistancePacket packet) {
+        System.out.println("Reach distance updated to " + packet.getDistance());
+        client.runOnMainThread(() -> {
+            client.setReachDistance(packet.getDistance());
+        });
     }
 
     public CPEExtensions getExtensions() {

@@ -61,7 +61,7 @@ External server list support:
 
 Server software: MCGalaxy 1.9.5.3
 EnvMapAppearance version 1
-ClickDistance version 1
+[x] ClickDistance version 1
 CustomBlocks version 1
 HeldBlock version 1
 TextHotKey version 1

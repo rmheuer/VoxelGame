@@ -110,6 +110,7 @@ public final class VoxelGame extends BaseGame {
     private ClientLevel level;
 
     private boolean mouseCaptured;
+    private float reachDistance;
     private Raycast.Result raycastResult;
     private double partialScroll;
 
@@ -167,6 +168,8 @@ public final class VoxelGame extends BaseGame {
         camera = new Camera(cameraProj);
         environmentRenderer = new EnvironmentRenderer(getRenderer());
 
+        reachDistance = 5.0f;
+        
         setMouseCaptured(false);
         getEventBus().addHandler(KeyPressEvent.class, this::keyPressed);
         getEventBus().addHandler(CharTypeEvent.class, this::charTyped);
@@ -558,7 +561,7 @@ public final class VoxelGame extends BaseGame {
         if (level != null) {
             Vector3f pos = camera.getTransform().position;
             Vector3f dir = camera.getTransform().getForward();
-            raycastResult = Raycast.raycast(level.getBlockMap(), pos, dir, 5);
+            raycastResult = Raycast.raycast(level.getBlockMap(), pos, dir, reachDistance);
         }
 
         if (capturedCameraPos != null)
@@ -926,6 +929,10 @@ public final class VoxelGame extends BaseGame {
 
     public ClientLevel getLevel() {
         return level;
+    }
+
+    public void setReachDistance(float reachDistance) {
+        this.reachDistance = reachDistance;
     }
 
     @Override

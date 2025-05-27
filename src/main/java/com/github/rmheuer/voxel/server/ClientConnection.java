@@ -9,6 +9,7 @@ import com.github.rmheuer.voxel.network.cpe.CPEExtensions;
 import com.github.rmheuer.voxel.network.packet.*;
 import com.github.rmheuer.voxel.network.cpe.packet.BidiExtEntryPacket;
 import com.github.rmheuer.voxel.network.cpe.packet.BidiExtInfoPacket;
+import com.github.rmheuer.voxel.network.cpe.packet.ServerSetClickDistancePacket;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import org.joml.Vector3f;
@@ -139,6 +140,9 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
         extensions = new CPEExtensions(receivedClientExtensions);
         sendPacket(new ServerIdPacket((short) 7, "Test Server", "", true));
 
+        if (extensions.clickDistance)
+            sendPacket(new ServerSetClickDistancePacket(5.0f));
+        
         ClassicWorldFile.SpawnInfo spawn = server.getSpawnInfo();
 
         position = new Vector3f(spawn.x, spawn.y, spawn.z);
