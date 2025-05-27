@@ -36,16 +36,19 @@ public final class CPEExtensions {
     public static final List<ExtensionInfo> ALL_SUPPORTED = List.of(
             new ExtensionInfo("ClickDistance", 1),
             new ExtensionInfo("LongerMessages", 1),
-            new ExtensionInfo("BulkBlockUpdate", 1)                                                        
+            new ExtensionInfo("BulkBlockUpdate", 1),
+            new ExtensionInfo("TextColors", 1)
     );
 
     public final boolean clickDistance;
     public final boolean longerMessages;
     public final boolean bulkBlockUpdate;
+    public final boolean textColors;
 
     public CPEExtensions(ExtensionSet extensions) {
         clickDistance = extensions.has("ClickDistance", 1);
         longerMessages = extensions.has("LongerMessages", 1);
         bulkBlockUpdate = extensions.has("BulkBlockUpdate", 1);
+        textColors = extensions.has("TextColors", 1);
     }
 }

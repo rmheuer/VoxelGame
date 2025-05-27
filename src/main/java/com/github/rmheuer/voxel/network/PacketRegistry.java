@@ -1,10 +1,7 @@
 package com.github.rmheuer.voxel.network;
 
+import com.github.rmheuer.voxel.network.cpe.packet.*;
 import com.github.rmheuer.voxel.network.packet.*;
-import com.github.rmheuer.voxel.network.cpe.packet.BidiExtEntryPacket;
-import com.github.rmheuer.voxel.network.cpe.packet.BidiExtInfoPacket;
-import com.github.rmheuer.voxel.network.cpe.packet.ServerBulkBlockUpdatePacket;
-import com.github.rmheuer.voxel.network.cpe.packet.ServerSetClickDistancePacket;
 
 import java.util.function.Supplier;
 
@@ -43,6 +40,7 @@ public final class PacketRegistry {
         registerServer(0x11, BidiExtEntryPacket.class, BidiExtEntryPacket::new);
         registerServer(0x12, ServerSetClickDistancePacket.class, ServerSetClickDistancePacket::new);
         registerServer(0x26, ServerBulkBlockUpdatePacket.class, ServerBulkBlockUpdatePacket::new);
+        registerServer(0x27, ServerSetTextColorPacket.class, ServerSetTextColorPacket::new);
     }
 
     private static <P extends ClientPacket> void registerClient(int id, Class<P> packetClass, Supplier<P> constructor) {

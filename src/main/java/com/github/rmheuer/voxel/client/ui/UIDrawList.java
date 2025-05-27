@@ -24,6 +24,7 @@ public final class UIDrawList implements SafeCloseable {
     private final DrawList2D draw;
     private final Texture2D blockAtlas;
     private final UISprites sprites;
+    private final ChatColors chatColors;
     private final TextRenderer textRenderer;
 
     /**
@@ -32,13 +33,14 @@ public final class UIDrawList implements SafeCloseable {
      * @param blockAtlas block atlas texture
      * @param textRenderer text renderer for drawing text
      */
-    public UIDrawList(int width, int height, int screenHeight, int scale, Texture2D blockAtlas, UISprites sprites, TextRenderer textRenderer) {
+    public UIDrawList(int width, int height, int screenHeight, int scale, Texture2D blockAtlas, UISprites sprites, ChatColors chatColors, TextRenderer textRenderer) {
         this.width = width;
         this.height = height;
         this.screenHeight = screenHeight;
         this.scale = scale;
         this.blockAtlas = blockAtlas;
         this.sprites = sprites;
+        this.chatColors = chatColors;
         this.textRenderer = textRenderer;
 
         draw = new DrawList2D();
@@ -193,7 +195,7 @@ public final class UIDrawList implements SafeCloseable {
                 x += textRenderer.textWidth(part) + 1;
             }
 
-            Integer newColor = ChatColors.getColorForFormatChar(text.charAt(formatIndex + 1));
+            Integer newColor = chatColors.getColorForFormatChar(text.charAt(formatIndex + 1));
             if (newColor != null)
                 color = Colors.RGBA.setAlpha(newColor, (int) (alpha * 255));
 

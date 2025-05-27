@@ -1,11 +1,13 @@
 package com.github.rmheuer.voxel.server;
 
 import com.github.rmheuer.azalea.math.MathUtil;
+import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.network.ClientPacketListener;
 import com.github.rmheuer.voxel.network.Connection;
 import com.github.rmheuer.voxel.network.PacketDataBuf;
 import com.github.rmheuer.voxel.network.cpe.CPEExtensions;
+import com.github.rmheuer.voxel.network.cpe.packet.ServerSetTextColorPacket;
 import com.github.rmheuer.voxel.network.packet.*;
 import com.github.rmheuer.voxel.network.cpe.packet.BidiExtEntryPacket;
 import com.github.rmheuer.voxel.network.cpe.packet.BidiExtInfoPacket;
@@ -190,6 +192,28 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
         sendPacket(new ServerLevelFinalizePacket((short) map.getBlocksX(), (short) map.getBlocksY(), (short) map.getBlocksZ()));
 
         sendPacket(new BidiPlayerPositionPacket((byte) -1, spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.pitch));
+
+        if (extensions.textColors) {
+            StringBuilder builder = new StringBuilder();
+            for (char c = 'A'; c <= 'T'; c++) {
+                float hue = MathUtil.map(c, 'A', 'T' + 1, 0, 360);
+                int col = Colors.RGBA.fromHSV(hue, 1, 1);
+
+                sendPacket(new ServerSetTextColorPacket(
+                        Colors.RGBA.getRed(col),
+                        Colors.RGBA.getGreen(col),
+                        Colors.RGBA.getBlue(col),
+                        Colors.RGBA.getAlpha(col),
+                        c
+                ));
+
+                builder.append('&');
+                builder.append(c);
+                builder.append('A');
+            }
+
+            sendPacket(new BidiChatMessagePacket(playerId, builder.toString()));
+        }
     }
 
     @Override

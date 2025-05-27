@@ -79,7 +79,8 @@ MessageTypes version 1
 FullCP437 version 1
 BlockDefinitions version 1
 BlockDefinitionsExt version 2
-TextColors version 1
+[x] TextColors version 1
+  - Does redefining a color code change colors in messages sent with previous definition?
 [x] BulkBlockUpdate version 1
 EnvMapAspect version 2
 PlayerClick version 1

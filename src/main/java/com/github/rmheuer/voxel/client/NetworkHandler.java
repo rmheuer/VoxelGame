@@ -1,13 +1,11 @@
 package com.github.rmheuer.voxel.client;
 
+import com.github.rmheuer.azalea.render.Colors;
 import com.github.rmheuer.voxel.client.ui.DownloadingTerrainUI;
 import com.github.rmheuer.voxel.level.BlockMap;
 import com.github.rmheuer.voxel.network.ServerPacketListener;
+import com.github.rmheuer.voxel.network.cpe.packet.*;
 import com.github.rmheuer.voxel.network.packet.*;
-import com.github.rmheuer.voxel.network.cpe.packet.BidiExtEntryPacket;
-import com.github.rmheuer.voxel.network.cpe.packet.BidiExtInfoPacket;
-import com.github.rmheuer.voxel.network.cpe.packet.ServerBulkBlockUpdatePacket;
-import com.github.rmheuer.voxel.network.cpe.packet.ServerSetClickDistancePacket;
 import com.github.rmheuer.voxel.network.cpe.CPEExtensions;
 import org.joml.Vector3i;
 
@@ -284,6 +282,22 @@ public final class NetworkHandler implements ServerPacketListener {
     public void onChatMessage(BidiChatMessagePacket packet) {
         client.runOnMainThread(() -> {
             client.addChatMessage(packet.getMessage());
+        });
+    }
+
+    @Override
+    public void onSetTextColor(ServerSetTextColorPacket packet) {
+        client.runOnMainThread(() -> {
+            if (packet.getA() > 0) {
+                System.out.println("Defined new color for &" + packet.getCode());
+                client.getChatColors().defineCustomColor(
+                        packet.getCode(),
+                        Colors.RGBA.fromInts(packet.getR(), packet.getG(), packet.getB(), packet.getA())
+                );
+            } else {
+                System.out.println("Removed color definition for &" + packet.getCode());
+                client.getChatColors().removeCustomColor(packet.getCode());
+            }
         });
     }
 

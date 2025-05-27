@@ -92,6 +92,7 @@ public final class VoxelGame extends BaseGame {
 
     private final Texture2D atlasTexture;
     private final UISprites uiSprites;
+    private final ChatColors chatColors;
     private final TextRenderer textRenderer;
 
     private final LevelRenderer levelRenderer;
@@ -155,6 +156,7 @@ public final class VoxelGame extends BaseGame {
         atlasTexture = getRenderer().createTexture2D(ResourceUtil.readAsStream("terrain.png"));
         uiSprites = new UISprites(getRenderer());
         textRenderer = new TextRenderer(getRenderer());
+        chatColors = new ChatColors();
         remotePlayerRenderer = new RemotePlayerRenderer(getRenderer());
 
         levelRenderer = new LevelRenderer(getRenderer(), atlasTexture);
@@ -908,7 +910,7 @@ public final class VoxelGame extends BaseGame {
 
         int uiWidth = MathUtil.ceilDiv(windowSize.x, guiScale);
         int uiHeight = MathUtil.ceilDiv(windowSize.y, guiScale);
-        try (UIDrawList uiDraw = new UIDrawList(uiWidth, uiHeight, windowSize.y, guiScale, atlasTexture, uiSprites, textRenderer)) {
+        try (UIDrawList uiDraw = new UIDrawList(uiWidth, uiHeight, windowSize.y, guiScale, atlasTexture, uiSprites, chatColors, textRenderer)) {
             if (levelRender != null)
                 renderInGameUI(uiDraw, levelRender);
 
@@ -933,6 +935,10 @@ public final class VoxelGame extends BaseGame {
 
     public void setReachDistance(float reachDistance) {
         this.reachDistance = reachDistance;
+    }
+
+    public ChatColors getChatColors() {
+        return chatColors;
     }
 
     @Override
