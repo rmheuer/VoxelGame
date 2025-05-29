@@ -10,6 +10,7 @@ Clone of Minecraft Classic version c0.30_c
 - Left click to break block
 - Right click to place block
 - B or E to open block picker
+- T or / to open chat
 - Esc to pause game
 
 ## Building
