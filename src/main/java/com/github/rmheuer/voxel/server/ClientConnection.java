@@ -194,9 +194,11 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
         sendPacket(new BidiPlayerPositionPacket((byte) -1, spawn.x, spawn.y, spawn.z, spawn.yaw, spawn.pitch));
 
         if (extensions.textColors) {
+            String message = "TextColors ext test";
+
             StringBuilder builder = new StringBuilder();
-            for (char c = 'A'; c <= 'T'; c++) {
-                float hue = MathUtil.map(c, 'A', 'T' + 1, 0, 360);
+            for (int i = 0; i < message.length(); i++) {
+                float hue = MathUtil.map(i, 0, message.length(), 0, 360);
                 int col = Colors.RGBA.fromHSV(hue, 1, 1);
 
                 sendPacket(new ServerSetTextColorPacket(
@@ -204,12 +206,12 @@ public final class ClientConnection extends Connection<ClientPacket, ServerPacke
                         Colors.RGBA.getGreen(col),
                         Colors.RGBA.getBlue(col),
                         Colors.RGBA.getAlpha(col),
-                        c
+                        (char) ('A' + i)
                 ));
 
                 builder.append('&');
-                builder.append(c);
-                builder.append('A');
+                builder.append((char) ('A' + i));
+                builder.append(message.charAt(i));
             }
 
             sendPacket(new BidiChatMessagePacket(playerId, builder.toString()));
