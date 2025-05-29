@@ -41,7 +41,11 @@ public final class MainMenuUI implements UI {
         joinServerButton = new Button("Join Server", () -> doJoinServer(serverAddressInput.getInput()));
 
         joinServerButton.setEnabled(false);
-        usernameInput.setOnChange((username) -> joinServerButton.setEnabled(areServerParametersValid()));
+        usernameInput.setOnChange((username) -> {
+            joinServerButton.setEnabled(areServerParametersValid());
+            if (!username.isEmpty())
+                game.setUsername(username);
+        });
         serverAddressInput.setOnChange((address) -> joinServerButton.setEnabled(areServerParametersValid()));
         serverAddressInput.setOnConfirm(this::doJoinServer);
     }
@@ -57,7 +61,7 @@ public final class MainMenuUI implements UI {
         if (usernameInput.getInput().isEmpty())
             return;
 
-        game.beginMultiPlayer(address, usernameInput.getInput());
+        game.beginMultiPlayer(address);
     }
 
     @Override

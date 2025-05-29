@@ -83,7 +83,7 @@ public final class VoxelGame extends BaseGame {
         }
     }
 
-    private final String username;
+    private String username;
 
     private final EventLoopGroup nioEventLoop;
     private final EventLoopGroup localEventLoop;
@@ -206,7 +206,7 @@ public final class VoxelGame extends BaseGame {
         if (immediateServer == null)
             setUI(new MainMenuUI(this, initialUsername));
         else
-            beginMultiPlayer(immediateServer, initialUsername);
+            beginMultiPlayer(immediateServer);
     }
 
     private void beginConnecting(String username, ChannelFuture connectFuture) {
@@ -230,10 +230,6 @@ public final class VoxelGame extends BaseGame {
     }
 
     public void beginMultiPlayer(String address) {
-        beginMultiPlayer(address, username);
-    }
-
-    public void beginMultiPlayer(String address, String username) {
         ServerAddress addr = ServerAddress.parse(address);
         if (addr == null) {
             System.err.println("Invalid address: " + address);
@@ -241,10 +237,10 @@ public final class VoxelGame extends BaseGame {
             return;
         }
 
-        beginMultiPlayer(addr, username);
+        beginMultiPlayer(addr);
     }
 
-    private void beginMultiPlayer(ServerAddress address, String username) {
+    private void beginMultiPlayer(ServerAddress address) {
         ChannelFuture connectFuture = ServerConnection.connectToServer(nioEventLoop, address);
         beginConnecting(username, connectFuture);
     }
@@ -919,6 +915,10 @@ public final class VoxelGame extends BaseGame {
 
             renderer2D.draw(uiDraw.getDrawList(), new Matrix4f().ortho(0, (float) windowSize.x / guiScale, (float) windowSize.y / guiScale, 0, -1, 1));
         }
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public RenderDistance getRenderDistance() {
